@@ -41,12 +41,28 @@ class Scanner():
 
         self.ignore_whitespace()
         
-        # NUMBER
+        # CONSTANTS
         if self.current in DIGITS:
-            description = 'number'
+            description = 'constant'
             while self.current in DIGITS:
-                identifier += self.current
+                identifier += self.read_and_shift()
+            if self.current == ".":
+                identifier += self.read_and_shift()
+                if self.current in DIGITS:
+                    while self.current in DIGITS:
+                        identifier += self.read_and_shift()
+                else:
+                    raise Exception(f'Error: Expected digit after \'.\' in constant, but found \'{self.current}\'')
+            if self.current in ['e', 'E']:
+                identifier += 'e'
                 self.current = self.input.next()
+                if self.current in ['+', '-']:
+                    identifier += self.read_and_shift()
+                if self.current in DIGITS:
+                    while self.current in DIGITS:
+                        identifier += self.read_and_shift()
+                else:
+                    raise Exception(f'Error: Expected digit after \'e\'/\'E\' in constant, but found \'{self.current}\'')
         # SYMBOLS
         elif self.current in SYMBOLS.keys():
             description = SYMBOLS.get(self.current)
@@ -57,14 +73,14 @@ class Scanner():
             while self.current in ALPHA or self.current in DIGITS:
                 identifier += self.current
                 self.current = self.input.next()
-            if identifier in KEYWORDS:
+            if identifier.lower() in KEYWORDS:
                 description = 'keyword'
-            elif identifier in FUNCTIONS:
+                identifier = identifier.lower()
+            elif identifier.lower() in FUNCTIONS:
                 description = 'function'
+                identifier = identifier.lower()
             elif identifier.islower() and identifier.isalpha():
                 description = 'lowercase_alpha'
-            elif identifier.isalpha():
-                description = 'alpha'
             else:
                 description = 'alphanum'
         elif self.current == None:
@@ -76,9 +92,14 @@ class Scanner():
     def ignore_whitespace(self):
         while self.current == ' ':
             self.current = self.input.next()
+    
+    def read_and_shift(self):
+        identifier = self.current
+        self.current = self.input.next()
+        return identifier
 
 if __name__ == '__main__':
-    example = 'declare a(ij) b(kl) c(mn) argument a expression a*(ij,jk->ik)b + c'
+    example = 'declare a0(ij) b1(kl) c(mn) argument a0 expression a0*(ij,jk->ik)b1 + c*cOs(2) - EXP(3.13)*Log(1e-1) * sin(75.003E2)'
     s = Scanner(example)
     desc, ident = s.get_sym()
     while ident:
