@@ -90,8 +90,8 @@ class Scanner():
 
     
     def ignore_whitespace(self):
-        while self.current == ' ':
-            self.current = self.input.next()
+        while self.current != None and self.current in string.whitespace:
+                self.current = self.input.next()
     
     def read_and_shift(self):
         identifier = self.current
@@ -99,7 +99,7 @@ class Scanner():
         return identifier
 
 if __name__ == '__main__':
-    example = 'declare a0(ij) b1(kl) c(mn) argument a0 expression a0*(ij,jk->ik)b1 + c*cOs(2) - EXP(3.13)*Log(1e-1) * sin(75.003E2)'
+    example = 'declare a0(ij) b1(kl) c(mn) \n argument\ta0 \n expression a0*(ij,jk->ik)b1 + c*cOs(2) - EXP(3.13)*Log(1e-1) * sin(75.003E2)'
     s = Scanner(example)
     desc, ident = s.get_sym()
     while ident:
