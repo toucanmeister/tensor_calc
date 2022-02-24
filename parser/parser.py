@@ -1,3 +1,4 @@
+from inspect import _void
 from scanner import *
 
 class Parser():
@@ -12,7 +13,7 @@ class Parser():
         return self.desc == symbol
     
     def error(self, expected):
-        raise Exception(f'Expected \'{expected}\' but found \'{self.ident}\'')
+        raise Exception(f'Expected {expected} but found \'{self.ident}\'')
 
     def input(self):
         self.declaration()
@@ -20,8 +21,141 @@ class Parser():
         self.expressionpart()
     
     def declaration(self):
-        if self.fits('declare'):
+        if self.fits(ID.DECLARE):
             self.get_sym()
             self.tensordeclaration()
         else:
-            self.error('declare')
+            self.error(ID.DECLARE.value)
+    
+    def tensordeclaration(self):
+        while not self.fits(ID.ARGUMENT):
+            if self.fits(ID.ALPHANUM) or self.fits(ID.LOWERCASE_ALPHA):
+                self.get_sym()
+            else:
+                self.error('tensorname')
+            if self.fits(ID.LRBRACKET):
+                self.get_sym()
+            else:
+                self.error(ID.LRBRACKET.value)
+            if self.fits(ID.LOWERCASE_ALPHA):
+                self.get_sym()
+            else:
+                self.error(ID.LOWERCASE_ALPHA.value)
+            if self.fits(ID.RRBRACKET):
+                self.get_sym()
+            else:
+                self.error(ID.RRBRACKET.value)
+    
+    def argument(self):
+        if self.fits(ID.ARGUMENT):
+            self.get_sym()
+            if self.fits(ID.ALPHANUM) or self.fits(ID.LOWERCASE_ALPHA):
+                self.get_sym()
+            else:
+                self.error(ID.ALPHANUM.value)
+        else:
+            self.error(ID.ARGUMENT.value)
+    
+    def expressionpart(self):
+        if self.fits(ID.EXPRESSION):
+            self.get_sym()
+            self.expr()
+        else:
+            self.error(ID.EXPRESSION.value)
+
+    def expr(self):
+        self.term()
+        while self.fits(ID.PLUS) or self.fits(ID.MINUS):
+            self.get_sym()
+            self.term()
+    
+    def term(self):
+        while self.fits(ID.MINUS):
+            self.get_sym()
+        self.factor()
+        while self.fits(ID.MULTIPLY):
+            self.get_sym()
+            if self.fits(ID.LRBRACKET):
+                self.get_sym()
+            else:
+                self.error(ID.LRBRACKET.value)
+            self.productindices()
+            if self.fits(ID.RRBRACKET):
+                self.get_sym()
+            else:
+                self.error(ID.RRBRACKET.value)
+            while self.fits(ID.MINUS):
+                self.get_sym()
+            self.factor()
+    
+    def productindices(self):
+        if self.fits(ID.LOWERCASE_ALPHA):
+            self.get_sym()
+        else:
+            self.error(ID.LOWERCASE_ALPHA.value)
+        if self.fits(ID.COMMA):
+            self.get_sym()
+        else:
+            self.error(ID.COMMA.value)
+        if self.fits(ID.LOWERCASE_ALPHA):
+            self.get_sym()
+        else:
+            self.error(ID.LOWERCASE_ALPHA.value)
+        if self.fits(ID.MINUS):
+            self.get_sym()
+        else:
+            self.error(ID.MINUS.value)
+        if self.fits(ID.GREATER):
+            self.get_sym()
+        else:
+            self.error(ID.GREATER.value)
+        if self.fits(ID.LOWERCASE_ALPHA):
+            self.get_sym()
+        else:
+            self.error(ID.LOWERCASE_ALPHA.value)
+
+    def factor(self):
+        self.atom()
+        while self.fits(ID.POW):
+            self.get_sym()
+            if self.fits(ID.LRBRACKET):
+                self.get_sym()
+                self.factor()
+                if self.fits(ID.RRBRACKET):
+                    self.get_sym()
+                else:
+                    self.error(ID.RRBRACKET.value)
+            else:
+                self.atom()
+    
+    def atom(self):
+        if self.fits(ID.CONSTANT):
+            self.get_sym()
+        elif self.fits(ID.FUNCTION):
+            self.get_sym()
+            if self.fits(ID.LRBRACKET):
+                self.get_sym()
+                self.expr()
+                if self.fits(ID.RRBRACKET):
+                    self.get_sym()
+                else:
+                    self.error(ID.RRBRACKET.value)
+            else:
+                self.error(ID.LRBRACKET.value)
+        elif self.fits(ID.ALPHANUM) or self.fits(ID.LOWERCASE_ALPHA):
+            self.get_sym()
+        elif self.fits(ID.LRBRACKET):
+            self.get_sym()
+            self.expr()
+            if self.fits(ID.RRBRACKET):
+                self.get_sym()
+            else:
+                self.error(ID.RRBRACKET.value)
+        else:
+            self.error(ID.CONSTANT.value + ' or ' + ID.FUNCTION.value + ' or ' + 'tensorname' +  ' or ' + ID.LRBRACKET.value)
+
+
+if __name__ == '__main__':
+    example = 'declare a0(ij) b1(kl) c(mn) \n argument\ta0 \n expression a0*(ij,jk->ik)b1 + c'
+    p = Parser(example)
+    p.input()

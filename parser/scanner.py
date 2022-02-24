@@ -1,4 +1,5 @@
 import string
+from enum import Enum
 
 class Input():
     def __init__(self, input):
@@ -14,20 +15,43 @@ class Input():
         else:
             return None
 
+class ID(Enum):
+    CONSTANT = 'constant'
+    DECLARE = 'declare'
+    ARGUMENT = 'argument'
+    EXPRESSION = 'expression'
+    FUNCTION = 'function'
+    LOWERCASE_ALPHA = 'lowercase_alpha'
+    ALPHANUM = 'alphanum'
+    NONE = 'none'
+    PLUS = 'plus'
+    MINUS = 'minus'
+    MULTIPLY = 'multiply'
+    DIVIDE = 'divide'
+    POW = 'pow'
+    LRBRACKET = 'lrbracket'
+    RRBRACKET = 'rrbracket'
+    GREATER = 'greater'
+    COMMA = 'comma'
+
 ALPHA = list(string.ascii_letters)
 DIGITS = [str(i) for i in range(10)]
 SYMBOLS = {
-    '+': 'plus',
-    '-': 'minus',
-    '*': 'multiply',
-    '/': 'divide',
-    '^': 'pow',
-    '(': 'lrbracket',
-    ')': 'rrbracket',
-    '>': 'greater',
-    ',': 'comma'
+    '+': ID.PLUS,
+    '-': ID.MINUS,
+    '*': ID.MULTIPLY,
+    '/': ID.DIVIDE,
+    '^': ID.POW,
+    '(': ID.LRBRACKET,
+    ')': ID.RRBRACKET,
+    '>': ID.GREATER,
+    ',': ID.COMMA
 }
-KEYWORDS = {'declare', 'argument', 'expression'}
+KEYWORDS = {
+    'declare': ID.DECLARE,
+    'argument': ID.ARGUMENT,
+    'expression': ID.EXPRESSION
+}
 FUNCTIONS = {'sin', 'cos', 'exp', 'log', 'norm2', 'tr', 'det', 'logdet', 'inv', 'sqrt', 'abs', 'diag'}
 
 class Scanner():
@@ -37,13 +61,12 @@ class Scanner():
     
     def get_sym(self):
         identifier = ''
-        description = ''
 
         self.ignore_whitespace()
         
         # CONSTANTS
         if self.current in DIGITS:
-            description = 'constant'
+            id = ID.CONSTANT
             while self.current in DIGITS:
                 identifier += self.read_and_shift()
             if self.current == ".":
@@ -65,7 +88,7 @@ class Scanner():
                     raise Exception(f'Error: Expected digit after \'e\'/\'E\' in constant, but found \'{self.current}\'')
         # SYMBOLS
         elif self.current in SYMBOLS.keys():
-            description = SYMBOLS.get(self.current)
+            id = SYMBOLS.get(self.current)
             identifier = self.current
             self.current = self.input.next()
         # KEYWORDS, FUNCTIONS, LOWERCASE_ALPHA AND OTHER WORDS
@@ -73,20 +96,24 @@ class Scanner():
             while self.current in ALPHA or self.current in DIGITS:
                 identifier += self.current
                 self.current = self.input.next()
-            if identifier.lower() in KEYWORDS:
-                description = 'keyword'
+            if identifier.lower() in KEYWORDS.keys():
+                id = KEYWORDS.get(identifier.lower())
                 identifier = identifier.lower()
             elif identifier.lower() in FUNCTIONS:
-                description = 'function'
+                id = ID.FUNCTION
                 identifier = identifier.lower()
             elif identifier.islower() and identifier.isalpha():
-                description = 'lowercase_alpha'
+                id = ID.LOWERCASE_ALPHA
             else:
-                description = 'alphanum'
+                id = ID.ALPHANUM
+        # EMPTY
         elif self.current == None:
-            description = 'none'
+            id = ID.NONE
             identifier = None
-        return description, identifier
+        # UNKNOWN SYMBOL
+        else:
+            raise Exception(f'Symbol {self.current} not allowed.')
+        return id, identifier
 
     
     def ignore_whitespace(self):
