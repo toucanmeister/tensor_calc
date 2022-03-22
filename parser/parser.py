@@ -1,4 +1,3 @@
-from inspect import _void
 from scanner import *
 
 class Parser():
@@ -15,7 +14,7 @@ class Parser():
     def error(self, expected):
         raise Exception(f'Expected {expected} but found \'{self.ident}\'')
 
-    def input(self):
+    def start(self):
         self.declaration()
         self.argument()
         self.expressionpart()
@@ -24,27 +23,20 @@ class Parser():
         if self.fits(ID.DECLARE):
             self.get_sym()
             self.tensordeclaration()
+            while not self.fits(ID.ARGUMENT):
+                self.tensordeclaration()
         else:
             self.error(ID.DECLARE.value)
     
     def tensordeclaration(self):
-        while not self.fits(ID.ARGUMENT):
-            if self.fits(ID.ALPHANUM) or self.fits(ID.LOWERCASE_ALPHA):
-                self.get_sym()
-            else:
-                self.error('tensorname')
-            if self.fits(ID.LRBRACKET):
-                self.get_sym()
-            else:
-                self.error(ID.LRBRACKET.value)
-            if self.fits(ID.LOWERCASE_ALPHA):
-                self.get_sym()
-            else:
-                self.error(ID.LOWERCASE_ALPHA.value)
-            if self.fits(ID.RRBRACKET):
-                self.get_sym()
-            else:
-                self.error(ID.RRBRACKET.value)
+        if self.fits(ID.ALPHANUM) or self.fits(ID.LOWERCASE_ALPHA):
+            self.get_sym()
+        else:
+            self.error('tensorname')
+        if self.fits(ID.NATNUM):
+            self.get_sym()
+        else:
+            self.error(ID.NATNUM.value)
     
     def argument(self):
         if self.fits(ID.ARGUMENT):
@@ -129,8 +121,14 @@ class Parser():
                 self.atom()
     
     def atom(self):
-        if self.fits(ID.CONSTANT):
+        if self.fits(ID.CONSTANT) or self.fits(ID.NATNUM):
             self.get_sym()
+        elif self.fits(ID.MINUS):
+            self.get_sym()
+            if self.fits(ID.CONSTANT) or self.fits(ID.NATNUM):
+                self.get_sym()
+            else:
+                self.error(ID.CONSTANT.value + ' or ' + ID.NATNUM.value)
         elif self.fits(ID.FUNCTION):
             self.get_sym()
             if self.fits(ID.LRBRACKET):
@@ -156,6 +154,6 @@ class Parser():
 
 
 if __name__ == '__main__':
-    example = 'declare a0(ij) b1(kl) c(mn) \n argument\ta0 \n expression a0*(ij,jk->ik)b1 + c'
+    example = 'declare a0 1 b1 2 c 0 \n argument \t a0 \n expression a0*(ij,jk->ik)b1 + c'
     p = Parser(example)
-    p.input()
+    p.start()

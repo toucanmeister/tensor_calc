@@ -17,6 +17,7 @@ class Input():
 
 class ID(Enum):
     CONSTANT = 'constant'
+    NATNUM = 'natnum'
     DECLARE = 'declare'
     ARGUMENT = 'argument'
     EXPRESSION = 'expression'
@@ -64,12 +65,13 @@ class Scanner():
 
         self.ignore_whitespace()
         
-        # CONSTANTS
+        # CONSTANTS AND NATNUMS
         if self.current in DIGITS:
-            id = ID.CONSTANT
+            id = ID.NATNUM
             while self.current in DIGITS:
                 identifier += self.read_and_shift()
             if self.current == ".":
+                id = ID.CONSTANT
                 identifier += self.read_and_shift()
                 if self.current in DIGITS:
                     while self.current in DIGITS:
@@ -77,6 +79,7 @@ class Scanner():
                 else:
                     raise Exception(f'Error: Expected digit after \'.\' in constant, but found \'{self.current}\'')
             if self.current in ['e', 'E']:
+                id = ID.CONSTANT
                 identifier += 'e'
                 self.current = self.input.next()
                 if self.current in ['+', '-']:
@@ -126,8 +129,9 @@ class Scanner():
         return identifier
 
 if __name__ == '__main__':
-    example = 'declare a0(ij) b1(kl) c(mn) \n argument\ta0 \n expression a0*(ij,jk->ik)b1 + c*cOs(2) - EXP(3.13)*Log(1e-1) * sin(75.003E2)'
-    s = Scanner(example)
+    example1 = 'declare a0 1 b1 2 c 3  \n argument\ta0 \n expression a0*(ij,jk->ik)b1 + c*cOs(2) - EXP(3.13)*Log(1e-1) * sin(75.003E2)'
+    example2 = 'declare a 0 b 0 argument a expression 2 + exp(a^(-1)+b)'
+    s = Scanner(example2)
     desc, ident = s.get_sym()
     while ident:
         print(f'{desc} {ident}')
