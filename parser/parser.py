@@ -1,4 +1,5 @@
 from scanner import *
+from tree import *
 
 class Parser():
     def __init__(self, input):
@@ -17,7 +18,7 @@ class Parser():
     def start(self):
         self.declaration()
         self.argument()
-        self.expressionpart()
+        self.tree = self.expressionpart()
     
     def declaration(self):
         if self.fits(ID.DECLARE):
@@ -51,48 +52,50 @@ class Parser():
     def expressionpart(self):
         if self.fits(ID.EXPRESSION):
             self.get_sym()
-            self.expr()
+            tree = self.expr()
         else:
             self.error(ID.EXPRESSION.value)
+        return tree
 
     def expr(self):
-        self.term()
+        tree = self.term()
         while self.fits(ID.PLUS) or self.fits(ID.MINUS):
+            op = '+' if self.fits(ID.PLUS) else '-'
             self.get_sym()
-            self.term()
+            tree = Tree(op, tree, self.term())
+        return tree
     
     def term(self):
-        while self.fits(ID.MINUS):
-            self.get_sym()
-        self.factor()
+        tree = self.factor()
         while self.fits(ID.MULTIPLY):
             self.get_sym()
             if self.fits(ID.LRBRACKET):
                 self.get_sym()
             else:
                 self.error(ID.LRBRACKET.value)
-            self.productindices()
+            leftIndices, rightIndices, resultIndices = self.productindices()
             if self.fits(ID.RRBRACKET):
                 self.get_sym()
             else:
                 self.error(ID.RRBRACKET.value)
-            while self.fits(ID.MINUS):
-                self.get_sym()
-            self.factor()
-    
+            tree = Tree('*', tree, self.factor())
+            tree.set_indices(leftIndices, rightIndices, resultIndices)
+        return tree
+
     def productindices(self):
-        if self.fits(ID.LOWERCASE_ALPHA):
+        leftIndices = ''
+        rightIndices = ''
+        resultIndices = ''
+        while self.fits(ID.LOWERCASE_ALPHA):
+            leftIndices += self.ident
             self.get_sym()
-        else:
-            self.error(ID.LOWERCASE_ALPHA.value)
         if self.fits(ID.COMMA):
             self.get_sym()
         else:
             self.error(ID.COMMA.value)
-        if self.fits(ID.LOWERCASE_ALPHA):
+        while self.fits(ID.LOWERCASE_ALPHA):
+            rightIndices += self.ident
             self.get_sym()
-        else:
-            self.error(ID.LOWERCASE_ALPHA.value)
         if self.fits(ID.MINUS):
             self.get_sym()
         else:
@@ -101,39 +104,50 @@ class Parser():
             self.get_sym()
         else:
             self.error(ID.GREATER.value)
-        if self.fits(ID.LOWERCASE_ALPHA):
+        while self.fits(ID.LOWERCASE_ALPHA):
+            resultIndices += self.ident
             self.get_sym()
-        else:
-            self.error(ID.LOWERCASE_ALPHA.value)
+        return leftIndices, rightIndices, resultIndices
 
     def factor(self):
-        self.atom()
+        parity = 0
+        while self.fits(ID.MINUS):
+            parity = (parity+1) % 2
+            self.get_sym()
+        if parity == 1:
+            tree = Tree('-', None, self.atom())
+        else:
+            tree = self.atom()
         while self.fits(ID.POW):
             self.get_sym()
             if self.fits(ID.LRBRACKET):
                 self.get_sym()
-                self.factor()
+                tree = Tree('^', tree, self.factor())
                 if self.fits(ID.RRBRACKET):
                     self.get_sym()
                 else:
                     self.error(ID.RRBRACKET.value)
             else:
-                self.atom()
+                tree = Tree('^', tree, self.atom())
+        return tree
     
     def atom(self):
         if self.fits(ID.CONSTANT) or self.fits(ID.NATNUM):
+            tree = Tree(self.ident)
             self.get_sym()
         elif self.fits(ID.MINUS):
             self.get_sym()
             if self.fits(ID.CONSTANT) or self.fits(ID.NATNUM):
+                tree = Tree('-' + self.ident)
                 self.get_sym()
             else:
                 self.error(ID.CONSTANT.value + ' or ' + ID.NATNUM.value)
         elif self.fits(ID.FUNCTION):
+            functionName = self.ident
             self.get_sym()
             if self.fits(ID.LRBRACKET):
                 self.get_sym()
-                self.expr()
+                tree = Tree(functionName, None, self.expr())
                 if self.fits(ID.RRBRACKET):
                     self.get_sym()
                 else:
@@ -141,19 +155,22 @@ class Parser():
             else:
                 self.error(ID.LRBRACKET.value)
         elif self.fits(ID.ALPHANUM) or self.fits(ID.LOWERCASE_ALPHA):
+            tree = Tree(self.ident)
             self.get_sym()
         elif self.fits(ID.LRBRACKET):
             self.get_sym()
-            self.expr()
+            tree = self.expr()
             if self.fits(ID.RRBRACKET):
                 self.get_sym()
             else:
                 self.error(ID.RRBRACKET.value)
         else:
             self.error(ID.CONSTANT.value + ' or ' + ID.FUNCTION.value + ' or ' + 'tensorname' +  ' or ' + ID.LRBRACKET.value)
+        return tree
 
 
 if __name__ == '__main__':
-    example = 'declare a0 1 b1 2 c 0 \n argument \t a0 \n expression a0*(ij,jk->ik)b1 + c'
+    example = 'declare a 1 b 1 argument a expression cos(a*(i,j->ij)b)'
     p = Parser(example)
     p.start()
+    p.tree.dot('tree')
