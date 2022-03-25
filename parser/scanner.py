@@ -15,7 +15,7 @@ class Input():
         else:
             return None
 
-class ID(Enum):
+class TOKEN_ID(Enum):
     CONSTANT = 'constant'
     NATNUM = 'natnum'
     DECLARE = 'declare'
@@ -38,20 +38,20 @@ class ID(Enum):
 ALPHA = list(string.ascii_letters)
 DIGITS = [str(i) for i in range(10)]
 SYMBOLS = {
-    '+': ID.PLUS,
-    '-': ID.MINUS,
-    '*': ID.MULTIPLY,
-    '/': ID.DIVIDE,
-    '^': ID.POW,
-    '(': ID.LRBRACKET,
-    ')': ID.RRBRACKET,
-    '>': ID.GREATER,
-    ',': ID.COMMA
+    '+': TOKEN_ID.PLUS,
+    '-': TOKEN_ID.MINUS,
+    '*': TOKEN_ID.MULTIPLY,
+    '/': TOKEN_ID.DIVIDE,
+    '^': TOKEN_ID.POW,
+    '(': TOKEN_ID.LRBRACKET,
+    ')': TOKEN_ID.RRBRACKET,
+    '>': TOKEN_ID.GREATER,
+    ',': TOKEN_ID.COMMA
 }
 KEYWORDS = {
-    'declare': ID.DECLARE,
-    'argument': ID.ARGUMENT,
-    'expression': ID.EXPRESSION
+    'declare': TOKEN_ID.DECLARE,
+    'argument': TOKEN_ID.ARGUMENT,
+    'expression': TOKEN_ID.EXPRESSION
 }
 FUNCTIONS = {'sin', 'cos', 'exp', 'log', 'norm2', 'tr', 'det', 'logdet', 'inv', 'sqrt', 'abs', 'diag'}
 
@@ -67,11 +67,11 @@ class Scanner():
         
         # CONSTANTS AND NATNUMS
         if self.current in DIGITS:
-            id = ID.NATNUM
+            id = TOKEN_ID.NATNUM
             while self.current in DIGITS:
                 identifier += self.read_and_shift()
             if self.current == ".":
-                id = ID.CONSTANT
+                id = TOKEN_ID.CONSTANT
                 identifier += self.read_and_shift()
                 if self.current in DIGITS:
                     while self.current in DIGITS:
@@ -79,7 +79,7 @@ class Scanner():
                 else:
                     raise Exception(f'Error: Expected digit after \'.\' in constant, but found \'{self.current}\'')
             if self.current in ['e', 'E']:
-                id = ID.CONSTANT
+                id = TOKEN_ID.CONSTANT
                 identifier += 'e'
                 self.current = self.input.next()
                 if self.current in ['+', '-']:
@@ -103,15 +103,15 @@ class Scanner():
                 id = KEYWORDS.get(identifier.lower())
                 identifier = identifier.lower()
             elif identifier.lower() in FUNCTIONS:
-                id = ID.FUNCTION
+                id = TOKEN_ID.FUNCTION
                 identifier = identifier.lower()
             elif identifier.islower() and identifier.isalpha():
-                id = ID.LOWERCASE_ALPHA
+                id = TOKEN_ID.LOWERCASE_ALPHA
             else:
-                id = ID.ALPHANUM
+                id = TOKEN_ID.ALPHANUM
         # EMPTY
         elif self.current == None:
-            id = ID.NONE
+            id = TOKEN_ID.NONE
             identifier = None
         # UNKNOWN SYMBOL
         else:

@@ -21,64 +21,65 @@ class Parser():
         self.tree = self.expressionpart()
     
     def declaration(self):
-        if self.fits(ID.DECLARE):
+        if self.fits(TOKEN_ID.DECLARE):
             self.get_sym()
             self.tensordeclaration()
-            while not self.fits(ID.ARGUMENT):
+            while not self.fits(TOKEN_ID.ARGUMENT):
                 self.tensordeclaration()
         else:
-            self.error(ID.DECLARE.value)
+            self.error(TOKEN_ID.DECLARE.value)
     
     def tensordeclaration(self):
-        if self.fits(ID.ALPHANUM) or self.fits(ID.LOWERCASE_ALPHA):
+        if self.fits(TOKEN_ID.ALPHANUM) or self.fits(TOKEN_ID.LOWERCASE_ALPHA):
             self.get_sym()
         else:
             self.error('tensorname')
-        if self.fits(ID.NATNUM):
+        if self.fits(TOKEN_ID.NATNUM):
             self.get_sym()
         else:
-            self.error(ID.NATNUM.value)
+            self.error(TOKEN_ID.NATNUM.value)
     
     def argument(self):
-        if self.fits(ID.ARGUMENT):
+        if self.fits(TOKEN_ID.ARGUMENT):
             self.get_sym()
-            if self.fits(ID.ALPHANUM) or self.fits(ID.LOWERCASE_ALPHA):
+            if self.fits(TOKEN_ID.ALPHANUM) or self.fits(TOKEN_ID.LOWERCASE_ALPHA):
                 self.get_sym()
             else:
-                self.error(ID.ALPHANUM.value)
+                self.error(TOKEN_ID.ALPHANUM.value)
         else:
-            self.error(ID.ARGUMENT.value)
+            self.error(TOKEN_ID.ARGUMENT.value)
     
     def expressionpart(self):
-        if self.fits(ID.EXPRESSION):
+        if self.fits(TOKEN_ID.EXPRESSION):
             self.get_sym()
             tree = self.expr()
         else:
-            self.error(ID.EXPRESSION.value)
+            self.error(TOKEN_ID.EXPRESSION.value)
         return tree
 
     def expr(self):
         tree = self.term()
-        while self.fits(ID.PLUS) or self.fits(ID.MINUS):
-            op = '+' if self.fits(ID.PLUS) else '-'
+        while self.fits(TOKEN_ID.PLUS) or self.fits(TOKEN_ID.MINUS):
+            type = NODETYPE.SUM if self.fits(TOKEN_ID.PLUS) else NODETYPE.DIFFERENCE
+            name = '+' if self.fits(TOKEN_ID.PLUS) else '-'
             self.get_sym()
-            tree = Tree(op, tree, self.term())
+            tree = Tree(type, name, tree, self.term())
         return tree
     
     def term(self):
         tree = self.factor()
-        while self.fits(ID.MULTIPLY):
+        while self.fits(TOKEN_ID.MULTIPLY):
             self.get_sym()
-            if self.fits(ID.LRBRACKET):
+            if self.fits(TOKEN_ID.LRBRACKET):
                 self.get_sym()
             else:
-                self.error(ID.LRBRACKET.value)
+                self.error(TOKEN_ID.LRBRACKET.value)
             leftIndices, rightIndices, resultIndices = self.productindices()
-            if self.fits(ID.RRBRACKET):
+            if self.fits(TOKEN_ID.RRBRACKET):
                 self.get_sym()
             else:
-                self.error(ID.RRBRACKET.value)
-            tree = Tree('*', tree, self.factor())
+                self.error(TOKEN_ID.RRBRACKET.value)
+            tree = Tree(NODETYPE.PRODUCT, tree, self.factor())
             tree.set_indices(leftIndices, rightIndices, resultIndices)
         return tree
 
@@ -86,91 +87,91 @@ class Parser():
         leftIndices = ''
         rightIndices = ''
         resultIndices = ''
-        while self.fits(ID.LOWERCASE_ALPHA):
+        while self.fits(TOKEN_ID.LOWERCASE_ALPHA):
             leftIndices += self.ident
             self.get_sym()
-        if self.fits(ID.COMMA):
+        if self.fits(TOKEN_ID.COMMA):
             self.get_sym()
         else:
-            self.error(ID.COMMA.value)
-        while self.fits(ID.LOWERCASE_ALPHA):
+            self.error(TOKEN_ID.COMMA.value)
+        while self.fits(TOKEN_ID.LOWERCASE_ALPHA):
             rightIndices += self.ident
             self.get_sym()
-        if self.fits(ID.MINUS):
+        if self.fits(TOKEN_ID.MINUS):
             self.get_sym()
         else:
-            self.error(ID.MINUS.value)
-        if self.fits(ID.GREATER):
+            self.error(TOKEN_ID.MINUS.value)
+        if self.fits(TOKEN_ID.GREATER):
             self.get_sym()
         else:
-            self.error(ID.GREATER.value)
-        while self.fits(ID.LOWERCASE_ALPHA):
+            self.error(TOKEN_ID.GREATER.value)
+        while self.fits(TOKEN_ID.LOWERCASE_ALPHA):
             resultIndices += self.ident
             self.get_sym()
         return leftIndices, rightIndices, resultIndices
 
     def factor(self):
         parity = 0
-        while self.fits(ID.MINUS):
+        while self.fits(TOKEN_ID.MINUS):
             parity = (parity+1) % 2
             self.get_sym()
         if parity == 1:
-            tree = Tree('-', None, self.atom())
+            tree = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, self.atom())
         else:
             tree = self.atom()
-        while self.fits(ID.POW):
+        while self.fits(TOKEN_ID.POW):
             self.get_sym()
-            if self.fits(ID.LRBRACKET):
+            if self.fits(TOKEN_ID.LRBRACKET):
                 self.get_sym()
-                tree = Tree('^', tree, self.factor())
-                if self.fits(ID.RRBRACKET):
+                tree = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '^', tree, self.factor())
+                if self.fits(TOKEN_ID.RRBRACKET):
                     self.get_sym()
                 else:
-                    self.error(ID.RRBRACKET.value)
+                    self.error(TOKEN_ID.RRBRACKET.value)
             else:
-                tree = Tree('^', tree, self.atom())
+                tree = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '^', tree, self.atom())
         return tree
     
     def atom(self):
-        if self.fits(ID.CONSTANT) or self.fits(ID.NATNUM):
-            tree = Tree(self.ident)
+        if self.fits(TOKEN_ID.CONSTANT) or self.fits(TOKEN_ID.NATNUM):
+            tree = Tree(NODETYPE.CONSTANT, self.ident)
             self.get_sym()
-        elif self.fits(ID.MINUS):
+        elif self.fits(TOKEN_ID.MINUS):
             self.get_sym()
-            if self.fits(ID.CONSTANT) or self.fits(ID.NATNUM):
-                tree = Tree('-' + self.ident)
+            if self.fits(TOKEN_ID.CONSTANT) or self.fits(TOKEN_ID.NATNUM):
+                tree = Tree(NODETYPE.CONSTANT, '-' + self.ident)
                 self.get_sym()
             else:
-                self.error(ID.CONSTANT.value + ' or ' + ID.NATNUM.value)
-        elif self.fits(ID.FUNCTION):
+                self.error(TOKEN_ID.CONSTANT.value + ' or ' + TOKEN_ID.NATNUM.value)
+        elif self.fits(TOKEN_ID.FUNCTION):
             functionName = self.ident
             self.get_sym()
-            if self.fits(ID.LRBRACKET):
+            if self.fits(TOKEN_ID.LRBRACKET):
                 self.get_sym()
-                tree = Tree(functionName, None, self.expr())
-                if self.fits(ID.RRBRACKET):
+                tree = Tree(NODETYPE.FUNCTION, functionName, None, self.expr())
+                if self.fits(TOKEN_ID.RRBRACKET):
                     self.get_sym()
                 else:
-                    self.error(ID.RRBRACKET.value)
+                    self.error(TOKEN_ID.RRBRACKET.value)
             else:
-                self.error(ID.LRBRACKET.value)
-        elif self.fits(ID.ALPHANUM) or self.fits(ID.LOWERCASE_ALPHA):
-            tree = Tree(self.ident)
+                self.error(TOKEN_ID.LRBRACKET.value)
+        elif self.fits(TOKEN_ID.ALPHANUM) or self.fits(TOKEN_ID.LOWERCASE_ALPHA):
+            tree = Tree(NODETYPE.VARIABLE, self.ident)
             self.get_sym()
-        elif self.fits(ID.LRBRACKET):
+        elif self.fits(TOKEN_ID.LRBRACKET):
             self.get_sym()
             tree = self.expr()
-            if self.fits(ID.RRBRACKET):
+            if self.fits(TOKEN_ID.RRBRACKET):
                 self.get_sym()
             else:
-                self.error(ID.RRBRACKET.value)
+                self.error(TOKEN_ID.RRBRACKET.value)
         else:
-            self.error(ID.CONSTANT.value + ' or ' + ID.FUNCTION.value + ' or ' + 'tensorname' +  ' or ' + ID.LRBRACKET.value)
+            self.error(TOKEN_ID.CONSTANT.value + ' or ' + TOKEN_ID.FUNCTION.value + ' or ' + 'tensorname' +  ' or ' + TOKEN_ID.LRBRACKET.value)
         return tree
 
 
 if __name__ == '__main__':
-    example = 'declare a 1 b 1 argument a expression cos(a*(i,j->ij)b)'
+    example = 'declare a 1 b 1 c 1 argument a expression cos(a*(i,j->ij)b) + c'
     p = Parser(example)
     p.start()
     p.tree.dot('tree')

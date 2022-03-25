@@ -1,21 +1,21 @@
-input ::= declaration argument expressionpart
+input = declaration argument expressionpart
 
-declaration ::= 'declare' tensordeclaration {tensordeclaration}
-tensordeclaration ::= tensorname digit {digit}
-tensorname ::= alpha { alpha | digit }
-alpha ::= smallalpha | largealpha
-smallalpha ::= [a-z]
-largealpha ::= [A-Z]
+declaration = 'declare' (tensordeclaration)*
+tensordeclaration = tensorname (digit)*
+tensorname = alpha { alpha | digit }
+alpha = smallalpha | largealpha
+smallalpha = [a-z]
+largealpha = [A-Z]
 
-argument ::= 'argument' tensorname
+argument = 'argument' tensorname
 
-expressionpart ::= 'expression' expr
-expr ::= term ( ( '+' | '-' ) term )*
-term ::= factor ( ( '*(' productindices ')') factor )*
-productindices ::= tensorindices ',' tensorindices ',' tensorindices
-tensorindices ::= smallalpha {smallalpha}
-factor ::= {'-'} atom ( '^' ( '(' factor ')' | atom ) )*
-atom ::= number | function '(' expr ')' | tensorname | '(' expr ')'
-number ::= ['-'] digit* '.' digit* [ ( 'e' | 'E' ) [ '+' | '-' ] {digit} ]
-digit ::= [0-9]
-function ::= 'sin' | 'cos' | 'exp' | 'log' | 'norm2' | 'tr' | 'det' | 'logdet' | 'inv' | 'sqrt' | 'abs' | 'diag'
+expressionpart = 'expression' expr
+expr = term (( '+' | '-' ) term)*
+term = factor (( '*(' productindices ')') factor)*
+productindices = tensorindices ',' tensorindices '->' tensorindices
+tensorindices = (smallalpha)*
+factor = {'-'} atom ('^' ('(' factor ')' | atom))*
+atom = number | function '(' expr ')' | tensorname | '(' expr ')'
+number = ['-'] digit* '.' digit* [( 'e' | 'E' ) ['+' | '-'] (digit)*]
+digit = [0-9]
+function = 'sin' | 'cos' | 'exp' | 'log' | 'norm2' | 'tr' | 'det' | 'logdet' | 'inv' | 'sqrt' | 'abs' | 'diag'

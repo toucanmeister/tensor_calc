@@ -1,1 +1,10 @@
+- TITEL ÜBERLEGEN (Designing and implementing a tensor calculus)
+- ARBEIT ANMELDEN
+
+- Indexmenge in jedem Knoten speichern
 - Semantischer Check
+- Mehrfachvorkommen eliminieren (common subexpression elimination)
+- (Matrix)determinanten sind wichtig (total antisymmetrischer Tensor)
+
+Ideen:
+- Elementweise Division als eigene Operation
