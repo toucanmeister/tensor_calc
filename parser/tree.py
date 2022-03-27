@@ -1,6 +1,5 @@
-from asyncio import constants
-from graphviz import Digraph
 from enum import Enum
+from graphviz import Digraph
 
 class NODETYPE(Enum):
     CONSTANT = 'constant'
@@ -9,21 +8,24 @@ class NODETYPE(Enum):
     ELEMENTWISE_FUNCTION = 'elementwise_function'
     SUM = 'sum'
     DIFFERENCE = 'difference'
-    PRODUCT = 'product'
     QUOTIENT = 'quotient'
+    PRODUCT = 'product'
 
 
 class Tree():
+    running_id = 0
     def __init__(self, nodetype, name, left=None, right=None):
-        self.type = type
+        self.type = nodetype
         self.name = name
         self.left = left
         self.right = right
         self.rank = -1      # Initialization value
-        if nodetype == NODETYPE.PRODUCT:    
+        if self.type == NODETYPE.PRODUCT:    
             self.leftIndices = ''       # Indices in the einstein product notation
             self.rightIndices = ''
             self.resultIndices = ''
+        self.id = Tree.running_id
+        Tree.running_id += 1
     
     def set_left(self, left):
         self.left = left
@@ -48,28 +50,32 @@ class Tree():
         else:
             return f'{self.name}'
     
-    def get_nodes(self):
-        nodes = [self]
-        if self.left:
-            for node in self.left.get_nodes():
-                nodes.append(node)
-        if self.right:
-            for node in self.right.get_nodes():
-                nodes.append(node)
-        return nodes
+    def __eq__(self, other):
+        return self.type == other.type and self.name == other.name and self.rank == other.rank and self.left == other.left and self.right == other.right
     
-    def dot(self, filename, view=False):
-        dot = Digraph(format='pdf')
-        nodes_to_number = { }
-        i = 0
-        for node in self.get_nodes():
-            nodes_to_number[node] = str(i)
-            dot.node(str(i) , str(node.name))
-            i += 1
-        for node in self.get_nodes():
-            if node.left:
-                dot.edge(nodes_to_number[node], nodes_to_number[node.left])
-            if node.right:
-                dot.edge(nodes_to_number[node], nodes_to_number[node.right])
-        dot.render(filename, view=view)
-        return dot
+    def __hash__(self): # Necessary for instances to behave sanely in dicts and sets.
+        return hash((self.type, self.name, self.rank, self.left, self.right))
+
+    def get_all_subtrees(self):
+        if not self.left:
+            leftSubtrees = [None]
+        else:
+            leftSubtrees = self.left.get_all_subtrees()
+        if not self.right:
+            rightSubtrees = [None]
+        else:
+            rightSubtrees = self.right.get_all_subtrees()
+        return [self] + leftSubtrees + rightSubtrees
+    
+    def dot(self, filename):
+        g = Digraph(format='png', strict=True, edge_attr={'dir': 'back'})
+        nodes = self.get_all_subtrees()
+        for node in nodes:
+            if node:
+                g.node(str(node.id), str(node.name) + '(' + str(node.rank) + ')')
+        for node in nodes:
+            if node and node.left:
+                g.edge(str(node.id), str(node.left.id))
+            if node and node.right:
+                g.edge(str(node.id), str(node.right.id))
+        g.render(filename)

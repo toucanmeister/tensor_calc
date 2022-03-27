@@ -4,10 +4,14 @@ import unittest
 class ParserTests(unittest.TestCase):
     def test_base(self):
         test = 'declare a 0 argument a expression a'
-        Parser(test).start()
+        p = Parser(test)
+        p.start()
+        p.set_node_tensorrank()
     def test_declarations(self):
-        test = 'declare a0 0 b 10 tensor0dude 100 tensor1dude 1 argument tensor0dude expression a'
-        Parser(test).start()
+        test = 'declare a0 0 b 10 tensor0dude 100 tensor1dude 1 argument tensor0dude expression a0'
+        p = Parser(test)
+        p.start()
+        p.set_node_tensorrank()
     def test_no_tensorrank(self):
         test1 = 'declare a0 argument a0 expression a0'
         test2 = 'declare a0 b1 1 argument b1 expression b1'
@@ -24,13 +28,19 @@ class ParserTests(unittest.TestCase):
             argument a
             expression  a + b
                 '''
-        Parser(test).start()
+        p = Parser(test)
+        p.start()
+        p.set_node_tensorrank()
     def test_goodexpression_1(self):
-        test = 'declare a 0 b 0 argument a expression 2 + exp(a^(-1)+b)'
-        Parser(test).start()
+        test = 'declare a 0 b 0 argument a expression 2 + a^(-1)+b'
+        p = Parser(test)
+        p.start()
+        p.set_node_tensorrank()
     def test_goodexpression_2(self):
-        test = 'declare a 1 b 1 argument a expression cos(a*(i,j->ij)b)'
-        Parser(test).start()
+        test = 'declare a 1 b 1 argument a expression a*(i,j->ij)b'
+        p = Parser(test)
+        p.start()
+        p.set_node_tensorrank()
     def test_badexpression_product(self):
         test = 'declare a 1 b 1 argument a expression a*(i,j->3)b'
         self.assertRaises(Exception, Parser(test).start)
@@ -40,6 +50,7 @@ class ParserTests(unittest.TestCase):
     def test_badexpression_brackets(self):
         test = 'declare a 0 b 0 argument a expression (a+)b)'
         self.assertRaises(Exception, Parser(test).start)
+
 
 if __name__ == '__main__':
     unittest.main()

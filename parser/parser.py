@@ -1,8 +1,12 @@
+from copy import deepcopy
+from typing import Dict
 from scanner import *
 from tree import *
 
 class Parser():
     def __init__(self, input):
+        self.tree = None    # Stores expression as a binary tree
+        self.variable_ranks = {}  # Stores declared variables and their ranks
         self.scanner = Scanner(input)
         self.get_sym()
     
@@ -31,10 +35,13 @@ class Parser():
     
     def tensordeclaration(self):
         if self.fits(TOKEN_ID.ALPHANUM) or self.fits(TOKEN_ID.LOWERCASE_ALPHA):
+            variablename = self.ident
             self.get_sym()
         else:
             self.error('tensorname')
         if self.fits(TOKEN_ID.NATNUM):
+            rank = int(self.ident)
+            self.variable_ranks[variablename] = rank
             self.get_sym()
         else:
             self.error(TOKEN_ID.NATNUM.value)
@@ -79,7 +86,7 @@ class Parser():
                 self.get_sym()
             else:
                 self.error(TOKEN_ID.RRBRACKET.value)
-            tree = Tree(NODETYPE.PRODUCT, tree, self.factor())
+            tree = Tree(NODETYPE.PRODUCT, f'*({leftIndices},{rightIndices}->{resultIndices})', tree, self.factor())
             tree.set_indices(leftIndices, rightIndices, resultIndices)
         return tree
 
@@ -88,7 +95,7 @@ class Parser():
         rightIndices = ''
         resultIndices = ''
         while self.fits(TOKEN_ID.LOWERCASE_ALPHA):
-            leftIndices += self.ident
+            leftIndices = leftIndices + self.ident
             self.get_sym()
         if self.fits(TOKEN_ID.COMMA):
             self.get_sym()
@@ -169,9 +176,62 @@ class Parser():
             self.error(TOKEN_ID.CONSTANT.value + ' or ' + TOKEN_ID.FUNCTION.value + ' or ' + 'tensorname' +  ' or ' + TOKEN_ID.LRBRACKET.value)
         return tree
 
+    def set_node_tensorrank(self):
+        def set_tensorrank(node):
+            if not node:
+                return
+            set_tensorrank(node.left)
+            set_tensorrank(node.right)
+            if node.type == NODETYPE.CONSTANT:
+                node.rank = 0
+            elif node.type == NODETYPE.VARIABLE:
+                node.rank = self.variable_ranks[node.name]
+            elif node.type == NODETYPE.ELEMENTWISE_FUNCTION:
+                node.rank = node.right.rank
+            elif node.type == NODETYPE.FUNCTION:
+                pass
+                #TODO: EACH FUNCTION NEEDS IT'S OWN IMPLEMENTATION HERE
+            elif node.type in [NODETYPE.SUM, NODETYPE.DIFFERENCE, NODETYPE.QUOTIENT]:
+                if node.right.rank != node.left.rank:
+                    raise Exception(f'Ranks of inputs \'{node.left.name}\' ({node.left.rank}) and \'{node.right.name}\' ({node.right.rank}) to node of type {node.type.value} do not match.')
+                else:
+                    node.rank = node.left.rank
+            elif node.type == NODETYPE.PRODUCT:
+                if node.left.rank != len(node.leftIndices):
+                    raise Exception(f'Rank of left input \'{node.left.name}\' ({node.left.rank}) to product node does not match product indices \'{node.leftIndices}\'.')
+                elif node.right.rank != len(node.rightIndices):
+                    raise Exception(f'Rank of right input \'{node.right.name}\' ({node.right.rank}) to product node does not match product indices \'{node.rightIndices}\'.')
+                else:
+                    node.rank = len(node.resultIndices)
+            else:
+                raise Exception(f'Unknown node type at node \'{node.name}\'.')
+        set_tensorrank(self.tree)
+        
+    def eliminate_common_subtrees(self):
+        subtrees = self.tree.get_all_subtrees()
+        hashmap = {}
+        def helper(subtree):
+            if not subtree: return
+            if subtree.left in hashmap:
+                subtree.left = hashmap[subtree.left]
+            else:
+                hashmap[subtree.left] = subtree.left
+            if subtree.right in hashmap:
+                subtree.right = hashmap[subtree.right]
+            else:
+                hashmap[subtree.right] = subtree.right
+        for subtree in subtrees:
+            helper(subtree)
+        
+            
+                
+        
 
 if __name__ == '__main__':
-    example = 'declare a 1 b 1 c 1 argument a expression cos(a*(i,j->ij)b) + c'
+    example = 'declare a 1 b 1 c 2 argument a expression a*(i,j->ij)b + a*(i,ij->ij)c + a*(i,j->ij)b + b*(i,ij->ij)(a*(i,j->ij)b)'
     p = Parser(example)
     p.start()
+    p.set_node_tensorrank()
     p.tree.dot('tree')
+    p.eliminate_common_subtrees()
+    p.tree.dot('tree_cleaned')
