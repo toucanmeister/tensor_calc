@@ -19,12 +19,13 @@ class Tree():
         self.name = name
         self.left = left
         self.right = right
+        self.incoming = []  # Nodes from incoming edges, only filled after common subexpression elimination
         self.rank = -1      # Initialization value
         if self.type == NODETYPE.PRODUCT:    
             self.leftIndices = ''       # Indices in the einstein product notation
             self.rightIndices = ''
             self.resultIndices = ''
-        self.id = Tree.running_id
+        self.id = Tree.running_id   # This is just for the visualization
         Tree.running_id += 1
     
     def set_left(self, left):

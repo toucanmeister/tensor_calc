@@ -1,5 +1,3 @@
-from copy import deepcopy
-from typing import Dict
 from scanner import *
 from tree import *
 
@@ -222,11 +220,17 @@ class Parser():
                 hashmap[subtree.right] = subtree.right
         for subtree in subtrees:
             helper(subtree)
+    
+    def add_incoming_edges(self):
+        def helper(node):
+            if node and node.left:
+                node.left.incoming.append(node)
+                helper(node.left)
+            if node and node.right:
+                node.right.incoming.append(node)
+                helper(node.right)
+        helper(self.tree)
         
-            
-                
-        
-
 if __name__ == '__main__':
     example = 'declare a 1 b 1 c 2 argument a expression a*(i,j->ij)b + a*(i,ij->ij)c + a*(i,j->ij)b + b*(i,ij->ij)(a*(i,j->ij)b)'
     p = Parser(example)
@@ -234,4 +238,5 @@ if __name__ == '__main__':
     p.set_node_tensorrank()
     p.tree.dot('tree')
     p.eliminate_common_subtrees()
+    p.add_incoming_edges()
     p.tree.dot('tree_cleaned')
