@@ -5,6 +5,7 @@ class Parser():
     def __init__(self, input):
         self.tree = None    # Stores expression as a binary tree
         self.variable_ranks = {}  # Stores declared variables and their ranks
+        self.arg = None # Stores the derivation argument variable name
         self.scanner = Scanner(input)
         self.get_sym()
     
@@ -48,6 +49,7 @@ class Parser():
         if self.fits(TOKEN_ID.ARGUMENT):
             self.get_sym()
             if self.fits(TOKEN_ID.ALPHANUM) or self.fits(TOKEN_ID.LOWERCASE_ALPHA):
+                self.argument = self.ident
                 self.get_sym()
             else:
                 self.error(TOKEN_ID.ALPHANUM.value)
@@ -232,7 +234,7 @@ class Parser():
         helper(self.tree)
         
 if __name__ == '__main__':
-    example = 'declare a 1 b 1 c 2 argument a expression a*(i,j->ij)b + a*(i,ij->ij)c + a*(i,j->ij)b + b*(i,ij->ij)(a*(i,j->ij)b)'
+    example = 'declare a 1 b 1  argument a expression a*(i,j->ij)b'
     p = Parser(example)
     p.start()
     p.set_node_tensorrank()

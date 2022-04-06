@@ -41,6 +41,41 @@ class ParserTests(unittest.TestCase):
         p = Parser(test)
         p.start()
         p.set_node_tensorrank()
+    def test_scalar_product(self):
+        test = 'declare a 0 b 0 argument a expression a*(,->)b'
+        p = Parser(test)
+        p.start()
+        p.set_node_tensorrank()
+    def test_inner_product(self):
+        test = 'declare a 1 b 1 argument a expression a*(i,i->)b'
+        p = Parser(test)
+        p.start()
+        p.set_node_tensorrank()
+    def test_outer_product(self):
+        test = 'declare a 1 b 1 argument a expression a*(i,j->ij)b'
+        p = Parser(test)
+        p.start()
+        p.set_node_tensorrank()
+    def test_scalar_times_vector(self):
+        test = 'declare a 0 b 1 argument a expression a*(,j->j)b'
+        p = Parser(test)
+        p.start()
+        p.set_node_tensorrank()
+    def test_matrix_application(self):
+        test = 'declare a 2 b 1 argument a expression a*(ij,j->i)b'
+        p = Parser(test)
+        p.start()
+        p.set_node_tensorrank()
+    def test_matrix_multiplication(self):
+        test = 'declare a 2 b 2 argument a expression a*(ik,kj->ij)b'
+        p = Parser(test)
+        p.start()
+        p.set_node_tensorrank()
+    def test_elementwise_multiplication(self):
+        test = 'declare a 3 b 3 argument a expression a*(ijk,ijk->ijk)b'
+        p = Parser(test)
+        p.start()
+        p.set_node_tensorrank()
     def test_badexpression_product(self):
         test = 'declare a 1 b 1 argument a expression a*(i,j->3)b'
         self.assertRaises(Exception, Parser(test).start)
@@ -50,6 +85,7 @@ class ParserTests(unittest.TestCase):
     def test_badexpression_brackets(self):
         test = 'declare a 0 b 0 argument a expression (a+)b)'
         self.assertRaises(Exception, Parser(test).start)
+    
 
 
 if __name__ == '__main__':
