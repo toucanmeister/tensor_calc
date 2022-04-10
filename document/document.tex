@@ -1,0 +1,75 @@
+\documentclass[12pt, a4paper]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[left=40mm, right=20mm, top=30mm, bottom=30mm]{geometry}
+\usepackage{titlesec}
+
+\titleformat{\chapter}[hang]{\Huge\bfseries}{\thechapter}{20pt}{\Huge\bfseries}
+
+\title{Designing and implementing a tensor calculus}
+\author{Farin Lippmann}
+\date{August 2022}
+
+% Area: Generic optimization
+% Topic: Derivatives of higher-order tensor expressions
+% Research Question: Can we design and implement an Einstein-notation-based tensor calculus for automatic symbolic differentiation of tensor expressions?
+
+% Related Research: 
+% - Matrix Calculus paper (uses ricci notation)
+% - Tensor Calculus paper (basis for this thesis)
+% - Algebra systems build scalar-valued functions for each tensor entry, inefficient [from Matrix Calculus Paper]
+
+% Questions:
+% - What am I improving over Matrix Calculus? 
+%   -> Einstein notation instead of Ricci
+%   -> Actually works on arbitrary tensor inputs
+%   -> Cleanup inbetween derivation steps?
+
+\begin{document}
+\maketitle
+
+\chapter{Abstract}
+\pagenumbering{gobble}
+
+\chapter{Table of contents}
+\pagenumbering{arabic}
+\setcounter{page}{3}
+
+\chapter{Introduction}
+% Content:
+% - Why is this interesting
+% - What is the novel idea
+% - Scope
+
+With the rise of machine learning applications, interest in optimization problems has been growing.
+In these problems, one seeks to find values for a number of parameters that maximize or minimize a given scalar objective function.
+While some optimization problems have a closed-form solution which can be computed directly, many can only be solved approximately.
+When computing these approximate solutions, derivatives play a crucial role.
+In particular, the first derivatives of the objective function are used in the ubiquitous gradient descent procedure.
+In every even slightly advanced optimization problem, multiple parameters need to be optimized simultaneously.
+This also means that derivatives need to be computed with respect to multiple variables, organized either in vectors, matrices or higher-order tensors.
+Commonly used machine learning frameworks (like Tensorflow, PyTorch, Theano) focus heavily on the first derivatives of the objective function.
+
+Higher-order derivatives can, however, also be of interest, for example in the case of convexity checks.
+The convexity of objective functions and their associated optimization problems play a major role in the field of optimization.
+If a problem is strictly convex or concave, then it has a unique global optimum and the gradient descent algorithm can approximate it arbitrarily well.
+To check for convexity, the objective function's Hessian matrix, the matrix of second-order partial derivatives, needs to be computed and checked for positive semidefiniteness.
+If the function's inputs are naturally organized in a matrix or higher-order tensor, then the resulting Hessian will also be a higher-order tensor.
+The prevalent machine learning frameworks have no way to directly compute these derivatives, and classical computer algebra systems struggle with efficiency, as they work on the level of individual tensor entries.
+
+To bridge this gap, we design and implement a tensor calculus that allows for automatic symbolic differentiation of tensor expressions of any order.
+In addition, this calculus will use Einstein summation notation to represent tensor products, rather than the more complex ricci notation.
+
+This thesis builds on the work by Laue, Mitterreiter and Giesen, who have built a similar calculus for matrix derivatives [Matrix Calculus] and developed the theoretical foundation for an Einstein notation based tensor calculus [Tensor Paper].
+
+% Scope:
+The structure of the thesis is as follows.
+First, the input syntax of the calculus is developed in form of a grammar.
+Then, the parsing and representation of tensor expression is discussed.
+...
+
+\section{(Main text)}
+\section{Literature}
+\section{Appendices}
+\section{Declaration of autonomy}
+
+\end{document}

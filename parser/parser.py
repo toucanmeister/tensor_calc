@@ -197,15 +197,20 @@ class Parser():
                 else:
                     node.rank = node.left.rank
             elif node.type == NODETYPE.PRODUCT:
-                if node.left.rank != len(node.leftIndices):
-                    raise Exception(f'Rank of left input \'{node.left.name}\' ({node.left.rank}) to product node does not match product indices \'{node.leftIndices}\'.')
-                elif node.right.rank != len(node.rightIndices):
-                    raise Exception(f'Rank of right input \'{node.right.name}\' ({node.right.rank}) to product node does not match product indices \'{node.rightIndices}\'.')
-                else:
-                    node.rank = len(node.resultIndices)
+                self.check_multiplication(node)
+                node.rank = len(node.resultIndices)
             else:
                 raise Exception(f'Unknown node type at node \'{node.name}\'.')
         set_tensorrank(self.tree)
+    
+    def check_multiplication(self, node):
+        if node.left.rank != len(node.leftIndices):
+                raise Exception(f'Rank of left input \'{node.left.name}\' ({node.left.rank}) to product node does not match product indices \'{node.leftIndices}\'.')
+        elif node.right.rank != len(node.rightIndices):
+                raise Exception(f'Rank of right input \'{node.right.name}\' ({node.right.rank}) to product node does not match product indices \'{node.rightIndices}\'.')
+        for index in node.resultIndices:
+            if not (index in node.leftIndices or index in node.rightIndices):
+                raise Exception(f'Result index \'{index}\' of product node \'{node.name}\' not in left or right index set.')
         
     def eliminate_common_subtrees(self):
         subtrees = self.tree.get_all_subtrees()
@@ -234,7 +239,7 @@ class Parser():
         helper(self.tree)
         
 if __name__ == '__main__':
-    example = 'declare a 1 b 1  argument a expression a*(i,j->ij)b'
+    example = 'declare a 1 b 1 argument a expression a*(i,i->ij)b + a*(i,i->ij)b'
     p = Parser(example)
     p.start()
     p.set_node_tensorrank()
