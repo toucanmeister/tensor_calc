@@ -1,0 +1,18 @@
+- TITEL ÜBERLEGEN (Designing and implementing a tensor calculus)
+- ARBEIT ANMELDEN
+
+Todo:
+x Tensorrang in jedem Knoten speichern
+x Mehrfachvorkommen eliminieren (common subexpression elimination):
+    x Alle Unterbäume listen
+    x Gleiche Unterbäume eliminieren
+    x Baum neu aufbauen
+- Erste Ableitungsregeln
+    - Produktregel
+        x Regel
+        - Tests
+- (Matrix)determinanten sind wichtig (total antisymmetrischer Tensor)
+- Jede Funktion, die nicht elementweise ist, braucht ihre eigene Prozedur um ihren Rang zu berechnen
+
+Ideen:
+- Elementweise Division als eigene Operation
