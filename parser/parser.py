@@ -239,7 +239,7 @@ class Parser():
         helper(self.tree)
         
 if __name__ == '__main__':
-    example = 'declare a 1 b 1 argument a expression a*(i,i->ij)b + a*(i,i->ij)b'
+    example = 'declare a 1 b 1 c 2 argument a expression a*(i,i->ii)b + a*(i,ij->ij)c + a*(i,ij->ij)(a*(i,i->ii)b))'
     p = Parser(example)
     p.start()
     p.set_node_tensorrank()
