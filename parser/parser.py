@@ -3,9 +3,9 @@ from tree import *
 
 class Parser():
     def __init__(self, input):
-        self.tree = None    # Stores expression as a binary tree
+        self.tree = None    # Stores expression as a binary tree (Until CSE, then it's a binary DAG)
         self.variable_ranks = {}  # Stores declared variables and their ranks
-        self.arg = None # Stores the derivation argument variable name
+        self.arg_name = None  # Stores the derivation argument variable name
         self.scanner = Scanner(input)
         self.get_sym()
     
@@ -18,7 +18,7 @@ class Parser():
     def error(self, expected):
         raise Exception(f'Expected {expected} but found \'{self.ident}\'')
 
-    def start(self):
+    def parse(self):
         self.declaration()
         self.argument()
         self.tree = self.expressionpart()
@@ -49,7 +49,7 @@ class Parser():
         if self.fits(TOKEN_ID.ARGUMENT):
             self.get_sym()
             if self.fits(TOKEN_ID.ALPHANUM) or self.fits(TOKEN_ID.LOWERCASE_ALPHA):
-                self.argument = self.ident
+                self.arg_name = self.ident
                 self.get_sym()
             else:
                 self.error(TOKEN_ID.ALPHANUM.value)
@@ -175,42 +175,6 @@ class Parser():
         else:
             self.error(TOKEN_ID.CONSTANT.value + ' or ' + TOKEN_ID.FUNCTION.value + ' or ' + 'tensorname' +  ' or ' + TOKEN_ID.LRBRACKET.value)
         return tree
-
-    def set_node_tensorrank(self):
-        def set_tensorrank(node):
-            if not node:
-                return
-            set_tensorrank(node.left)
-            set_tensorrank(node.right)
-            if node.type == NODETYPE.CONSTANT:
-                node.rank = 0
-            elif node.type == NODETYPE.VARIABLE:
-                node.rank = self.variable_ranks[node.name]
-            elif node.type == NODETYPE.ELEMENTWISE_FUNCTION:
-                node.rank = node.right.rank
-            elif node.type == NODETYPE.FUNCTION:
-                pass
-                #TODO: EACH FUNCTION NEEDS IT'S OWN IMPLEMENTATION HERE
-            elif node.type in [NODETYPE.SUM, NODETYPE.DIFFERENCE, NODETYPE.QUOTIENT]:
-                if node.right.rank != node.left.rank:
-                    raise Exception(f'Ranks of inputs \'{node.left.name}\' ({node.left.rank}) and \'{node.right.name}\' ({node.right.rank}) to node of type {node.type.value} do not match.')
-                else:
-                    node.rank = node.left.rank
-            elif node.type == NODETYPE.PRODUCT:
-                self.check_multiplication(node)
-                node.rank = len(node.resultIndices)
-            else:
-                raise Exception(f'Unknown node type at node \'{node.name}\'.')
-        set_tensorrank(self.tree)
-    
-    def check_multiplication(self, node):
-        if node.left.rank != len(node.leftIndices):
-                raise Exception(f'Rank of left input \'{node.left.name}\' ({node.left.rank}) to product node does not match product indices \'{node.leftIndices}\'.')
-        elif node.right.rank != len(node.rightIndices):
-                raise Exception(f'Rank of right input \'{node.right.name}\' ({node.right.rank}) to product node does not match product indices \'{node.rightIndices}\'.')
-        for index in node.resultIndices:
-            if not (index in node.leftIndices or index in node.rightIndices):
-                raise Exception(f'Result index \'{index}\' of product node \'{node.name}\' not in left or right index set.')
         
     def eliminate_common_subtrees(self):
         subtrees = self.tree.get_all_subtrees()
@@ -237,12 +201,13 @@ class Parser():
                 node.right.incoming.append(node)
                 helper(node.right)
         helper(self.tree)
+
         
 if __name__ == '__main__':
-    example = 'declare a 1 b 1 c 2 argument a expression a*(i,i->ii)b + a*(i,ij->ij)c + a*(i,ij->ij)(a*(i,i->ii)b))'
+    example = 'declare a 1 b 1 c 0 argument a expression (a*(i,i->)b)*(,->)c'
     p = Parser(example)
-    p.start()
-    p.set_node_tensorrank()
+    p.parse()
+    p.tree.set_tensorrank(p.variable_ranks)
     p.tree.dot('tree')
     p.eliminate_common_subtrees()
     p.add_incoming_edges()

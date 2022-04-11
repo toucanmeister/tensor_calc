@@ -80,3 +80,53 @@ class Tree():
             if node and node.right:
                 g.edge(str(node.id), str(node.right.id))
         g.render(filename)
+
+    def contains(self, node):
+        if self == node:
+            return True
+        else:
+            return (self.left and self.left.contains(node)) or (self.right and self.right.contains(node))
+    
+    def find(self, nodename):
+        if self.name == nodename:
+            return self
+        elif self.left and self.left.find(nodename):
+            return self.left.find(nodename)
+        elif self.right and self.right.find(nodename):
+            return self.right.find(nodename)
+        else:
+            return None
+
+    def check_multiplication(self):
+        if self.left.rank != len(self.leftIndices):
+                raise Exception(f'Rank of left input \'{self.left.name}\' ({self.left.rank}) to product node does not match product indices \'{self.leftIndices}\'.')
+        elif self.right.rank != len(self.rightIndices):
+                raise Exception(f'Rank of right input \'{self.right.name}\' ({self.right.rank}) to product node does not match product indices \'{self.rightIndices}\'.')
+        for index in self.resultIndices:
+            if not (index in self.leftIndices or index in self.rightIndices):
+                raise Exception(f'Result index \'{index}\' of product node \'{self.name}\' not in left or right index set.')
+
+    def set_tensorrank(self, variable_ranks):
+        if self.left:
+            self.left.set_tensorrank(variable_ranks)
+        if self.right:
+            self.right.set_tensorrank(variable_ranks)
+        if self.type == NODETYPE.CONSTANT:
+            self.rank = 0
+        elif self.type == NODETYPE.VARIABLE:
+            self.rank = variable_ranks[self.name]
+        elif self.type == NODETYPE.ELEMENTWISE_FUNCTION:
+            self.rank = self.right.rank
+        elif self.type == NODETYPE.FUNCTION:
+            pass
+            #TODO: EACH FUNCTION NEEDS IT'S OWN IMPLEMENTATION HERE
+        elif self.type in [NODETYPE.SUM, NODETYPE.DIFFERENCE, NODETYPE.QUOTIENT]:
+            if self.right.rank != self.left.rank:
+                raise Exception(f'Ranks of inputs \'{self.left.name}\' ({self.left.rank}) and \'{self.right.name}\' ({self.right.rank}) to node of type {self.type.value} do not match.')
+            else:
+                self.rank = self.left.rank
+        elif self.type == NODETYPE.PRODUCT:
+            self.check_multiplication()
+            self.rank = len(self.resultIndices)
+        else:
+            raise Exception(f'Unknown node type at node \'{self.name}\'.')
