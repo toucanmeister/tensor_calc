@@ -44,7 +44,7 @@ class Tree():
     def __repr__(self):
         if self.left:
             if self.right:
-                return f'{self.left} {self.name} {self.right}'
+                return f'({self.left} {self.name} {self.right})'
             else:
                 return f'{self.name} ({self.left})'
         else:

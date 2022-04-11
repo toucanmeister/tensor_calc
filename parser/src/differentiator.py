@@ -5,9 +5,9 @@ class Differentiator():
         self.input = input
         parser = Parser(input)
         parser.parse()
-        self.dag = parser.dag
+        self.originalDag = parser.dag
         self.variable_ranks = parser.variable_ranks
-        self.arg = self.dag.find(parser.arg_name)
+        self.arg = self.originalDag.find(parser.arg_name)
         self.diffDag = None
 
     def arg_check(self):
@@ -17,7 +17,7 @@ class Differentiator():
             raise Exception('Argument \'{self.parser.arg_name}\' not found in expression.')
 
     def differentiate(self):
-        y = self.dag
+        y = self.originalDag
         self.diffDag = Tree(NODETYPE.VARIABLE, 'I') # Derivative of the top node y with respect to itself
         self.variable_ranks['I'] = y.rank
         def reverse_mode_diff(node):
@@ -39,7 +39,7 @@ class Differentiator():
                     pass
                 else:
                     raise Exception('I don\'t know how we got here...')
-        reverse_mode_diff(self.dag)
+        reverse_mode_diff(self.originalDag)
     
     def print(self):
         self.diffDag.dot('diffdag')
