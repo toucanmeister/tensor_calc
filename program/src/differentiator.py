@@ -1,5 +1,6 @@
 from parser import *
 
+# This class differentiates an expression dag with respect to an argument supplied by the parser
 class Differentiator():
     def __init__(self, input):
         self.input = input
@@ -8,7 +9,7 @@ class Differentiator():
         self.originalDag = parser.dag
         self.variable_ranks = parser.variable_ranks
         self.arg = self.originalDag.find(parser.arg_name)
-        self.diffDag = None
+        self.diffDag = None  # This will contain the differentiated dag
 
     def arg_check(self):
         if self.parser.arg_name not in self.variable_ranks:
@@ -18,28 +19,27 @@ class Differentiator():
 
     def differentiate(self):
         y = self.originalDag
-        self.diffDag = Tree(NODETYPE.VARIABLE, '_IDENTITY') # Derivative of the top node y with respect to itself
-        self.variable_ranks['_IDENTITY'] = y.rank
-        originalNodeToDiffNode = {} # We save diffNodes here, to sum later in the chain rule
-        def reverse_mode_diff(node):
+        self.diffDag = Tree(NODETYPE.VARIABLE, '_IDENTITY')   # Derivative of the top node y with respect to itself, will later be removed
+        originalNodeToDiffNode = {}   # Saves where in the dag the diff of a node is, to allow adding more chain rule contributions when we reach that node again later
+        def reverse_mode_diff(node):   # Recursive differentiation function
             if node.type == NODETYPE.PRODUCT:
                 s1 = node.leftIndices
                 s2 = node.rightIndices
                 s3 = node.resultIndices
-                s4 = ''.join([i for i in string.ascii_lowercase if i not in (s1 + s2 + s3)][0:y.rank])  # Use some unused indices for the output node y
+                s4 = ''.join([i for i in string.ascii_lowercase if i not in (s1 + s2 + s3)][0:y.rank])   # Use some unused indices for the output node y
                 currentDiffNode = self.diffDag
                 if node.left and node.left.contains(self.arg):
-                    self.diffDag = Tree(NODETYPE.PRODUCT, f'*({s4+s3},{s2}->{s4+s1})', self.diffDag, node.right)
+                    self.diffDag = Tree(NODETYPE.PRODUCT, f'*({s4+s3},{s2}->{s4+s1})', self.diffDag, node.right)   # Diff rule
                     self.diffDag.set_indices(s4+s3, s2, s4+s1)
-                    if node.left in originalNodeToDiffNode:
+                    if node.left in originalNodeToDiffNode:   # If we've been to this node before, we need to add the new contribution to the old one
                         self.diffDag = Tree(NODETYPE.SUM, '+', self.diffDag, originalNodeToDiffNode[node.left])
                     else:
                         originalNodeToDiffNode[node.left] = self.diffDag
                         reverse_mode_diff(node.left)
                 if node.right and node.right.contains(self.arg):
-                    self.diffDag = Tree(NODETYPE.PRODUCT, f'*({s4+s3},{s1}->{s4+s2})', currentDiffNode, node.left)
+                    self.diffDag = Tree(NODETYPE.PRODUCT, f'*({s4+s3},{s1}->{s4+s2})', currentDiffNode, node.left)   # Diff rule
                     self.diffDag.set_indices(s4+s3, s1, s4+s2)
-                    if node.right in originalNodeToDiffNode:
+                    if node.right in originalNodeToDiffNode:   # If we've been to this node before, we need to add the new contribution to the old one
                         self.diffDag = Tree(NODETYPE.SUM, '+', self.diffDag, originalNodeToDiffNode[node.right])
                     else:
                         originalNodeToDiffNode[node.right] = self.diffDag
@@ -55,7 +55,7 @@ class Differentiator():
     def render(self):
         self.diffDag.dot('diffdag')
 
-    def remove_identity(self):
+    def remove_identity(self):   # Removes the unnecessary _IDENTITY nodes we added for convenvience earlier
         if self.diffDag.type == NODETYPE.PRODUCT:
             if self.diffDag.left.name == '_IDENTITY':
                 self.diffDag = self.diffDag.right
