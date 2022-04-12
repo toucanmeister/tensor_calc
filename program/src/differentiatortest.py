@@ -13,6 +13,19 @@ class ParserTests(unittest.TestCase):
         d = Differentiator(test)
         d.differentiate()
         self.assertEqual(str(d.diffDag), '(I *(,->) (a *(i,i->) b))')
+    
+    def test_product_2(self):
+        test = 'declare a 0 argument a expression (a*(,->)a)'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '((I *(,->) a) + (I *(,->) a))')
+    
+    def test_product_3(self):
+        test = 'declare a 0 b 0  argument a expression (b*(,->)a) *(,->) a'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '((I *(,->) (b *(,->) a)) + ((I *(,->) a) *(,->) b))')
+
 
 if __name__ == '__main__':
     unittest.main()
