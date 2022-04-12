@@ -18,8 +18,8 @@ class Differentiator():
 
     def differentiate(self):
         y = self.originalDag
-        self.diffDag = Tree(NODETYPE.VARIABLE, 'I') # Derivative of the top node y with respect to itself
-        self.variable_ranks['I'] = y.rank
+        self.diffDag = Tree(NODETYPE.VARIABLE, '_IDENTITY') # Derivative of the top node y with respect to itself
+        self.variable_ranks['_IDENTITY'] = y.rank
         originalNodeToDiffNode = {} # We save diffNodes here, to sum later in the chain rule
         def reverse_mode_diff(node):
             if node.type == NODETYPE.PRODUCT:
@@ -50,12 +50,36 @@ class Differentiator():
                 else:
                     raise Exception('I don\'t know how we got here...')
         reverse_mode_diff(self.originalDag)
+        self.remove_identity()
     
     def render(self):
         self.diffDag.dot('diffdag')
 
+    def remove_identity(self):
+        if self.diffDag.type == NODETYPE.PRODUCT:
+            if self.diffDag.left.name == '_IDENTITY':
+                self.diffDag = self.diffDag.right
+            if self.diffDag.right.name == '_IDENTITY':
+                self.diffDag = self.diffDag.left
+        def helper(node):
+            if not node:
+                return
+            if node.left and node.left.type == NODETYPE.PRODUCT:
+                if node.left.left and node.left.left.name == '_IDENTITY':
+                    node.left = node.left.right
+                elif node.left.right and node.left.right.name == '_IDENTITY':
+                    node.left = node.left.left
+            if node.right and node.right.type == NODETYPE.PRODUCT:
+                if node.right.left and node.right.left.name == '_IDENTITY':
+                    node.right = node.right.right
+                if node.right.right and node.right.right.name == '_IDENTITY':
+                    node.right = node.right.left
+            helper(node.left)
+            helper(node.right)
+        helper(self.diffDag)
+
 if __name__ == '__main__':
-    example = 'declare a 0 b 0 argument a expression (b*(,->)a) *(,->) a'
+    example = 'declare a 1 b 1 c 0 argument c expression (a*(i,i->)b) *(,->)c'
     d = Differentiator(example)
     d.differentiate()
     d.diffDag.set_tensorrank(d.variable_ranks)
