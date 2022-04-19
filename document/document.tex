@@ -59,7 +59,9 @@ In every even slightly advanced optimization problem, multiple parameters need t
 This means that derivatives need to be computed with respect to multiple variables, organized either in vectors, matrices or higher-order tensors.
 Commonly used machine learning frameworks (like Tensorflow, PyTorch, Theano) focus heavily on the first derivatives of the objective function.
 
-Higher-order derivatives can, however, also be of interest, for example in the case of convexity checks.
+Higher-order derivatives can, however, also be of interest.
+As an example, the matrix of second-order partial derivatives, called the Hessian, is used in the application of Newton's method, which can be more efficient than gradient descent for some problems
+Convexity checks constitute another application of higher-order derivatives.
 The convexity of objective functions and their associated optimization problems play a major role in the field of optimization.
 If a problem is strictly convex or concave, then it has a unique global optimum and the gradient descent algorithm can approximate it arbitrarily well.
 To check for convexity, the objective function's Hessian matrix, the matrix of second-order partial derivatives, needs to be computed and checked for semidefiniteness.
@@ -72,12 +74,12 @@ Additionally, this calculus will use Einstein summation notation to represent te
 This thesis builds on the work by Laue, Mitterreiter and Giesen, who have built a similar calculus for matrix derivatives [Matrix Calculus] and developed the theoretical foundation for an Einstein notation based tensor calculus [Tensor Paper].
 
 The structure of the thesis is as follows.
-First, the input syntax of the calculus is developed in form of a grammar.
+First, the syntax of the calculus is developed in form of a grammar.
 Then, the parsing and representation of tensor expressions is discussed.
 ...
 
-\chapter{Input Syntax}
-In this chapter we develop the language that will be used to input tensor expressions for differentiation.
+\chapter{A Syntax for Tensor Expressions}
+In this chapter we develop the language that will be used to specify tensor expressions for differentiation.
 To differentiate a tensor expression, three pieces of information are needed: 1. The tensor expression itself, 2. The variable with respect to which should be differentiated, 3. The tensor rank of all variables in the expression.
 The neccessity of the first two is obvious, while the third might not immediately be.
 The ranks of each part of the tensor expression need to be known because they play a crucial role in the differentiation rules that will later be implemented.
@@ -86,9 +88,10 @@ The main point of interest is how to represent tensors and their products, as th
 We start with an established tensor calculus and it's notation, and break it down to our needs.
 
 \section{Einstein Summation Notation}
+% Ricci hab ich noch nicht gut genug verstanden, nochmal überarbeiten
 There exists a calculus for tensor expressions, called Ricci calculus, that is heavily used in physics, which captures tensors both as $n$-dimensional arrays and as their dual form, multilinear functions.
 It differentiates between the two forms by the location of their indices, either in sub- or superscript.
-For example, the inner product of two vectors, $yx^T$, would be written as $y^ix_j$. And the Matrix-vector product $Ax$ would be $A^i_jx^j$.
+For example, the inner product of two vectors, $yx^T$, would be written as $y^ix_i$. And the Matrix-vector product $Ax$ would be $A^i_jx^j$.
 While Ricci calculus is elegant in the way it handles the duality of tensors, the many indices on each tensor make it less readable.
 
 Since, for our purposes, tensors are simply containers for variables, we have no need for this distinction.
@@ -105,7 +108,7 @@ We take a large part of the syntax for tensor multiplication from the establishe
 A product of two tensors \codeword{x} and \codeword{y} has the form \codeword{x*(a,b->c)y}, where a,b and c are strings of indices.
 
 As an example, see the inner, outer and elementwise product of two order-1 tensors (vectors) \codeword{x} and \codeword{y}: \codeword{x*(i,j->)y}, \codeword{x*(i,j->ij)y}, \codeword{x*(i,i->i)y}.
-The application of a matrix \codeword{A} to a vector \codeword{v} would be written as \codeword{A*(ij,j->ij)v}, while the elementwise product of two matrices \codeword{A} and \codeword{B} would be \codeword{A*(ij,ij->ij)B}.
+The application of a matrix \codeword{A} to a vector \codeword{v} would be written as \codeword{A*(ij,j->i)v}, while the elementwise product of two matrices \codeword{A} and \codeword{B} would be \codeword{A*(ij,ij->ij)B}.
 One may even take diagonals of tensors using this notation, the inner product of a square matrix \codeword{A}'s main diagonal and a vector \codeword{v} would be \codeword{A*(ii,i->)v}.
 
 

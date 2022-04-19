@@ -51,7 +51,7 @@ class Tree():
             return f'{self.name}'
     
     def __eq__(self, other):
-        return self.type == other.type and self.name == other.name and self.rank == other.rank and self.left == other.left and self.right == other.right
+        return other and self.type == other.type and self.name == other.name and self.rank == other.rank and self.left == other.left and self.right == other.right
     
     def __hash__(self): # Necessary for instances to behave sanely in dicts and sets.
         return hash((self.type, self.name, self.rank, self.left, self.right))
