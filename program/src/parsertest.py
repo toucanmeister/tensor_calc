@@ -37,6 +37,10 @@ class ParserTests(unittest.TestCase):
         test = 'declare a 1 b 1 argument a expression a*(i,j->ij)b'
         p = Parser(test)
         p.parse()
+    def test_goodexpression_3(self):
+        test = 'declare a 3 b 3 c 0 argument a expression ((a / b) *(ijk,ijk->) a) - c'
+        p = Parser(test)
+        p.parse()
     def test_scalar_product(self):
         test = 'declare a 0 b 0 argument a expression a*(,->)b'
         p = Parser(test)
@@ -63,6 +67,14 @@ class ParserTests(unittest.TestCase):
         p.parse()
     def test_elementwise_multiplication(self):
         test = 'declare a 3 b 3 argument a expression a*(ijk,ijk->ijk)b'
+        p = Parser(test)
+        p.parse()
+    def test_difference(self):
+        test = 'declare a 2 b 2 argument a expression a - b'
+        p = Parser(test)
+        p.parse()
+    def test_quotient(self):
+        test = 'declare a 3 b 3 argument a expression a / b'
         p = Parser(test)
         p.parse()
     def test_badexpression_product(self):

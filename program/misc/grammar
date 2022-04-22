@@ -11,11 +11,11 @@ argument = 'argument' tensorname
 
 expressionpart = 'expression' expr
 expr = term (( '+' | '-' ) term)*
-term = factor (( '*(' productindices ')') factor)*
+term = factor (( '*(' productindices ')') factor | '/' factor)*
 productindices = tensorindices ',' tensorindices '->' tensorindices
 tensorindices = (smallalpha)*
 factor = {'-'} atom ('^' ('(' factor ')' | atom))*
 atom = number | function '(' expr ')' | tensorname | '(' expr ')'
 number = ['-'] digit* '.' digit* [( 'e' | 'E' ) ['+' | '-'] (digit)*]
 digit = [0-9]
-function = 'sin' | 'cos' | 'exp' | 'log' | 'norm2' | 'tr' | 'det' | 'logdet' | 'inv' | 'sqrt' | 'abs' | 'diag'
+function = 'sin' | 'cos' | 'tan' | 'arcsin' | 'arccos' | 'arctan' | 'tanh' | 'exp' | 'log' | 'sign' | 'relu' | 'abs'

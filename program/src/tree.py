@@ -10,6 +10,7 @@ class NODETYPE(Enum):
     DIFFERENCE = 'difference'
     QUOTIENT = 'quotient'
     PRODUCT = 'product'
+    POWER = 'power'
 
 class Tree():
     running_id = 0
@@ -118,8 +119,8 @@ class Tree():
             self.rank = self.right.rank
         elif self.type == NODETYPE.FUNCTION:
             pass
-            #TODO: EACH FUNCTION NEEDS IT'S OWN IMPLEMENTATION HERE
-        elif self.type in [NODETYPE.SUM, NODETYPE.DIFFERENCE, NODETYPE.QUOTIENT]:
+            #TODO: EACH SPECIAL FUNCTION NEEDS IT'S OWN IMPLEMENTATION HERE
+        elif self.type in [NODETYPE.SUM, NODETYPE.DIFFERENCE, NODETYPE.QUOTIENT, NODETYPE.POWER]:
             if self.right.rank != self.left.rank:
                 raise Exception(f'Ranks of inputs \'{self.left.name}\' ({self.left.rank}) and \'{self.right.name}\' ({self.right.rank}) to node of type {self.type.value} do not match.')
             else:

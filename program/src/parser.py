@@ -77,19 +77,23 @@ class Parser():
     
     def term(self):
         tree = self.factor()
-        while self.fits(TOKEN_ID.MULTIPLY):
-            self.get_sym()
-            if self.fits(TOKEN_ID.LRBRACKET):
+        while self.fits(TOKEN_ID.MULTIPLY) or self.fits(TOKEN_ID.DIVIDE):
+            if self.fits(TOKEN_ID.MULTIPLY):
                 self.get_sym()
-            else:
-                self.error(TOKEN_ID.LRBRACKET.value)
-            leftIndices, rightIndices, resultIndices = self.productindices()
-            if self.fits(TOKEN_ID.RRBRACKET):
+                if self.fits(TOKEN_ID.LRBRACKET):
+                    self.get_sym()
+                else:
+                    self.error(TOKEN_ID.LRBRACKET.value)
+                leftIndices, rightIndices, resultIndices = self.productindices()
+                if self.fits(TOKEN_ID.RRBRACKET):
+                    self.get_sym()
+                else:
+                    self.error(TOKEN_ID.RRBRACKET.value)
+                tree = Tree(NODETYPE.PRODUCT, f'*({leftIndices},{rightIndices}->{resultIndices})', tree, self.factor())
+                tree.set_indices(leftIndices, rightIndices, resultIndices)
+            if self.fits(TOKEN_ID.DIVIDE):
                 self.get_sym()
-            else:
-                self.error(TOKEN_ID.RRBRACKET.value)
-            tree = Tree(NODETYPE.PRODUCT, f'*({leftIndices},{rightIndices}->{resultIndices})', tree, self.factor())
-            tree.set_indices(leftIndices, rightIndices, resultIndices)
+                tree = Tree(NODETYPE.QUOTIENT, '/', tree, self.factor())
         return tree
 
     def productindices(self):
@@ -132,13 +136,13 @@ class Parser():
             self.get_sym()
             if self.fits(TOKEN_ID.LRBRACKET):
                 self.get_sym()
-                tree = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '^', tree, self.factor())
+                tree = Tree(NODETYPE.POWER, '^', tree, self.factor())
                 if self.fits(TOKEN_ID.RRBRACKET):
                     self.get_sym()
                 else:
                     self.error(TOKEN_ID.RRBRACKET.value)
             else:
-                tree = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '^', tree, self.atom())
+                tree = Tree(NODETYPE.POWER, '^', tree, self.atom())
         return tree
     
     def atom(self):
