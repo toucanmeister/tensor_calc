@@ -1,6 +1,8 @@
 from scanner import *
 from tree import *
 
+# Important convention: Unary functions have their argument in 'right' and None in 'left'
+
 class Parser():
     def __init__(self, input):
         self.dag = None    # Stores expression as a binary tree (Until CSE, then it's a binary DAG)
@@ -69,10 +71,12 @@ class Parser():
     def expr(self):
         tree = self.term()
         while self.fits(TOKEN_ID.PLUS) or self.fits(TOKEN_ID.MINUS):
-            type = NODETYPE.SUM if self.fits(TOKEN_ID.PLUS) else NODETYPE.DIFFERENCE
-            name = '+' if self.fits(TOKEN_ID.PLUS) else '-'
-            self.get_sym()
-            tree = Tree(type, name, tree, self.term())
+            if self.fits(TOKEN_ID.PLUS):
+                self.get_sym()
+                tree = Tree(NODETYPE.SUM, '+', tree, self.term())
+            else:
+                self.get_sym()
+                tree = Tree(NODETYPE.DIFFERENCE, '-', tree, self.term())
         return tree
     
     def term(self):
@@ -152,7 +156,7 @@ class Parser():
         elif self.fits(TOKEN_ID.MINUS):
             self.get_sym()
             if self.fits(TOKEN_ID.CONSTANT) or self.fits(TOKEN_ID.NATNUM):
-                tree = Tree(NODETYPE.CONSTANT, '-' + self.ident)
+                tree = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, Tree(NODETYPE.CONSTANT, self.ident))
                 self.get_sym()
             else:
                 self.error(TOKEN_ID.CONSTANT.value + ' or ' + TOKEN_ID.NATNUM.value)
@@ -184,7 +188,7 @@ class Parser():
 
         
 if __name__ == '__main__':
-    example = 'declare a 1 b 1 c 0 argument a expression a*(i,i->)b + (a*(i,i->)b)*(,->)c'
+    example = 'declare a 1 b 1 argument a expression a - b'
     p = Parser(example)
     p.parse()
     p.dag.set_tensorrank(p.variable_ranks)
@@ -192,3 +196,4 @@ if __name__ == '__main__':
     p.dag.eliminate_common_subtrees()
     p.dag.add_incoming_edges()
     p.dag.dot('tree_cleaned')
+    print(p.dag)

@@ -43,11 +43,11 @@ class Tree():
         self.resultIndices = result
 
     def __repr__(self):
-        if self.left:
-            if self.right:
+        if self.right:
+            if self.left:
                 return f'({self.left} {self.name} {self.right})'
             else:
-                return f'{self.name} ({self.left})'
+                return f'{self.name} ({self.right})'
         else:
             return f'{self.name}'
     

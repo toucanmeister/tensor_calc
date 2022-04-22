@@ -24,6 +24,7 @@ class Differentiator():
         originalNodeToDiffNode = {}   # Saves where in the dag the diff of a node is, to allow adding more chain rule contributions when we reach that node again later
         
         def reverse_mode_diff(node, diff):  # Computes derivative of node.left and node.right | node: node in original dag | diff : node that contains derivative with respect to node.
+            # PRODUCT
             if node.type == NODETYPE.PRODUCT:
                 s1 = node.leftIndices
                 s2 = node.rightIndices
@@ -46,7 +47,7 @@ class Differentiator():
                     else:
                         originalNodeToDiffNode[node.right] = diff
                         diff = reverse_mode_diff(node.right, diff)
-
+            # SUM
             elif node.type == NODETYPE.SUM:
                 currentDiffNode = diff
                 if node.left and node.left.contains(self.arg):
