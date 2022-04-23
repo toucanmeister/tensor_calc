@@ -24,7 +24,7 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare a 0 b 0  argument a expression (b*(,->)a) *(,->) a'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '((b *(,->) a) + (a *(,->) b))')
+        self.assertEqual(str(d.diffDag), '((a *(,->) b) + (b *(,->) a))')
 
     def test_sum_1(self):
         test = 'declare a 0 b 0  argument a expression a + b'
@@ -44,6 +44,24 @@ class DifferentiatorTests(unittest.TestCase):
         d.differentiate()
         self.assertEqual(str(d.diffDag), '(_IDENTITY + _IDENTITY)')
     
+    def test_difference_1(self):
+        test = 'declare a 0 b 0  argument b expression a - b'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(- (_IDENTITY))')
+    
+    def test_difference_2(self):
+        test = 'declare a 0 b 0  argument a expression a - a - b'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(_IDENTITY + (- (_IDENTITY)))')
+    
+    def test_difference_3(self):
+        test = 'declare a 0 b 0  argument a expression a - b - a'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(_IDENTITY + (- (_IDENTITY)))')
+    
     def test_sum_product_1(self):
         test = 'declare a 1 b 1 c 1 argument a expression a*(i,i->i)a + b + c'
         d = Differentiator(test)
@@ -54,7 +72,7 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare a 1 b 1 c 1 argument a expression a*(i,i->i)b + a*(i,i->i)c'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(c + b)')
+        self.assertEqual(str(d.diffDag), '(b + c)')
     
     def test_sum_product_3(self):
         test = 'declare a 1 b 1 c 0 argument a expression a*(i,i->)b + c'
@@ -78,7 +96,7 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare A 2 B 2 x 1 argument x expression A*(ij,j->i)x + B*(ij,j->i)x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(B + A)')
+        self.assertEqual(str(d.diffDag), '(A + B)')
     
     def test_sum_product_7(self):
         test = 'declare A 2 B 2 x 1 argument x expression (A+B)*(ij,j->i)x'
@@ -102,9 +120,25 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare A 2 B 2 x 1 argument x expression (A*(ij,j->i)x) *(i,i->) ((A+B)*(ij,j->i)x)'
         d = Differentiator(test)
         d.differentiate()
-        print(d.diffDag)
-        self.assertEqual(str(d.diffDag), '(((A *(ij,j->i) x) *(i,ij->j) (A + B)) + (((A + B) *(ij,j->i) x) *(i,ij->j) A))')
+        self.assertEqual(str(d.diffDag), '((((A + B) *(ij,j->i) x) *(i,ij->j) A) + ((A *(ij,j->i) x) *(i,ij->j) (A + B)))')
+    
+    def test_sum_product_11(self):
+        test = 'declare a 1 b 1 c 1 d 1 argument a expression a*(i,i->)b + a*(i,i->)c + a*(i,i->)d'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '((b + c) + d)')
 
+    def test_difference_product_1(self):
+        test = 'declare a 1 b 1 c 1 argument a expression a*(i,i->i)a - b - c'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(a + a)')
+    
+    def test_difference__product_2(self):
+        test = 'declare a 1 b 1 c 1 argument a expression a*(i,i->i)b - a*(i,i->i)c'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(b + ((- (_IDENTITY)) *(ai,i->ai) c))')
 
 if __name__ == '__main__':
     unittest.main()

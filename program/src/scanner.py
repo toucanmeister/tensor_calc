@@ -54,7 +54,7 @@ KEYWORDS = {
     'expression': TOKEN_ID.EXPRESSION
 }
 
-ELEMENTWISE_FUNCS = {'sin', 'cos', 'tan', 'arcsin', 'arccos', 'arctan', 'tanh', 'exp', 'log', 'sign', 'relu', 'abs'}
+ELEMENTWISE_FUNCTIONS = {'sin', 'cos', 'tan', 'arcsin', 'arccos', 'arctan', 'tanh', 'exp', 'log', 'sign', 'relu'}
 
 class Scanner():
     def __init__(self, input):
@@ -95,7 +95,7 @@ class Scanner():
             id = SYMBOLS.get(self.current)
             identifier = self.current
             self.current = self.input.next()
-        # KEYWORDS, ELEMENTWISE_FUNCS, LOWERCASE_ALPHA AND OTHER WORDS
+        # KEYWORDS, ELEMENTWISE_FUNCTIONS, LOWERCASE_ALPHA AND OTHER WORDS
         elif self.current in ALPHA:
             while self.current in ALPHA or self.current in DIGITS:
                 identifier += self.current
@@ -103,7 +103,7 @@ class Scanner():
             if identifier.lower() in KEYWORDS.keys():
                 id = KEYWORDS.get(identifier.lower())
                 identifier = identifier.lower()
-            elif identifier.lower() in ELEMENTWISE_FUNCS:
+            elif identifier.lower() in ELEMENTWISE_FUNCTIONS:
                 id = TOKEN_ID.FUNCTION
                 identifier = identifier.lower()
             elif identifier.islower() and identifier.isalpha():

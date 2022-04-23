@@ -76,7 +76,7 @@ class Parser():
                 tree = Tree(NODETYPE.SUM, '+', tree, self.term())
             else:
                 self.get_sym()
-                tree = Tree(NODETYPE.DIFFERENCE, '-', tree, self.term())
+                tree = Tree(NODETYPE.SUM, '+', tree, Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, self.term()))
         return tree
     
     def term(self):

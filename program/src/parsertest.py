@@ -35,7 +35,7 @@ class ParserTests(unittest.TestCase):
         test = 'declare a 0 b 0 argument a expression 2 + a^(-1)+b'
         p = Parser(test)
         p.parse()
-        self.assertEqual(str(p.dag), '((2 + (a ^ - (1))) + b)')
+        self.assertEqual(str(p.dag), '((2 + (a ^ (- (1)))) + b)')
     def test_goodexpression_2(self):
         test = 'declare a 1 b 1 argument a expression a*(i,j->ij)b'
         p = Parser(test)
@@ -45,7 +45,7 @@ class ParserTests(unittest.TestCase):
         test = 'declare a 3 b 3 c 0 argument a expression ((a / b) *(ijk,ijk->) a) - c'
         p = Parser(test)
         p.parse()
-        self.assertEqual(str(p.dag), '(((a / b) *(ijk,ijk->) a) - c)')
+        self.assertEqual(str(p.dag), '(((a / b) *(ijk,ijk->) a) + (- (c)))')
     def test_scalar_product(self):
         test = 'declare a 0 b 0 argument a expression a*(,->)b'
         p = Parser(test)
@@ -85,7 +85,7 @@ class ParserTests(unittest.TestCase):
         test = 'declare a 2 b 2 argument a expression a - b'
         p = Parser(test)
         p.parse()
-        self.assertEqual(str(p.dag), '(a - b)')
+        self.assertEqual(str(p.dag), '(a + (- (b)))')
     def test_quotient(self):
         test = 'declare a 3 b 3 argument a expression a / b'
         p = Parser(test)

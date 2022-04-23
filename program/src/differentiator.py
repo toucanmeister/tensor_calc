@@ -1,4 +1,7 @@
-from parser import *
+from parser import Parser
+from scanner import TOKEN_ID
+from tree import Tree, NODETYPE
+import string
 
 # This class differentiates an expression dag with respect to an argument supplied by the parser
 class Differentiator():
@@ -25,17 +28,18 @@ class Differentiator():
         
         def reverse_mode_diff(node, diff):  # Computes derivative of node.left and node.right | node: node in original dag | diff : node that contains derivative with respect to node.
             # PRODUCT
+            currentDiffNode = diff
             if node.type == NODETYPE.PRODUCT:
                 s1 = node.leftIndices
                 s2 = node.rightIndices
                 s3 = node.resultIndices
                 s4 = ''.join([i for i in string.ascii_lowercase if i not in (s1 + s2 + s3)][0:y.rank])   # Use some unused indices for the output node y
-                currentDiffNode = diff
                 if node.left and node.left.contains(self.arg):
                     diff = Tree(NODETYPE.PRODUCT, f'*({s4+s3},{s2}->{s4+s1})', currentDiffNode, node.right)   # Diff rule
                     diff.set_indices(s4+s3, s2, s4+s1)
                     if node.left in originalNodeToDiffNode:   # If we've been to this node before, we need to add the new contribution to the old one
-                        diff = Tree(NODETYPE.SUM, '+', diff, originalNodeToDiffNode[node.left])
+                        diff = Tree(NODETYPE.SUM, '+', originalNodeToDiffNode[node.left], diff)
+                        originalNodeToDiffNode[node.left] = diff
                     else:
                         originalNodeToDiffNode[node.left] = diff
                         diff = reverse_mode_diff(node.left, diff)
@@ -43,31 +47,47 @@ class Differentiator():
                     diff = Tree(NODETYPE.PRODUCT, f'*({s4+s3},{s1}->{s4+s2})', currentDiffNode, node.left)
                     diff.set_indices(s4+s3, s1, s4+s2)
                     if node.right in originalNodeToDiffNode:
-                        diff = Tree(NODETYPE.SUM, '+', diff, originalNodeToDiffNode[node.right])
+                        diff = Tree(NODETYPE.SUM, '+', originalNodeToDiffNode[node.right], diff)
+                        originalNodeToDiffNode[node.right] = diff
                     else:
                         originalNodeToDiffNode[node.right] = diff
                         diff = reverse_mode_diff(node.right, diff)
             # SUM
             elif node.type == NODETYPE.SUM:
-                currentDiffNode = diff
                 if node.left and node.left.contains(self.arg):
                     if node.left in originalNodeToDiffNode:
-                        diff = Tree(NODETYPE.SUM, '+', diff, originalNodeToDiffNode[node.left])
+                        diff = Tree(NODETYPE.SUM, '+', originalNodeToDiffNode[node.left], diff)
+                        originalNodeToDiffNode[node.left] = diff
                     else: 
                         originalNodeToDiffNode[node.left] = diff
                         diff = reverse_mode_diff(node.left, currentDiffNode)
                 if node.right and node.right.contains(self.arg):
                     if node.right in originalNodeToDiffNode:
-                        diff = Tree(NODETYPE.SUM, '+', diff, originalNodeToDiffNode[node.right])
+                        diff = Tree(NODETYPE.SUM, '+', originalNodeToDiffNode[node.right], diff)
+                        originalNodeToDiffNode[node.right] = diff
                     else:
                         originalNodeToDiffNode[node.right] = diff
                         diff = reverse_mode_diff(node.right, currentDiffNode)
-                
+            # ELEMENTWISE FUNCTION
+            elif node.type == NODETYPE.ELEMENTWISE_FUNCTION:
+                if node.name == '-':
+                    funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, Tree(NODETYPE.VARIABLE, '_IDENTITY'))
+                else:
+                    raise Exception(f'Unknown function {node.name} encountered during differentiation.')
+                s1 = ''.join(string.ascii_lowercase[0:node.right.rank])
+                s2 = ''.join([i for i in string.ascii_lowercase if i not in s1][0:y.rank])
+                diff = Tree(NODETYPE.PRODUCT, f'*({s2+s1},{s1}->{s2+s1}', diff, funcDiff) # Diff rule
+                if node.right in originalNodeToDiffNode:
+                    diff = Tree(NODETYPE.SUM, '+', originalNodeToDiffNode[node.right], diff)
+                    originalNodeToDiffNode[node.right] = diff
+                else:
+                    originalNodeToDiffNode[node.right] = diff
+                    diff = reverse_mode_diff(node.right, diff)
             elif node.type == NODETYPE.VARIABLE:
                 if node == self.arg:
                     pass
                 else:
-                    raise Exception('I don\'t know how we got here...')
+                    raise Exception('Reached non-argument variable during differentiation.')
             return diff
 
         self.diffDag = reverse_mode_diff(self.originalDag, self.diffDag)
@@ -76,7 +96,7 @@ class Differentiator():
     def render(self):
         self.diffDag.dot('diffdag')
 
-    def remove_identity(self):   # Removes the unnecessary _IDENTITY nodes we added for convenvience earlier
+    def remove_identity(self):   # Removes the unnecessary _IDENTITY nodes we added for convenvience during differentiation
         if self.diffDag.type == NODETYPE.PRODUCT:
             if self.diffDag.left.name == '_IDENTITY':
                 self.diffDag = self.diffDag.right
@@ -93,17 +113,14 @@ class Differentiator():
             if node.right and node.right.type == NODETYPE.PRODUCT:
                 if node.right.left and node.right.left.name == '_IDENTITY':
                     node.right = node.right.right
-                if node.right.right and node.right.right.name == '_IDENTITY':
+                elif node.right.right and node.right.right.name == '_IDENTITY':
                     node.right = node.right.left
             helper(node.left)
             helper(node.right)
         helper(self.diffDag)
 
 if __name__ == '__main__':
-    example = 'declare a 1 b 1 c 0 argument a expression a*(i,i->)b + c'
+    example = 'declare a 0 b 0  argument a expression a - a - b'
     d = Differentiator(example)
     d.differentiate()
-    d.diffDag.set_tensorrank(d.variable_ranks)
-    d.diffDag.eliminate_common_subtrees()
-    d.render()
     print(d.diffDag)
