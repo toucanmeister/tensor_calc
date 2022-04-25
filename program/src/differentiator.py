@@ -72,11 +72,15 @@ class Differentiator():
             elif node.type == NODETYPE.ELEMENTWISE_FUNCTION:
                 if node.name == '-':
                     funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, Tree(NODETYPE.VARIABLE, '_IDENTITY'))
+                elif node.name == 'sin':
+                    funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'cos', None, node.right)
+                elif node.name == 'cos':
+                    funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'sin', None, node.right))
                 else:
                     raise Exception(f'Unknown function {node.name} encountered during differentiation.')
                 s1 = ''.join(string.ascii_lowercase[0:node.right.rank])
                 s2 = ''.join([i for i in string.ascii_lowercase if i not in s1][0:y.rank])
-                diff = Tree(NODETYPE.PRODUCT, f'*({s2+s1},{s1}->{s2+s1}', diff, funcDiff) # Diff rule
+                diff = Tree(NODETYPE.PRODUCT, f'*({s2+s1},{s1}->{s2+s1})', diff, funcDiff) # Diff rule
                 if node.right in originalNodeToDiffNode:
                     diff = Tree(NODETYPE.SUM, '+', originalNodeToDiffNode[node.right], diff)
                     originalNodeToDiffNode[node.right] = diff
@@ -92,17 +96,17 @@ class Differentiator():
 
         self.diffDag = reverse_mode_diff(self.originalDag, self.diffDag)
         self.remove_identity()
-    
+
     def render(self):
         self.diffDag.dot('diffdag')
 
     def remove_identity(self):   # Removes the unnecessary _IDENTITY nodes we added for convenvience during differentiation
-        if self.diffDag.type == NODETYPE.PRODUCT:
+        if self.diffDag.type == NODETYPE.PRODUCT: # In the top node
             if self.diffDag.left.name == '_IDENTITY':
                 self.diffDag = self.diffDag.right
             elif self.diffDag.right.name == '_IDENTITY':
                 self.diffDag = self.diffDag.left
-        def helper(node):
+        def helper(node): # In the rest of the DAG
             if not node:
                 return
             if node.left and node.left.type == NODETYPE.PRODUCT:
@@ -120,7 +124,7 @@ class Differentiator():
         helper(self.diffDag)
 
 if __name__ == '__main__':
-    example = 'declare a 0 b 0  argument a expression a - a - b'
+    example = 'declare x 1 argument x expression sin(x)'
     d = Differentiator(example)
     d.differentiate()
     print(d.diffDag)

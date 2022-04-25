@@ -140,5 +140,36 @@ class DifferentiatorTests(unittest.TestCase):
         d.differentiate()
         self.assertEqual(str(d.diffDag), '(b + ((- (_IDENTITY)) *(ai,i->ai) c))')
 
+    def test_difference_product_3(self):
+        test = 'declare A 2 B 2 x 1 argument x expression (A-B)*(ij,j->i)x'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(A + (- (B)))')
+    
+    def test_sin_1(self):
+        test = 'declare x 1 argument x expression sin(x)'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(cos (x))')
+
+    def test_sin_2(self):
+        test = 'declare A 2 x 1 argument x expression A *(ij,j->i) (sin(x))'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(A *(ba,a->ba) (cos (x)))')
+    
+    def test_cos(self):
+        test = 'declare A 2 x 1 argument x expression sin( A*(ij,j->i)x )'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '((cos ((A *(ij,j->i) x))) *(ai,ij->aj) A)')
+    
+    def test_sin_cos(self):
+        test = 'declare x 1 argument x expression cos(x) + sin(x)'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '((- ((sin (x)))) + (cos (x)))')
+
+
 if __name__ == '__main__':
     unittest.main()
