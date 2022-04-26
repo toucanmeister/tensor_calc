@@ -88,13 +88,12 @@ The main point of interest is how to represent tensors and their products, as th
 We start with an established tensor calculus and it's notation, and break it down to our needs.
 
 \section{Einstein Summation Notation}
-% Ricci hab ich noch nicht gut genug verstanden, nochmal überarbeiten
-There exists a calculus for tensor expressions, called Ricci calculus, that is heavily used in physics, which captures tensors both as $n$-dimensional arrays and as their dual form, multilinear functions.
+There exists a calculus for tensor expressions, called Ricci calculus, that is heavily used in physics, which allows differentiation between tensors as $n$-dimensional arrays and as multilinear functions.
 It differentiates between the two forms by the location of their indices, either in sub- or superscript.
 For example, the inner product of two vectors, $yx^T$, would be written as $y^ix_i$. And the Matrix-vector product $Ax$ would be $A^i_jx^j$.
-While Ricci calculus is elegant in the way it handles the duality of tensors, the many indices on each tensor make it less readable.
+While Ricci calculus can be useful, for example to physicists, the many indices on each tensor make it less readable.
 
-Since, for our purposes, tensors are simply containers for variables, we have no need for this distinction.
+Since, for our purposes, tensors are simply containers for variables, we have no need to expressly define some tensors as multilinear functions.
 The main part of Ricci calculus that we bring over into our notation is the Einstein summation notation.
 This is a notational convention that allows elegant representation of tensor products.
 Since tensors, depending on their order, may be multiplied in many ways, we need a way to describe which tensor axes should be multiplied in what way.
