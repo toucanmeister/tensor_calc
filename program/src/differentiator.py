@@ -76,6 +76,8 @@ class Differentiator():
                     funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'cos', None, node.right)
                 elif node.name == 'cos':
                     funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'sin', None, node.right))
+                elif node.name == 'exp':
+                    funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'exp', None, node.right)
                 else:
                     raise Exception(f'Unknown function {node.name} encountered during differentiation.')
                 s1 = ''.join(string.ascii_lowercase[0:node.right.rank])

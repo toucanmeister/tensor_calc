@@ -12,9 +12,22 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
     x Summenregel
         x Regel
         x Tests
-    - Elementweise Funktionen (siehe Matrix Calculus für Liste)
-        - Regel
-        - Tests
+    - Elementweise Funktionen
+        x (-)
+        x sin
+        x cos
+        - tan
+        - arcsin
+        - arccos
+        - arctan
+        - log
+        - exp
+        - tanh
+        - abs
+        - sign
+        - relu
+        - (^)
+        - (/)
     - Besondere Funktionen
         - Determinante und Inverse von Matrizen
         - Jede Funktion braucht ihre eigene Prozedur um ihren output-tensorrang zu berechnen

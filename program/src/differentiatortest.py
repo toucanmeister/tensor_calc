@@ -169,7 +169,18 @@ class DifferentiatorTests(unittest.TestCase):
         d = Differentiator(test)
         d.differentiate()
         self.assertEqual(str(d.diffDag), '((- ((sin (x)))) + (cos (x)))')
+    
+    def test_exp_1(self):
+        test = 'declare x 1 argument x expression exp(x)'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(exp (x))')
 
+    def test_exp_2(self):
+        test = 'declare A 2 x 1 argument x expression A *(ij,j->i) exp(x)'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(A *(ba,a->ba) (exp (x)))')
 
 if __name__ == '__main__':
     unittest.main()
