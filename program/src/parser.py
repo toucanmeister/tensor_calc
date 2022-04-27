@@ -20,11 +20,12 @@ class Parser():
     def error(self, expected):
         raise Exception(f'Expected {expected} but found \'{self.ident}\'')
 
-    def parse(self):
+    def parse(self, clean=True):
         self.declaration()
         self.argument()
         self.dag = self.expressionpart()
-        self.dag.eliminate_common_subtrees()
+        if clean:
+            self.dag.eliminate_common_subtrees()
         self.dag.set_tensorrank(self.variable_ranks)
     
     def declaration(self):
@@ -191,9 +192,5 @@ if __name__ == '__main__':
     example = 'declare a 1 b 1 argument a expression a - b'
     p = Parser(example)
     p.parse()
-    p.dag.set_tensorrank(p.variable_ranks)
     p.dag.dot('tree')
-    p.dag.eliminate_common_subtrees()
-    p.dag.add_incoming_edges()
-    p.dag.dot('tree_cleaned')
     print(p.dag)

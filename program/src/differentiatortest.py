@@ -48,19 +48,19 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare a 0 b 0  argument b expression a - b'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(- (_IDENTITY))')
+        self.assertEqual(str(d.diffDag), '(-(_IDENTITY))')
     
     def test_difference_2(self):
         test = 'declare a 0 b 0  argument a expression a - a - b'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_IDENTITY + (- (_IDENTITY)))')
+        self.assertEqual(str(d.diffDag), '(_IDENTITY + (-(_IDENTITY)))')
     
     def test_difference_3(self):
         test = 'declare a 0 b 0  argument a expression a - b - a'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_IDENTITY + (- (_IDENTITY)))')
+        self.assertEqual(str(d.diffDag), '(_IDENTITY + (-(_IDENTITY)))')
     
     def test_sum_product_1(self):
         test = 'declare a 1 b 1 c 1 argument a expression a*(i,i->i)a + b + c'
@@ -138,49 +138,49 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare a 1 b 1 c 1 argument a expression a*(i,i->i)b - a*(i,i->i)c'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(b + ((- (_IDENTITY)) *(ai,i->ai) c))')
+        self.assertEqual(str(d.diffDag), '(b + ((-(_IDENTITY)) *(ai,i->ai) c))')
 
     def test_difference_product_3(self):
         test = 'declare A 2 B 2 x 1 argument x expression (A-B)*(ij,j->i)x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(A + (- (B)))')
+        self.assertEqual(str(d.diffDag), '(A + (-(B)))')
     
     def test_sin_1(self):
         test = 'declare x 1 argument x expression sin(x)'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(cos (x))')
+        self.assertEqual(str(d.diffDag), '(cos(x))')
 
     def test_sin_2(self):
         test = 'declare A 2 x 1 argument x expression A *(ij,j->i) (sin(x))'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(A *(ba,a->ba) (cos (x)))')
+        self.assertEqual(str(d.diffDag), '(A *(ba,a->ba) (cos(x)))')
     
     def test_cos(self):
         test = 'declare A 2 x 1 argument x expression sin( A*(ij,j->i)x )'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '((cos ((A *(ij,j->i) x))) *(ai,ij->aj) A)')
+        self.assertEqual(str(d.diffDag), '((cos((A *(ij,j->i) x))) *(ai,ij->aj) A)')
     
     def test_sin_cos(self):
         test = 'declare x 1 argument x expression cos(x) + sin(x)'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '((- ((sin (x)))) + (cos (x)))')
+        self.assertEqual(str(d.diffDag), '((-((sin(x)))) + (cos(x)))')
     
     def test_exp_1(self):
         test = 'declare x 1 argument x expression exp(x)'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(exp (x))')
+        self.assertEqual(str(d.diffDag), '(exp(x))')
 
     def test_exp_2(self):
         test = 'declare A 2 x 1 argument x expression A *(ij,j->i) exp(x)'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(A *(ba,a->ba) (exp (x)))')
+        self.assertEqual(str(d.diffDag), '(A *(ba,a->ba) (exp(x)))')
 
 if __name__ == '__main__':
     unittest.main()

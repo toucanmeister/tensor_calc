@@ -1,5 +1,3 @@
-
-Todo:
 x Tensorrang in jedem Knoten speichern
 x Mehrfachvorkommen eliminieren (common subexpression elimination):
     x Alle Unterbäume listen
@@ -16,12 +14,12 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
         x (-)
         x sin
         x cos
+        x exp
         - tan
         - arcsin
         - arccos
         - arctan
         - log
-        - exp
         - tanh
         - abs
         - sign
@@ -31,3 +29,4 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
     - Besondere Funktionen
         - Determinante und Inverse von Matrizen
         - Jede Funktion braucht ihre eigene Prozedur um ihren output-tensorrang zu berechnen
+- Tensorrang in abgeleitetem Ausdruck richtig angeben (Frage: Woher weiß ich, welchen Rang die Identity hat?)

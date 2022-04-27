@@ -46,7 +46,7 @@ class Tree():
             if self.left:
                 return f'({self.left} {self.name} {self.right})'
             else:
-                return f'({self.name} ({self.right}))'
+                return f'({self.name}({self.right}))'
         else:
             return f'{self.name}'
     
@@ -147,9 +147,9 @@ class Tree():
             helper(subtree)
     
     def add_incoming_edges(self):
-        if self and self.left:
+        if self and self.left and (self not in self.left.incoming):
             self.left.incoming.append(self)
             self.left.add_incoming_edges()
-        if self and self.right:
+        if self and self.right and (self not in self.right.incoming):
             self.right.incoming.append(self)
             self.right.add_incoming_edges()
