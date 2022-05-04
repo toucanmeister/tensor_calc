@@ -24,10 +24,10 @@ class Differentiator():
             raise Exception('Argument \'{self.parser.arg_name}\' not found in expression.')
 
     def differentiate(self):
-        self.diffDag = Tree(NODETYPE.VARIABLE, '_IDENTITY_0')   # Derivative of the top node y with respect to itself, unnecessary ones will later be removed
-        self.variable_ranks['_IDENTITY_0'] = self.originalDag.rank
+        deltaRank = self.originalDag.rank * 2
+        self.diffDag = Tree(NODETYPE.VARIABLE, f'_delta({deltaRank})')   # Derivative of the top node y with respect to itself, unnecessary ones will later be removed
+        self.variable_ranks['_delta'] = deltaRank
         self.diffDag = self.reverse_mode_diff(self.originalDag, self.diffDag)
-        self.remove_identity()
 
     def reverse_mode_diff(self, node, diff):  # Computes derivative of node.left and node.right | node: node in original dag | diff : node that contains derivative with respect to node.
         currentDiffNode = diff
@@ -101,37 +101,6 @@ class Differentiator():
 
     def render(self, filename='diffdag'):
         self.diffDag.dot(filename)
-
-    def remove_identity(self):   # Removes the unnecessary _IDENTITY nodes we added for convenvience during differentiation
-        if self.diffDag.type == NODETYPE.PRODUCT: # In the top node
-            if self.diffDag.left.name.startswith('_IDENTITY'):
-                self.diffDag = self.diffDag.right
-            elif self.diffDag.right.name.startswith('_IDENTITY'):
-                self.diffDag = self.diffDag.left
-        def helper(node): # In the rest of the DAG
-            if not node:
-                return
-            if node.left and node.left.type == NODETYPE.PRODUCT:
-                if node.left.left and node.left.left.name.startswith('_IDENTITY'):
-                    node.left = node.left.right
-                elif node.left.right and node.left.right.name.startswith('_IDENTITY'):
-                    node.left = node.left.left
-            if node.right and node.right.type == NODETYPE.PRODUCT:
-                if node.right.left and node.right.left.name.startswith('_IDENTITY'):
-                    node.right = node.right.right
-                elif node.right.right and node.right.right.name.startswith('_IDENTITY'):
-                    node.right = node.right.left
-            helper(node.left)
-            helper(node.right)
-        helper(self.diffDag)
-        def remove_identity_numbers(node):
-            if node.name.startswith('_IDENTITY'):
-                node.name = '_IDENTITY'
-            if node.left: 
-                remove_identity_numbers(node.left)
-            if node.right:
-                remove_identity_numbers(node.right)
-        remove_identity_numbers(self.diffDag)
 
 if __name__ == '__main__':
     example = 'declare x 1 argument x expression x *(i,i->ii) x'

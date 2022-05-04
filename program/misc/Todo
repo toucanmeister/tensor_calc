@@ -30,3 +30,8 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
         - Determinante und Inverse von Matrizen
         - Jede Funktion braucht ihre eigene Prozedur um ihren output-tensorrang zu berechnen
 - Tensorrang in abgeleitetem Ausdruck richtig angeben (Frage: Woher weiß ich, welchen Rang die Identity hat?)
+- DELTA(K) als Ersatz für Identity
+- Wann ist Multiplikation mit Delta eine neutrale Operation?
+- Broadcasting für Sachen wie A + 1
+- eventuell .* als Shortcut für punktweise Multiplikation
+- Idee: statt 'declare argument expression', 'declare expression derivative wrt'
