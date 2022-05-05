@@ -111,8 +111,18 @@ The application of a matrix \codeword{A} to a vector \codeword{v} would be writt
 One may even take diagonals of tensors using this notation, the inner product of a square matrix \codeword{A}'s main diagonal and a vector \codeword{v} would be \codeword{A*(ii,i->)v}.
 
 
-\section {Grammar}
+\section{Grammar}
 With the representation of tensor products handled, we can now define the full input syntax grammar.
+The grammar, presented here in extended backus-naur form, is based on a standard grammar for mathematical expressions by Julien Klaus.
+It was adapted to tensor expressions by generalizing multiplication to tensor products using the einstein summation convention.
+// TODO: 
+// - Insert Grammar
+// - Why choose these functions
+// - Only elementwise operations besides multiplication
+// - Elaborate on the grammar base by Julien
+
+\section{Parsing the Expression}
+
 
 \chapter{Literature}
 \chapter{Appendices}
