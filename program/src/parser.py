@@ -98,7 +98,7 @@ class Parser():
                 tree.set_indices(leftIndices, rightIndices, resultIndices)
             if self.fits(TOKEN_ID.DIVIDE):
                 self.get_sym()
-                tree = Tree(NODETYPE.QUOTIENT, '/', tree, self.factor())
+                tree = Tree(NODETYPE.PRODUCT, '_TO_BE_SET_ELEMENTWISE', tree, Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, self.factor())) # Indices will get set later
         return tree
 
     def productindices(self):
@@ -189,7 +189,7 @@ class Parser():
 
         
 if __name__ == '__main__':
-    example = 'declare a 1 b 1 argument a expression a - b'
+    example = 'declare a 1 b 1 argument a expression a / b'
     p = Parser(example)
     p.parse()
     p.dag.dot('tree')

@@ -48,19 +48,19 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare a 0 b 0  argument b expression a - b'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(0) *(,->) (-(_IDENTITY_1)))')
+        self.assertEqual(str(d.diffDag), '(_delta(0) *(,->) (-(_ones(0))))')
     
     def test_difference_2(self):
         test = 'declare a 0 b 0  argument a expression a - a - b'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(0) + (_delta(0) *(,->) (-(_IDENTITY_1))))')
+        self.assertEqual(str(d.diffDag), '(_delta(0) + (_delta(0) *(,->) (-(_ones(0)))))')
     
     def test_difference_3(self):
         test = 'declare a 0 b 0  argument a expression a - b - a'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(0) + (_delta(0) *(,->) (-(_IDENTITY_1))))')
+        self.assertEqual(str(d.diffDag), '(_delta(0) + (_delta(0) *(,->) (-(_ones(0)))))')
     
     def test_sum_product_1(self):
         test = 'declare a 1 b 1 c 1 argument a expression a*(i,i->i)a + b + c'
@@ -132,7 +132,7 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare a 1 b 1 c 1 argument a expression a*(i,i->i)b - a*(i,i->i)c'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '((_delta(2) *(ai,i->ai) b) + ((_delta(2) *(ba,a->ba) (-(_IDENTITY_1))) *(ai,i->ai) c))')
+        self.assertEqual(str(d.diffDag), '((_delta(2) *(ai,i->ai) b) + ((_delta(2) *(ba,a->ba) (-(_ones(1)))) *(ai,i->ai) c))')
 
     def test_difference_product_3(self):
         test = 'declare A 2 B 2 x 1 argument x expression (A-B)*(ij,j->i)x'
@@ -175,6 +175,12 @@ class DifferentiatorTests(unittest.TestCase):
         d = Differentiator(test)
         d.differentiate()
         self.assertEqual(str(d.diffDag), '((_delta(2) *(ai,ij->aj) A) *(ba,a->ba) (exp(x)))')
+
+    def test_div(self):
+        test = 'declare y 1 x 1 argument x expression y / x'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '((_delta(2) *(ba,a->ba) y) *(ba,a->ba) (-((elementwise_inverse((x *(a,a->a) x))))))')
 
 if __name__ == '__main__':
     unittest.main()

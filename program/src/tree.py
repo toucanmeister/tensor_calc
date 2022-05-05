@@ -1,5 +1,6 @@
 from enum import Enum
 from graphviz import Digraph
+import string
 
 class NODETYPE(Enum):
     CONSTANT = 'constant'
@@ -128,6 +129,10 @@ class Tree():
             else:
                 self.rank = self.left.rank
         elif self.type == NODETYPE.PRODUCT:
+            if self.name == '_TO_BE_SET_ELEMENTWISE':
+                indices = ''.join([i for i in string.ascii_lowercase][0:self.left.rank])
+                self.set_indices(indices, indices, indices)
+                self.name = f'*({indices},{indices}->{indices})'
             self.check_multiplication()
             self.rank = len(self.resultIndices)
         else:
