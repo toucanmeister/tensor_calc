@@ -1,5 +1,5 @@
 from parser import Parser
-from scanner import TOKEN_ID
+from scanner import ELEMENTWISE_FUNCTIONS, TOKEN_ID
 from tree import Tree, NODETYPE
 import string
 
@@ -67,6 +67,13 @@ class Differentiator():
                 cos_squared = Tree(NODETYPE.PRODUCT, f'*({indices},{indices}->{indices})', cos, cos)
                 cos_squared.set_indices(indices, indices, indices)
                 funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, cos_squared)
+            elif node.name == 'arctan':
+                indices = ''.join([i for i in string.ascii_lowercase][0:node.right.rank])
+                squared = Tree(NODETYPE.PRODUCT, f'*({indices},{indices}->{indices})', node.right, node.right)
+                squared.set_indices(indices, indices, indices)
+                ones_rank = node.right.rank
+                funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, Tree(NODETYPE.SUM, '+', squared, Tree(NODETYPE.VARIABLE, f'_ones({ones_rank})')))
+                self.variable_ranks[f'_ones({ones_rank})'] = ones_rank
             elif node.name == 'exp':
                 funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'exp', None, node.right)
             elif node.name == 'elementwise_inverse':
@@ -114,7 +121,7 @@ class Differentiator():
         self.diffDag.dot(filename)
 
 if __name__ == '__main__':
-    example = 'declare x 2 argument x expression tan(x)'
+    example = 'declare x 1 argument x expression arctan(x)'
     d = Differentiator(example)
     d.differentiate()
     d.render()

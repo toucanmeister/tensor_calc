@@ -16,10 +16,10 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
         x cos
         x exp
         x (/)
-        - tan
+        x tan
+        x arctan
         - arcsin
         - arccos
-        - arctan
         - log
         - tanh
         - abs

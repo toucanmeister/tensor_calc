@@ -187,7 +187,12 @@ class DifferentiatorTests(unittest.TestCase):
         d = Differentiator(test)
         d.differentiate()
         self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (elementwise_inverse(((cos(x)) *(a,a->a) (cos(x))))))')
-        
+    
+    def test_arctan(self):
+        test = 'declare x 1 argument x expression arctan(x)'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (elementwise_inverse(((x *(a,a->a) x) + _ones(1)))))')
 
 if __name__ == '__main__':
     unittest.main()
