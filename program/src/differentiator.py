@@ -91,6 +91,8 @@ class Differentiator():
                 zeroes_rank = node.right.rank
                 funcDiff = Tree(NODETYPE.VARIABLE, f'_zeroes({zeroes_rank})')
                 self.variable_ranks[f'_zeroes({zeroes_rank})'] = zeroes_rank
+            elif node.name == 'relu':
+                funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'relu', None, Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'sign', None, node.right))
             elif node.name == 'elementwise_inverse':
                 indices = ''.join([i for i in string.ascii_lowercase][0:node.right.rank])
                 squared = Tree(NODETYPE.PRODUCT, f'*({indices},{indices}->{indices})', node.right, node.right)

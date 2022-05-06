@@ -24,7 +24,7 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
         x tanh
         x abs
         x sign
-        - relu
+        x relu
         - (^)
     - Besondere Funktionen
         - Determinante und Inverse von Matrizen

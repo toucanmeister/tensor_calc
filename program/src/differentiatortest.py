@@ -217,6 +217,12 @@ class DifferentiatorTests(unittest.TestCase):
         d = Differentiator(test)
         d.differentiate()
         self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) _zeroes(1))')
+    
+    def test_relu(self):
+        test = 'declare x 1 argument x expression relu(x)'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (relu((sign(x)))))')
 
 if __name__ == '__main__':
     unittest.main()
