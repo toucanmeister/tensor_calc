@@ -61,6 +61,12 @@ class Differentiator():
                 funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'cos', None, node.right)
             elif node.name == 'cos':
                 funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'sin', None, node.right))
+            elif node.name == 'tan':
+                cos = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'cos', None, node.right)
+                indices = ''.join([i for i in string.ascii_lowercase][0:node.right.rank])
+                cos_squared = Tree(NODETYPE.PRODUCT, f'*({indices},{indices}->{indices})', cos, cos)
+                cos_squared.set_indices(indices, indices, indices)
+                funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, cos_squared)
             elif node.name == 'exp':
                 funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'exp', None, node.right)
             elif node.name == 'elementwise_inverse':
@@ -108,7 +114,7 @@ class Differentiator():
         self.diffDag.dot(filename)
 
 if __name__ == '__main__':
-    example = 'declare y 1 x 1 argument x expression a / x'
+    example = 'declare x 2 argument x expression tan(x)'
     d = Differentiator(example)
     d.differentiate()
     d.render()
