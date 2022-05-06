@@ -22,8 +22,8 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
         - arccos
         x log
         x tanh
-        - abs
-        - sign
+        x abs
+        x sign
         - relu
         - (^)
     - Besondere Funktionen

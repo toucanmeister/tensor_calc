@@ -205,6 +205,18 @@ class DifferentiatorTests(unittest.TestCase):
         d = Differentiator(test)
         d.differentiate()
         self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (_ones(1) + (-(((tanh(x)) *(a,a->a) (tanh(x)))))))')
+    
+    def test_abs(self):
+        test = 'declare x 1 argument x expression abs(x)'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (sign(x)))')
+    
+    def test_sign(self):
+        test = 'declare x 1 argument x expression sign(x)'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) _zeroes(1))')
 
 if __name__ == '__main__':
     unittest.main()

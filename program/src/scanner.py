@@ -54,7 +54,7 @@ KEYWORDS = {
     'expression': TOKEN_ID.EXPRESSION
 }
 
-ELEMENTWISE_FUNCTIONS = {'sin', 'cos', 'tan', 'arcsin', 'arccos', 'arctan', 'tanh', 'exp', 'log', 'sign', 'relu'}
+ELEMENTWISE_FUNCTIONS = {'sin', 'cos', 'tan', 'arcsin', 'arccos', 'arctan', 'tanh', 'exp', 'log', 'abs', 'sign', 'relu'}
 
 class Scanner():
     def __init__(self, input):
