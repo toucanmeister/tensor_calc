@@ -76,6 +76,15 @@ class Differentiator():
                 self.variable_ranks[f'_ones({ones_rank})'] = ones_rank
             elif node.name == 'exp':
                 funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'exp', None, node.right)
+            elif node.name == 'log':
+                funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, node.right)
+            elif node.name == 'tanh':
+                indices = ''.join([i for i in string.ascii_lowercase][0:node.right.rank])
+                squared = Tree(NODETYPE.PRODUCT, f'*({indices},{indices}->{indices})', node, node)
+                squared.set_indices(indices, indices, indices)
+                ones_rank = node.right.rank
+                funcDiff = Tree(NODETYPE.SUM, '+', Tree(NODETYPE.VARIABLE, f'_ones({ones_rank})'), Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, squared))
+                self.variable_ranks[f'_ones({ones_rank})'] = ones_rank
             elif node.name == 'elementwise_inverse':
                 indices = ''.join([i for i in string.ascii_lowercase][0:node.right.rank])
                 squared = Tree(NODETYPE.PRODUCT, f'*({indices},{indices}->{indices})', node.right, node.right)

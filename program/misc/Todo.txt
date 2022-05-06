@@ -20,8 +20,8 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
         x arctan
         - arcsin
         - arccos
-        - log
-        - tanh
+        x log
+        x tanh
         - abs
         - sign
         - relu

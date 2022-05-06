@@ -193,6 +193,18 @@ class DifferentiatorTests(unittest.TestCase):
         d = Differentiator(test)
         d.differentiate()
         self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (elementwise_inverse(((x *(a,a->a) x) + _ones(1)))))')
+    
+    def test_log(self):
+        test = 'declare x 1 argument x expression log(x)'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (elementwise_inverse(x)))')
+
+    def test_tanh(self):
+        test = 'declare x 1 argument x expression tanh(x)'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (_ones(1) + (-(((tanh(x)) *(a,a->a) (tanh(x)))))))')
 
 if __name__ == '__main__':
     unittest.main()
