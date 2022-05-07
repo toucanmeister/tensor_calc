@@ -223,6 +223,24 @@ class DifferentiatorTests(unittest.TestCase):
         d = Differentiator(test)
         d.differentiate()
         self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (relu((sign(x)))))')
+    
+    def test_power_1(self):
+        test = 'declare x 1 a 0 argument x expression x^a'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (a *(,a->a) (x ^ (a + (-(_ones(0)))))))')
+
+    def test_power_2(self):
+        test = 'declare x 1 a 0 argument x expression (x^a) *(i,i->) x'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(((_delta(0) *(,i->i) x) *(a,a->a) (a *(,a->a) (x ^ (a + (-(_ones(0))))))) + (_delta(0) *(,i->i) (x ^ a)))')
+
+    def test_power_3(self):
+        test = 'declare x 0 a 1 argument x expression a^x'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(_delta(2) *(ab,b->a) ((a ^ x) *(b,b->b) (log(a))))')
 
 if __name__ == '__main__':
     unittest.main()

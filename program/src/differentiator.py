@@ -27,7 +27,7 @@ class Differentiator():
         self.diffDag = Tree(NODETYPE.VARIABLE, f'_delta({deltaRank})')   # Derivative of the top node y with respect to itself, unnecessary ones will later be removed
         self.variable_ranks[f'_delta({deltaRank})'] = deltaRank
         self.diffDag = self.reverse_mode_diff(self.originalDag, self.diffDag)
-        self.diffDag.set_tensorrank(self.variable_ranks)
+        self.diffDag.set_tensorrank(self.variable_ranks, self.arg)
 
     def reverse_mode_diff(self, node, diff):  # Computes derivative of node.left and node.right | node: node in original dag | diff : node that contains derivative with respect to node.
         currentDiffNode = diff
@@ -51,6 +51,29 @@ class Differentiator():
                 diff = self.contributions(node.left, currentDiffNode)
             if node.right and node.right.contains(self.arg):
                 diff = self.contributions(node.right, currentDiffNode)
+        # POWER
+        elif node.type == NODETYPE.POWER:
+            if node.left and node.left.contains(self.arg):
+                indices = ''.join([i for i in string.ascii_lowercase][0:node.left.rank])
+                one = Tree(NODETYPE.VARIABLE, '_ones(0)')
+                self.variable_ranks[f'_ones(0)'] = 0
+                newpower = Tree(NODETYPE.POWER, '^', node.left, Tree(NODETYPE.SUM, '+', node.right, Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, one)))
+                funcDiff = Tree(NODETYPE.PRODUCT, f'*(,{indices}->{indices})', node.right, newpower)
+                funcDiff.set_indices('', indices, indices)
+                s1 = ''.join(string.ascii_lowercase[0:node.left.rank])   # Same procedure as with an elementwise function
+                s2 = ''.join([i for i in string.ascii_lowercase if i not in s1][0:self.originalDag.rank])
+                diff = Tree(NODETYPE.PRODUCT, f'*({s2+s1},{s1}->{s2+s1})', diff, funcDiff) # Diff rule
+                diff.set_indices(s2+s1, s1, s2+s1)
+                diff = self.contributions(node.left, diff)
+            elif node.right and node.right.contains(self.arg):
+                s3 = ''.join([i for i in string.ascii_lowercase][0:self.originalDag.rank])
+                s2 = ''.join([i for i in string.ascii_lowercase if not i in s3][0:node.rank])
+                s1 = ''
+                funcDiff = Tree(NODETYPE.PRODUCT, f'*({s2},{s2}->{s2})', node, Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'log', None, node.left))
+                funcDiff.set_indices(s2, s2, s2)
+                diff = Tree(NODETYPE.PRODUCT, f'*({s3+s2},{s2+s1}->{s3+s1})', diff, funcDiff)
+                diff.set_indices(s3+s2, s2+s1, s3+s1)
+                diff = self.contributions(node.right, diff)
         # ELEMENTWISE FUNCTION
         elif node.type == NODETYPE.ELEMENTWISE_FUNCTION:
             if node.name == '-':
@@ -138,7 +161,7 @@ class Differentiator():
         self.diffDag.dot(filename)
 
 if __name__ == '__main__':
-    example = 'declare x 1 argument x expression arctan(x)'
+    example = 'declare x 1 a 0 argument x expression (x^a) *(i,i->) x'
     d = Differentiator(example)
     d.differentiate()
     d.render()

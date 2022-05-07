@@ -26,7 +26,7 @@ class Parser():
         self.dag = self.expressionpart()
         if clean:
             self.dag.eliminate_common_subtrees()
-        self.dag.set_tensorrank(self.variable_ranks)
+        self.dag.set_tensorrank(self.variable_ranks, self.dag.find(self.arg_name))
     
     def declaration(self):
         if self.fits(TOKEN_ID.DECLARE):

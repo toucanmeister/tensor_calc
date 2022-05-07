@@ -8,7 +8,6 @@ class NODETYPE(Enum):
     FUNCTION = 'function'
     ELEMENTWISE_FUNCTION = 'elementwise_function'
     SUM = 'sum'
-    QUOTIENT = 'quotient'
     PRODUCT = 'product'
     POWER = 'power'
 
@@ -109,11 +108,11 @@ class Tree():
             if not (index in self.leftIndices or index in self.rightIndices):
                 raise Exception(f'Result index \'{index}\' of product node \'{self.name}\' not in left or right index set.')
 
-    def set_tensorrank(self, variable_ranks):
+    def set_tensorrank(self, variable_ranks, arg):
         if self.left:
-            self.left.set_tensorrank(variable_ranks)
+            self.left.set_tensorrank(variable_ranks, arg)
         if self.right:
-            self.right.set_tensorrank(variable_ranks)
+            self.right.set_tensorrank(variable_ranks, arg)
         if self.type == NODETYPE.CONSTANT:
             self.rank = 0
         elif self.type == NODETYPE.VARIABLE:
@@ -123,9 +122,14 @@ class Tree():
         elif self.type == NODETYPE.FUNCTION:
             pass
             #TODO: EACH SPECIAL FUNCTION NEEDS IT'S OWN IMPLEMENTATION HERE
-        elif self.type in [NODETYPE.SUM, NODETYPE.QUOTIENT, NODETYPE.POWER]:
+        elif self.type == NODETYPE.SUM:
             if self.right.rank != self.left.rank:
-                raise Exception(f'Ranks of inputs \'{self.left.name}\' ({self.left.rank}) and \'{self.right.name}\' ({self.right.rank}) to node of type {self.type.value} do not match.')
+                raise Exception(f'Ranks of operands \'{self.left.name}\' ({self.left.rank}) and \'{self.right.name}\' ({self.right.rank}) in sum node do not match.')
+            else:
+                self.rank = self.left.rank
+        elif self.type == NODETYPE.POWER:
+            if self.right.rank != 0:
+                raise Exception(f'Rank of right operand \'{self.right.name}\' ({self.right.rank}) in power node is not 0.')
             else:
                 self.rank = self.left.rank
         elif self.type == NODETYPE.PRODUCT:
