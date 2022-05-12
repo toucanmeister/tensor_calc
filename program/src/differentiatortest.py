@@ -260,5 +260,17 @@ class DifferentiatorTests(unittest.TestCase):
         d.differentiate()
         self.assertEqual(str(d.diffDag), '(((_delta(0) *(,->) (exp((x *(,->) (log(x)))))) *(,->) (log(x))) + (((_delta(0) *(,->) (exp((x *(,->) (log(x)))))) *(,->) x) *(,->) (elementwise_inverse(x))))')
 
+    def test_inv(self):
+        test = 'declare A 2 expression inv(A) derivative wrt A'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(_delta(4) *(efcd,cdab->efab) ((-((inv(A)))) *(ij,kl->ijkl) (inv(A))))')
+    
+    def test_det(self):
+        test = 'declare A 2 expression det(A) derivative wrt A'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(_delta(0) *(,ab->ab) ((adj(A)) *(ij,->ji) 1))')
+
 if __name__ == '__main__':
     unittest.main()

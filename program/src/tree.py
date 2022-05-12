@@ -5,7 +5,7 @@ import string
 class NODETYPE(Enum):
     CONSTANT = 'constant'
     VARIABLE = 'variable'
-    FUNCTION = 'function'
+    SPECIAL_FUNCTION = 'function'
     ELEMENTWISE_FUNCTION = 'elementwise_function'
     SUM = 'sum'
     PRODUCT = 'product'
@@ -119,9 +119,22 @@ class Tree():
             self.rank = variable_ranks[self.name]
         elif self.type == NODETYPE.ELEMENTWISE_FUNCTION:
             self.rank = self.right.rank
-        elif self.type == NODETYPE.FUNCTION:
-            pass
-            #TODO: EACH SPECIAL FUNCTION NEEDS IT'S OWN IMPLEMENTATION HERE
+        elif self.type == NODETYPE.SPECIAL_FUNCTION:
+            if self.name == 'inv':
+                if self.right.rank != 2:
+                    raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
+                else:
+                    self.rank = 2
+            elif self.name == 'det':
+                if self.right.rank != 2:
+                    raise Exception(f'Rank of operand \'{self.right}\' to det node is not 2.')
+                else:
+                    self.rank = 0
+            elif self.name == 'adj':
+                if self.right.rank != 2:
+                    raise Exception(f'Rank of operand \'{self.right}\' to det node is not 2.')
+                else:
+                    self.rank = 2
         elif self.type == NODETYPE.SUM:
             if self.right.rank != self.left.rank:
                 raise Exception(f'Ranks of operands \'{self.left.name}\' ({self.left.rank}) and \'{self.right.name}\' ({self.right.rank}) in sum node do not match.')

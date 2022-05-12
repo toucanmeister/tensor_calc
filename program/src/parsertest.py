@@ -96,6 +96,14 @@ class ParserTests(unittest.TestCase):
         p = Parser(test)
         p.parse()
         self.assertEqual(str(p.dag), '(a *(abc,abc->abc) (elementwise_inverse(b)))')
+    def test_special_function(self):
+        test = 'declare a 2 expression inv(a) derivative wrt a'
+        p = Parser(test)
+        p.parse()
+        self.assertEqual(str(p.dag), '(inv(a))')
+    def test_badexpression_inv(self):
+        test = 'declare a 3 expression inv(a) derivative wrt a'
+        self.assertRaises(Exception, Parser(test).parse)
     def test_badexpression_product(self):
         test = 'declare a 1 b 1 expression a*(i,j->3)b derivative wrt a'
         self.assertRaises(Exception, Parser(test).parse)

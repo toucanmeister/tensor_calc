@@ -38,6 +38,8 @@ class Differentiator():
             diff = self.diff_power(node, diff)
         elif node.type == NODETYPE.ELEMENTWISE_FUNCTION:
             diff = self.diff_elementwise_function(node, diff)
+        elif node.type == NODETYPE.SPECIAL_FUNCTION:
+            diff = self.diff_special_function(node, diff)
         elif node.type == NODETYPE.VARIABLE:
             diff = self.diff_variable(node, diff)
         return diff
@@ -160,6 +162,22 @@ class Differentiator():
             diff = self.contributions(node.right, diff)
         return diff
     
+    def diff_special_function(self, node, diff):
+        if node.name == 'inv':
+            funcDiff = Tree(NODETYPE.PRODUCT, f'*(ij,kl->ijkl)', Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, node), node)
+            funcDiff.set_indices('ij', 'kl', 'ijkl')
+        if node.name == 'det':
+            funcDiff = Tree(NODETYPE.PRODUCT, '*(ij,->ji)', Tree(NODETYPE.SPECIAL_FUNCTION, 'adj', None, node.right), Tree(NODETYPE.CONSTANT, '1'))
+            funcDiff.set_indices('ij', '', 'ji')
+        s1 = ''.join(string.ascii_lowercase[0:node.right.rank])
+        s2 = ''.join([i for i in string.ascii_lowercase if i not in s1][0:node.rank])
+        s3 = ''.join([i for i in string.ascii_lowercase if i not in s1+s2][0:self.originalDag.rank])
+        diff = Tree(NODETYPE.PRODUCT, f'*({s3+s2},{s2+s1}->{s3+s1})', diff, funcDiff) # Diff rule
+        diff.set_indices(s3+s2, s2+s1, s3+s1)
+        if node.right and node.right.contains(self.arg):
+            diff = self.contributions(node.right, diff)
+        return diff
+    
     def diff_variable(self, node, diff):
         if node == self.arg:
             pass
@@ -191,7 +209,12 @@ class Differentiator():
         self.diffDag.dot(filename)
 
 if __name__ == '__main__':
-    example = 'declare x 1 argument x expression arcsin(x)'
+    example = '''
+    declare 
+        x 2 
+    expression det(x) 
+    derivative wrt x
+    '''
     d = Differentiator(example)
     d.differentiate()
     d.render()

@@ -22,7 +22,8 @@ class TOKEN_ID(Enum):
     DERIVATIVE = 'derivative'
     WRT = 'wrt'
     EXPRESSION = 'expression'
-    FUNCTION = 'function'
+    SPECIAL_FUNCTION = 'special_function'
+    ELEMENTWISE_FUNCTION = 'elementwise_function'
     LOWERCASE_ALPHA = 'lowercase_alpha'
     ALPHANUM = 'alphanum'
     NONE = 'none'
@@ -57,6 +58,7 @@ KEYWORDS = {
 }
 
 ELEMENTWISE_FUNCTIONS = {'sin', 'cos', 'tan', 'arcsin', 'arccos', 'arctan', 'tanh', 'exp', 'log', 'abs', 'sign', 'relu'}
+SPECIAL_FUNCTIONS = {'inv', 'det'}
 
 class Scanner():
     def __init__(self, input):
@@ -97,7 +99,7 @@ class Scanner():
             id = SYMBOLS.get(self.current)
             identifier = self.current
             self.current = self.input.next()
-        # KEYWORDS, ELEMENTWISE_FUNCTIONS, LOWERCASE_ALPHA AND OTHER WORDS
+        # KEYWORDS, ELEMENTWISE_FUNCTIONS, SPECIAL_FUNCTIONS, LOWERCASE_ALPHA AND OTHER WORDS
         elif self.current in ALPHA:
             while self.current in ALPHA or self.current in DIGITS:
                 identifier += self.current
@@ -106,7 +108,10 @@ class Scanner():
                 id = KEYWORDS.get(identifier.lower())
                 identifier = identifier.lower()
             elif identifier.lower() in ELEMENTWISE_FUNCTIONS:
-                id = TOKEN_ID.FUNCTION
+                id = TOKEN_ID.ELEMENTWISE_FUNCTION
+                identifier = identifier.lower()
+            elif identifier.lower() in SPECIAL_FUNCTIONS:
+                id = TOKEN_ID.SPECIAL_FUNCTION
                 identifier = identifier.lower()
             elif identifier.islower() and identifier.isalpha():
                 id = TOKEN_ID.LOWERCASE_ALPHA

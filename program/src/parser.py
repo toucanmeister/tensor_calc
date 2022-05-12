@@ -171,12 +171,24 @@ class Parser():
                 self.get_sym()
             else:
                 self.error(TOKEN_ID.CONSTANT.value + ' or ' + TOKEN_ID.NATNUM.value)
-        elif self.fits(TOKEN_ID.FUNCTION):
+        elif self.fits(TOKEN_ID.ELEMENTWISE_FUNCTION):
             functionName = self.ident
             self.get_sym()
             if self.fits(TOKEN_ID.LRBRACKET):
                 self.get_sym()
                 tree = Tree(NODETYPE.ELEMENTWISE_FUNCTION, functionName, None, self.expr())
+                if self.fits(TOKEN_ID.RRBRACKET):
+                    self.get_sym()
+                else:
+                    self.error(TOKEN_ID.RRBRACKET.value)
+            else:
+                self.error(TOKEN_ID.LRBRACKET.value)
+        elif self.fits(TOKEN_ID.SPECIAL_FUNCTION):
+            functionName = self.ident
+            self.get_sym()
+            if self.fits(TOKEN_ID.LRBRACKET):
+                self.get_sym()
+                tree = Tree(NODETYPE.SPECIAL_FUNCTION, functionName, None, self.expr())
                 if self.fits(TOKEN_ID.RRBRACKET):
                     self.get_sym()
                 else:
@@ -194,7 +206,7 @@ class Parser():
             else:
                 self.error(TOKEN_ID.RRBRACKET.value)
         else:
-            self.error(TOKEN_ID.CONSTANT.value + ' or ' + TOKEN_ID.FUNCTION.value + ' or ' + 'tensorname' +  ' or ' + TOKEN_ID.LRBRACKET.value)
+            self.error(TOKEN_ID.CONSTANT.value + ' or ' + TOKEN_ID.ELEMENTWISE_FUNCTION.value + ' or ' + 'tensorname' +  ' or ' + TOKEN_ID.LRBRACKET.value)
         return tree
 
     def split_double_powers(self):
