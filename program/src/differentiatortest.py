@@ -241,6 +241,12 @@ class DifferentiatorTests(unittest.TestCase):
         d = Differentiator(test)
         d.differentiate()
         self.assertEqual(str(d.diffDag), '(_delta(2) *(ab,b->a) ((a ^ x) *(b,b->b) (log(a))))')
+    
+    def test_power_4(self):
+        test = 'declare x 0 a 1 argument x expression x^x'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(((_delta(0) *(,->) (exp((x *(,->) (log(x)))))) *(,->) (log(x))) + (((_delta(0) *(,->) (exp((x *(,->) (log(x)))))) *(,->) x) *(,->) (elementwise_inverse(x))))')
 
 if __name__ == '__main__':
     unittest.main()

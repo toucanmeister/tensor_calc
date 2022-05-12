@@ -11,7 +11,7 @@ class Differentiator():
         parser.parse()
         self.originalDag = parser.dag
         self.variable_ranks = parser.variable_ranks
-        self.arg = self.originalDag.find(parser.arg_name)
+        self.arg = parser.arg
         self.diffDag = None
         self.originalNodeToDiffNode = {}   # For a node X, we save where dY/dX is, to allow adding more chain rule contributions when we reach that node again later
         self.originalNodeToDiffTree = {}   # For a node X, we also the tree which contains dX/dZ (for possibly 2 nodes Z), which also we need to update when adding chain rule contributions
@@ -53,6 +53,8 @@ class Differentiator():
                 diff = self.contributions(node.right, currentDiffNode)
         # POWER
         elif node.type == NODETYPE.POWER:
+            if node.left and node.right and node.left.contains(self.arg) and node.right.contains(self.arg):
+                raise Exception('Encountered power node with argument in left and right operands during differentiation.')
             if node.left and node.left.contains(self.arg):
                 indices = ''.join([i for i in string.ascii_lowercase][0:node.left.rank])
                 one = Tree(NODETYPE.VARIABLE, '_ones(0)')
@@ -161,7 +163,7 @@ class Differentiator():
         self.diffDag.dot(filename)
 
 if __name__ == '__main__':
-    example = 'declare x 1 a 0 argument x expression (x^a) *(i,i->) x'
+    example = 'declare x 1 a 0 argument x expression x^a'
     d = Differentiator(example)
     d.differentiate()
     d.render()

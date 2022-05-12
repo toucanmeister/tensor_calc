@@ -156,7 +156,7 @@ class Tree():
             else:
                 hashmap[subtree.right] = subtree.right
         for subtree in subtrees:
-            helper(subtree)
+            helper(subtree)    
     
     def add_incoming_edges(self):
         if self and self.left and (self not in self.left.incoming):

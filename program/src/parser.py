@@ -6,8 +6,9 @@ from tree import *
 class Parser():
     def __init__(self, input):
         self.dag = None    # Stores expression as a binary tree (Until CSE, then it's a binary DAG)
-        self.variable_ranks = {}  # Stores declared variables and their ranks
-        self.arg_name = None  # Stores the derivation argument variable name
+        self.variable_ranks = {}   # Stores declared variables and their ranks
+        self.arg_name = None   # Stores the derivation argument variable name
+        self.arg = None   # Stores the derivation argument variable
         self.scanner = Scanner(input)
         self.get_sym()
     
@@ -26,8 +27,11 @@ class Parser():
         self.dag = self.expressionpart()
         if clean:
             self.dag.eliminate_common_subtrees()
-        self.dag.set_tensorrank(self.variable_ranks, self.dag.find(self.arg_name))
-    
+        self.arg = self.dag.find(self.arg_name)
+        self.dag.set_tensorrank(self.variable_ranks, self.arg)
+        self.split_double_powers()
+        self.dag.set_tensorrank(self.variable_ranks, self.arg)
+
     def declaration(self):
         if self.fits(TOKEN_ID.DECLARE):
             self.get_sym()
@@ -98,7 +102,7 @@ class Parser():
                 tree.set_indices(leftIndices, rightIndices, resultIndices)
             if self.fits(TOKEN_ID.DIVIDE):
                 self.get_sym()
-                tree = Tree(NODETYPE.PRODUCT, '_TO_BE_SET_ELEMENTWISE', tree, Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, self.factor())) # Indices will get set later
+                tree = Tree(NODETYPE.PRODUCT, '_TO_BE_SET_ELEMENTWISE', tree, Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, self.factor())) # Indices will get set in set_tensorrank
         return tree
 
     def productindices(self):
@@ -187,9 +191,28 @@ class Parser():
             self.error(TOKEN_ID.CONSTANT.value + ' or ' + TOKEN_ID.FUNCTION.value + ' or ' + 'tensorname' +  ' or ' + TOKEN_ID.LRBRACKET.value)
         return tree
 
+    def split_double_powers(self):
+        def create_split_power(node):
+            indices = ''.join([i for i in string.ascii_lowercase][0:node.left.rank])
+            prod = Tree(NODETYPE.PRODUCT, f'*(,{indices}->{indices})', node.right, Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'log', None, node.left))
+            prod.set_indices('', indices, indices)
+            return Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'exp', None, prod)
+
+        if self.dag.type == NODETYPE.POWER and self.dag.left.contains(self.arg) and self.dag.right.contains(self.arg):
+            self.dag = create_split_power(self.dag)
+
+        def split_powers_helper(node):
+            if node.left: split_powers_helper(node.left)
+            if node.right: split_powers_helper(node.right)
+            if node.left and node.left.type == NODETYPE.POWER and node.left.left.contains(self.arg) and node.left.right.contains(self.arg):
+                node.left = create_split_power(node.left)
+            if node.right and node.right.type == NODETYPE.POWER and node.right.left.contains(self.arg) and node.right.right.contains(self.arg):
+                node.right = create_split_power(node.right)
+        split_powers_helper(self.dag)
+
         
 if __name__ == '__main__':
-    example = 'declare a 1 b 1 argument a expression a / b'
+    example = 'declare x 1 a 0 argument x expression x^a'
     p = Parser(example)
     p.parse()
     p.dag.dot('tree')
