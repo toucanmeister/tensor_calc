@@ -212,7 +212,7 @@ class Parser():
 
         
 if __name__ == '__main__':
-    example = 'declare x 1 a 0 argument x expression x^a'
+    example = 'declare x 1 argument x expression x^2'
     p = Parser(example)
     p.parse()
     p.dag.dot('tree')

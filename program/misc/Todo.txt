@@ -18,8 +18,8 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
         x (/)
         x tan
         x arctan
-        - arcsin
-        - arccos
+        x arcsin
+        x arccos
         x log
         x tanh
         x abs

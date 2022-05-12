@@ -107,6 +107,18 @@ class Differentiator():
             cos_squared = Tree(NODETYPE.PRODUCT, f'*({indices},{indices}->{indices})', cos, cos)
             cos_squared.set_indices(indices, indices, indices)
             funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, cos_squared)
+        elif node.name == 'arcsin':
+            x_squared = Tree(NODETYPE.POWER, '^', node.right, Tree(NODETYPE.CONSTANT, 2))
+            ones_rank = node.right.rank
+            inside_root = Tree(NODETYPE.SUM, '+', Tree(NODETYPE.VARIABLE, f'_ones({ones_rank})'), Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, x_squared))
+            self.variable_ranks[f'_ones({ones_rank})'] = ones_rank
+            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, Tree(NODETYPE.POWER, '^', inside_root, Tree(NODETYPE.CONSTANT, 0.5)))
+        elif node.name == 'arccos':
+            x_squared = Tree(NODETYPE.POWER, '^', node.right, Tree(NODETYPE.CONSTANT, 2))
+            ones_rank = node.right.rank
+            inside_root = Tree(NODETYPE.SUM, '+', Tree(NODETYPE.VARIABLE, f'_ones({ones_rank})'), Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, x_squared))
+            self.variable_ranks[f'_ones({ones_rank})'] = ones_rank
+            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, Tree(NODETYPE.POWER, '^', inside_root, Tree(NODETYPE.CONSTANT, 0.5))))
         elif node.name == 'arctan':
             indices = ''.join([i for i in string.ascii_lowercase][0:node.right.rank])
             squared = Tree(NODETYPE.PRODUCT, f'*({indices},{indices}->{indices})', node.right, node.right)
@@ -179,7 +191,7 @@ class Differentiator():
         self.diffDag.dot(filename)
 
 if __name__ == '__main__':
-    example = 'declare x 1 a 0 argument x expression x^a'
+    example = 'declare x 1 argument x expression arcsin(x)'
     d = Differentiator(example)
     d.differentiate()
     d.render()
