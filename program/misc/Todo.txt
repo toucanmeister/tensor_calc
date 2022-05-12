@@ -25,7 +25,7 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
         x abs
         x sign
         x relu
-        - (^)
+        x (^)
     - Besondere Funktionen
         - Determinante und Inverse von Matrizen
         - Jede Funktion braucht ihre eigene Prozedur um ihren output-tensorrang zu berechnen
