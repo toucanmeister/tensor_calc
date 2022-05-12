@@ -145,7 +145,7 @@ class Parser():
             self.get_sym()
             if self.fits(TOKEN_ID.LRBRACKET):
                 self.get_sym()
-                tree = Tree(NODETYPE.POWER, '^', tree, self.factor())
+                tree = Tree(NODETYPE.POWER, '^', tree, self.expr())
                 if self.fits(TOKEN_ID.RRBRACKET):
                     self.get_sym()
                 else:
