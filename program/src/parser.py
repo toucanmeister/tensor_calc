@@ -23,8 +23,8 @@ class Parser():
 
     def parse(self, clean=True):
         self.declaration()
-        self.argument()
         self.dag = self.expressionpart()
+        self.argument()
         if clean:
             self.dag.eliminate_common_subtrees()
         self.arg = self.dag.find(self.arg_name)
@@ -36,7 +36,7 @@ class Parser():
         if self.fits(TOKEN_ID.DECLARE):
             self.get_sym()
             self.tensordeclaration()
-            while not self.fits(TOKEN_ID.ARGUMENT):
+            while not self.fits(TOKEN_ID.EXPRESSION):
                 self.tensordeclaration()
         else:
             self.error(TOKEN_ID.DECLARE.value)
@@ -55,15 +55,21 @@ class Parser():
             self.error(TOKEN_ID.NATNUM.value)
     
     def argument(self):
-        if self.fits(TOKEN_ID.ARGUMENT):
+        if self.fits(TOKEN_ID.DERIVATIVE):
             self.get_sym()
-            if self.fits(TOKEN_ID.ALPHANUM) or self.fits(TOKEN_ID.LOWERCASE_ALPHA):
-                self.arg_name = self.ident
+            if self.fits(TOKEN_ID.WRT):
                 self.get_sym()
+                if self.fits(TOKEN_ID.ALPHANUM) or self.fits(TOKEN_ID.LOWERCASE_ALPHA):
+                    self.arg_name = self.ident
+                else:
+                    self.error(TOKEN_ID.ALPHANUM.value)
             else:
-                self.error(TOKEN_ID.ALPHANUM.value)
+                self.error(TOKEN_ID.WRT.value)
         else:
             self.error(TOKEN_ID.ARGUMENT.value)
+        self.get_sym()
+        if not self.desc == TOKEN_ID.NONE:
+            raise Exception('Expected one argument to differentiate with respect to, but found multiple.')
     
     def expressionpart(self):
         if self.fits(TOKEN_ID.EXPRESSION):
@@ -212,7 +218,7 @@ class Parser():
 
         
 if __name__ == '__main__':
-    example = 'declare x 1 argument x expression x^2'
+    example = 'declare a 0 expression a derivative wrt a'
     p = Parser(example)
     p.parse()
     p.dag.dot('tree')

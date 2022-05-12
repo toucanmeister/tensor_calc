@@ -19,7 +19,8 @@ class TOKEN_ID(Enum):
     CONSTANT = 'constant'
     NATNUM = 'natnum'
     DECLARE = 'declare'
-    ARGUMENT = 'argument'
+    DERIVATIVE = 'derivative'
+    WRT = 'wrt'
     EXPRESSION = 'expression'
     FUNCTION = 'function'
     LOWERCASE_ALPHA = 'lowercase_alpha'
@@ -50,8 +51,9 @@ SYMBOLS = {
 }
 KEYWORDS = {
     'declare': TOKEN_ID.DECLARE,
-    'argument': TOKEN_ID.ARGUMENT,
-    'expression': TOKEN_ID.EXPRESSION
+    'derivative': TOKEN_ID.DERIVATIVE,
+    'expression': TOKEN_ID.EXPRESSION,
+    'wrt': TOKEN_ID.WRT
 }
 
 ELEMENTWISE_FUNCTIONS = {'sin', 'cos', 'tan', 'arcsin', 'arccos', 'arctan', 'tanh', 'exp', 'log', 'abs', 'sign', 'relu'}
@@ -130,9 +132,8 @@ class Scanner():
         return identifier
 
 if __name__ == '__main__':
-    example1 = 'declare a0 1 b1 2 c 3  \n argument\ta0 \n expression a0*(ij,jk->ik)b1 + c*cOs(2) - EXP(3.13)*Log(1e-1) * sin(75.003E2)'
-    example2 = 'declare a 0 b 0 argument a expression 2 + exp(a^(-1)+b)'
-    s = Scanner(example2)
+    example1 = 'declare a 1 b 1 expression a + b derivative wrt a'
+    s = Scanner(example1)
     desc, ident = s.get_sym()
     while ident:
         print(f'{desc} {ident}')
