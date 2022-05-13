@@ -101,8 +101,10 @@ class Tree():
 
     def check_multiplication(self):
         if self.left.rank != len(self.leftIndices):
+            if not self.left.try_broadcasting(len(self.leftIndices)):
                 raise Exception(f'Rank of left input \'{self.left.name}\' ({self.left.rank}) to product node does not match product indices \'{self.leftIndices}\'.')
         elif self.right.rank != len(self.rightIndices):
+            if not self.right.try_broadcasting(len(self.rightIndices)):
                 raise Exception(f'Rank of right input \'{self.right.name}\' ({self.right.rank}) to product node does not match product indices \'{self.rightIndices}\'.')
         for index in self.resultIndices:
             if not (index in self.leftIndices or index in self.rightIndices):
@@ -113,7 +115,7 @@ class Tree():
             self.left.set_tensorrank(variable_ranks, arg)
         if self.right:
             self.right.set_tensorrank(variable_ranks, arg)
-        if self.type == NODETYPE.CONSTANT:
+        if self.type == NODETYPE.CONSTANT:   # If we reach a constant, it gets rank 0.
             self.rank = 0
         elif self.type == NODETYPE.VARIABLE:
             self.rank = variable_ranks[self.name]
@@ -122,24 +124,25 @@ class Tree():
         elif self.type == NODETYPE.SPECIAL_FUNCTION:
             if self.name == 'inv':
                 if self.right.rank != 2:
-                    raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
-                else:
-                    self.rank = 2
+                    if not self.right.try_broadcasting(2):
+                        raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
+                self.rank = 2
             elif self.name == 'det':
                 if self.right.rank != 2:
-                    raise Exception(f'Rank of operand \'{self.right}\' to det node is not 2.')
-                else:
-                    self.rank = 0
+                    if not self.right.try_broadcasting(2):
+                        raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
+                self.rank = 0
             elif self.name == 'adj':
                 if self.right.rank != 2:
-                    raise Exception(f'Rank of operand \'{self.right}\' to det node is not 2.')
-                else:
-                    self.rank = 2
+                    if not self.right.try_broadcasting(2):
+                        raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
+                self.rank = 2
         elif self.type == NODETYPE.SUM:
             if self.right.rank != self.left.rank:
-                raise Exception(f'Ranks of operands \'{self.left.name}\' ({self.left.rank}) and \'{self.right.name}\' ({self.right.rank}) in sum node do not match.')
-            else:
-                self.rank = self.left.rank
+                if not self.left.try_broadcasting(self.right.rank):
+                    if not self.right.try_broadcasting(self.left.rank):
+                        raise Exception(f'Ranks of operands \'{self.left.name}\' ({self.left.rank}) and \'{self.right.name}\' ({self.right.rank}) in sum node do not match.')
+            self.rank = self.left.rank
         elif self.type == NODETYPE.POWER:
             if self.right.rank != 0:
                 raise Exception(f'Rank of right operand \'{self.right.name}\' ({self.right.rank}) in power node is not 0.')
@@ -155,6 +158,19 @@ class Tree():
         else:
             raise Exception(f'Unknown node type at node \'{self.name}\'.')
     
+    def try_broadcasting(self, desired_rank):
+        if self.type == NODETYPE.CONSTANT:
+            self.rank = desired_rank
+            return True
+        elif self.type == NODETYPE.ELEMENTWISE_FUNCTION:
+            if self.right.try_broadcasting(desired_rank):
+                self.rank = desired_rank
+                return True
+            else:
+                return False
+        else:
+            return False
+
     def eliminate_common_subtrees(self):
         subtrees = self.get_all_subtrees()
         hashmap = {}

@@ -113,6 +113,16 @@ class ParserTests(unittest.TestCase):
     def test_badexpression_brackets(self):
         test = 'declare a 0 b 0 expression (a+)b) derivative wrt a'
         self.assertRaises(Exception, Parser(test).parse)
+    def test_broadcasting_1(self):
+        test = 'declare a 2 expression a + 2 derivative wrt a'
+        p = Parser(test)
+        p.parse()
+        self.assertEqual(str(p.dag), '(a + 2)')
+    def test_broadcasting_2(self):
+        test = 'declare A 2 x 1 expression (A + 1) *(ij,j->i) 1  derivative wrt a'
+        p = Parser(test)
+        p.parse()
+        self.assertEqual(str(p.dag), '((A + 1) *(ij,j->i) 1)')
     
 
 if __name__ == '__main__':

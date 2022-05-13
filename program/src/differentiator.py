@@ -211,8 +211,9 @@ class Differentiator():
 if __name__ == '__main__':
     example = '''
     declare 
-        x 2 
-    expression det(x) 
+        A 2
+        x 1
+    expression (A + 1) *(ij,j->i) (x + 1)
     derivative wrt x
     '''
     d = Differentiator(example)
