@@ -60,7 +60,7 @@ This means that derivatives need to be computed with respect to multiple variabl
 Commonly used machine learning frameworks (like Tensorflow, PyTorch, Theano) focus heavily on the first derivatives of the objective function.
 
 Higher-order derivatives can, however, also be of interest.
-As an example, the matrix of second-order partial derivatives, called the Hessian, is used in the application of Newton's method, which can be more efficient than gradient descent for some problems
+As an example, the matrix of second-order partial derivatives, called the Hessian, is used in the application of Newton's method, which can be more efficient than gradient descent for some problems.
 Convexity checks constitute another application of higher-order derivatives.
 The convexity of objective functions and their associated optimization problems play a major role in the field of optimization.
 If a problem is strictly convex or concave, then it has a unique global optimum and the gradient descent algorithm can approximate it arbitrarily well.
@@ -79,22 +79,28 @@ Then, the parsing and representation of tensor expressions is discussed.
 ...
 
 \chapter{A Syntax for Tensor Expressions}
+\section{Aims}
 In this chapter we develop the language that will be used to specify tensor expressions for differentiation.
 To differentiate a tensor expression, three pieces of information are needed: 1. The tensor expression itself, 2. The variable with respect to which should be differentiated, 3. The tensor rank of all variables in the expression.
 The neccessity of the first two is obvious, while the third might not immediately be.
 The ranks of each part of the tensor expression need to be known because they play a crucial role in the differentiation rules that will later be implemented.
 
-The main point of interest is how to represent tensors and their products, as there are many ways to multiply two tensors.
+Our aims when developing this syntax are the following.
+The syntax should allow representation of tensor expressions of arbitrary order.
+It should be as general as possible, not focusing on one single interpretation of tensors.
+Even so, as the motivation for this thesis comes from the background of optimization and machine learning, the most common specifics of these fields should be covered.
+
+The main point of interest for this syntax is how to represent tensors and their products, as there are many ways to multiply two tensors.
 We start with an established tensor calculus and it's notation, and break it down to our needs.
 
-\section{Einstein Summation Notation}
+\section{Einstein Summation Convention}
 There exists a calculus for tensor expressions, called Ricci calculus, that is heavily used in physics, which allows differentiation between tensors as $n$-dimensional arrays and as multilinear functions.
 It differentiates between the two forms by the location of their indices, either in sub- or superscript.
 For example, the inner product of two vectors, $y^Tx$, would be written as $y_ix^i$. And the Matrix-vector product $Ax$ would be $A^i_jx^j$.
 While Ricci calculus can be useful, for example to physicists, the many indices on each tensor make it less readable.
 
 Since, for our purposes, tensors are simply containers for variables, we have no need to expressly define some tensors as multilinear functions.
-The main part of Ricci calculus that we bring over into our notation is the Einstein summation notation.
+The main part of Ricci calculus that we bring over into our notation is the Einstein summation convention.
 This is a notational convention that allows elegant representation of tensor products.
 Since tensors, depending on their order, may be multiplied in many ways, we need a way to describe which tensor axes should be multiplied in what way.
 For example, two vectors could be multiplied by taking their inner product, their outer product, or even their elementwise product.
@@ -106,20 +112,40 @@ This simple set of rules provides an elegant way to express the main tensor oper
 We take a large part of the syntax for tensor multiplication from the established Python software package \textit{Numpy}, specifically it's \codeword{einsum} procedure.
 A product of two tensors \codeword{x} and \codeword{y} has the form \codeword{x*(a,b->c)y}, where a,b and c are strings of indices.
 
-As an example, see the inner, outer and elementwise product of two order-1 tensors (vectors) \codeword{x} and \codeword{y}: \codeword{x*(i,j->)y}, \codeword{x*(i,j->ij)y}, \codeword{x*(i,i->i)y}.
+As an example, see the inner, outer and elementwise product of two order-1 tensors (vectors) \codeword{x} and \codeword{y}: \codeword{x*(i,i->)y}, \codeword{x*(i,j->ij)y}, \codeword{x*(i,i->i)y}.
 The application of a matrix \codeword{A} to a vector \codeword{v} would be written as \codeword{A*(ij,j->i)v}, while the elementwise product of two matrices \codeword{A} and \codeword{B} would be \codeword{A*(ij,ij->ij)B}.
 One may even take diagonals of tensors using this notation, the inner product of a square matrix \codeword{A}'s main diagonal and a vector \codeword{v} would be \codeword{A*(ii,i->)v}.
 
 
 \section{Grammar}
-With the representation of tensor products handled, we can now define the full input syntax grammar.
+With the representation of tensor products handled, we can now define the full syntax grammar.
 The grammar, presented here in extended backus-naur form, is based on a standard grammar for mathematical expressions by Julien Klaus.
 It was adapted to tensor expressions by generalizing multiplication to tensor products using the einstein summation convention.
-// TODO: 
-// - Insert Grammar
-// - Why choose these functions
-// - Only elementwise operations besides multiplication
-// - Elaborate on the grammar base by Julien
+\begin{verbatim}
+expressionpart = 'expression' expr
+expr = term (( '+' | '-' ) term)*
+term = factor (( '*(' productindices ')') factor | '/' factor)*
+productindices = tensorindices ',' tensorindices '->' tensorindices
+tensorindices = (smallalpha)*
+factor = {'-'} atom ('^' ('(' expr ')' | atom))*
+atom = number | function '(' expr ')' | tensorname | '(' expr ')'
+number = ['-'] digit* '.' digit* [( 'e' | 'E' ) ['+' | '-'] (digit)*]
+digit = [0-9]
+function = 'sin' | 'cos' | 'tan' | 'arcsin' | 'arccos' | 'arctan' | 
+    'abs' | 'tanh' | 'exp' | 'log' | 'sign' | 'relu' | 'det' | 'inv'
+\end{verbatim}
+Here \texttt{\string{x\string}} describes that \texttt{x} may occur any number of times, while \texttt{(x)*} lets \texttt{x} appear at least once.
+
+As can be seen in the grammar, we allow the following binary operations on tensors: products (\codeword{*(,->)}), sums (\codeword{+}), differences (\codeword{-}) and quotients (\codeword{/}).
+With the exception of tensor products, which have already been discussed, these operations are executed elementwise.
+Exponentiation (\codeword{^}) is also included, but not as a true binary operator on tensors, as the exponent may only be scalar, with each entry of the basis tensor being combined with the exponent.
+This is not apparent from the grammar, as tensor variable order is specified separately from the tensor expression itself.
+
+A variety of functions with relevance to optimization and machine learning are included, mostly being applied elementwise to tensors of any order.
+The exceptions to this are the matrix inverse \codeword{inv} and the matrix determinant \codeword{det}, both of which are not applied elemtwise and may only operate on order-2 tensors.
+The inclusion of these functions takes away from the generality of our grammar, as the idea of an inverse and a determinant can only be applied to matrices, not higher-order tensors, but they are crucial to some common optimization problems.
+
+
 
 \section{Parsing the Expression}
 
