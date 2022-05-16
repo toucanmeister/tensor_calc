@@ -145,10 +145,19 @@ A variety of functions with relevance to optimization and machine learning are i
 The exceptions to this are the matrix inverse \codeword{inv} and the matrix determinant \codeword{det}, both of which are not applied elemtwise and may only operate on order-2 tensors.
 The inclusion of these functions takes away from the generality of our grammar, as the idea of an inverse and a determinant can only be applied to matrices, not higher-order tensors, but they are crucial to some common optimization problems.
 
+\chapter{Parsing and Representation}
+With the syntax handled, we may now discuss how a given tensor expression is parsed and represented internally.
+In our application, tensor expressions are represented using directed acyclic graphs derived from binary trees.
+This data structure was chosen because graphical representations are well tested for expressions and because the foundational paper by Laue, Mitterreiter and Giesen also assumes such a representation, allowing the differentiation rules to be easily implemented.
+Furthermore, many of the algorithms to be implemented later are most naturally written recursively.
+A recursive data structure like a tree lends itself to these algorithms very well.
 
 
-\section{Parsing the Expression}
-
+% Content
+% Scan then Parse
+% Binary Tree 
+% Directed Acyclic Graph
+% Common Subexpression Elimination
 
 \chapter{Literature}
 \chapter{Appendices}
