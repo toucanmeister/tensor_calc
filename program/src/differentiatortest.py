@@ -138,7 +138,7 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare A 2 B 2 x 1 expression (A-B)*(ij,j->i)x derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(2) *(ai,ij->aj) (A + (-(B))))')
+        self.assertEqual(str(d.diffDag), '(_delta(2) *(ai,ij->aj) (A - B))')
     
     def test_sin_1(self):
         test = 'declare x 1 expression sin(x) derivative wrt x'
@@ -192,13 +192,13 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare x 1 expression arcsin(x) derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (elementwise_inverse(((1 + (-((x ^ 2)))) ^ 0.5))))')
+        self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (elementwise_inverse(((1 - (x ^ 2)) ^ 0.5))))')
     
     def test_arccos(self):
         test = 'declare x 1 expression arccos(x) derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (-((elementwise_inverse(((1 + (-((x ^ 2)))) ^ 0.5))))))')
+        self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (-((elementwise_inverse(((1 - (x ^ 2)) ^ 0.5))))))')
 
     def test_arctan(self):
         test = 'declare x 1 expression arctan(x) derivative wrt x'
@@ -216,7 +216,7 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare x 1 expression tanh(x) derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (1 + (-(((tanh(x)) *(a,a->a) (tanh(x)))))))')
+        self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (1 - ((tanh(x)) *(a,a->a) (tanh(x)))))')
     
     def test_abs(self):
         test = 'declare x 1 expression abs(x) derivative wrt x'
@@ -240,13 +240,13 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare x 1 a 0 expression x^a derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (a *(,a->a) (x ^ (a + (-(1))))))')
+        self.assertEqual(str(d.diffDag), '(_delta(2) *(ba,a->ba) (a *(,a->a) (x ^ (a - 1))))')
 
     def test_power_2(self):
         test = 'declare x 1 a 0 expression (x^a) *(i,i->) x derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(((_delta(0) *(,i->i) x) *(a,a->a) (a *(,a->a) (x ^ (a + (-(1)))))) + (_delta(0) *(,i->i) (x ^ a)))')
+        self.assertEqual(str(d.diffDag), '(((_delta(0) *(,i->i) x) *(a,a->a) (a *(,a->a) (x ^ (a - 1)))) + (_delta(0) *(,i->i) (x ^ a)))')
 
     def test_power_3(self):
         test = 'declare x 0 a 1 expression a^x derivative wrt x'

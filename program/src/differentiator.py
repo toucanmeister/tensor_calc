@@ -27,6 +27,8 @@ class Differentiator():
         self.diffDag = Tree(NODETYPE.VARIABLE, f'_delta({deltaRank})')   # Derivative of the top node y with respect to itself, unnecessary ones will later be removed
         self.variable_ranks[f'_delta({deltaRank})'] = deltaRank
         self.diffDag = self.reverse_mode_diff(self.originalDag, self.diffDag)
+        self.diffDag.eliminate_common_subtrees()
+        self.simplify(self.diffDag)
         self.diffDag.set_tensorrank(self.variable_ranks, self.arg)
 
     def reverse_mode_diff(self, node, diff):  # Computes derivative of node.left and node.right | node: node in original dag | diff : node that contains derivative with respect to node.
@@ -193,6 +195,16 @@ class Differentiator():
             diff = self.reverse_mode_diff(node, diff)
             self.originalNodeToDiffTree[node] = diff
         return diff
+
+    def simplify(self, node):
+        if node.left: self.simplify(node.left)
+        if node.right: self.simplify(node.right)
+        if node.type == NODETYPE.SUM:
+            if node.right.type == NODETYPE.ELEMENTWISE_FUNCTION and node.right.name == '-':
+                node.type = NODETYPE.DIFFERENCE
+                node.name = '-'
+                node.right = node.right.right
+
 
     def render(self, filename='diffdag'):
         self.diffDag.dot(filename)

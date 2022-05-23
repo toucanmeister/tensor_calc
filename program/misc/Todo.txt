@@ -30,6 +30,11 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
         x Determinante und Inverse von Matrizen
         - Adjungierte
         x Jede Funktion braucht ihre eigene Prozedur um ihren output-tensorrang zu berechnen
+- Vereinfachung
+	x a + (- b) = a - b
+	- Konstanten zusammenfassen
+	- Unnütze deltas entfernen
+	
 x delta(K) als Ersatz für Identity
 x Tensorrang in abgeleitetem Ausdruck richtig angeben
 x statt 'declare argument expression', 'declare expression derivative wrt'
@@ -37,4 +42,3 @@ x Broadcasting für Sachen wie A + 1
 - Delta(k) oder Delta(2k)?
 - Wann ist Multiplikation mit Delta eine neutrale Operation?
 - eventuell .* als Shortcut für punktweise Multiplikation
-- Nach der Ableitung alles hübsch machen (Normalformen)

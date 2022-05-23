@@ -8,6 +8,7 @@ class NODETYPE(Enum):
     SPECIAL_FUNCTION = 'function'
     ELEMENTWISE_FUNCTION = 'elementwise_function'
     SUM = 'sum'
+    DIFFERENCE = 'difference'
     PRODUCT = 'product'
     POWER = 'power'
 
@@ -137,7 +138,7 @@ class Tree():
                     if not self.right.try_broadcasting(2):
                         raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
                 self.rank = 2
-        elif self.type == NODETYPE.SUM:
+        elif self.type == NODETYPE.SUM or self.type == NODETYPE.DIFFERENCE:
             if self.right.rank != self.left.rank:
                 if not self.left.try_broadcasting(self.right.rank):
                     if not self.right.try_broadcasting(self.left.rank):
