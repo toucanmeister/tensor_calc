@@ -231,7 +231,7 @@ if __name__ == '__main__':
     example = '''
     declare 
         X 2
-    expression det(X)
+    expression (1/det(X)) *(,ab->ab) (adj(X) *(ij,->ji) 1)
     derivative wrt X
     '''
     d = Differentiator(example)

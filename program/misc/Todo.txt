@@ -28,11 +28,12 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
         x (^)
     x Besondere Funktionen
         x Determinante und Inverse von Matrizen
-        - Adjungierte
+        x Adjungierte
         x Jede Funktion braucht ihre eigene Prozedur um ihren output-tensorrang zu berechnen
 - Vereinfachung
 	x a + (- b) = a - b
 	x log(exp(...)) = a^b
+	- det(X)*inv(X) = adj(X)
 	- Konstanten zusammenfassen
 	- Unnütze deltas entfernen
 	

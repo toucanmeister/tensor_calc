@@ -17,6 +17,6 @@ atom = number | function '(' expr ')' | tensorname | '(' expr ')'
 number = ['-'] digit* '.' digit* [( 'e' | 'E' ) ['+' | '-'] (digit)*]
 digit = [0-9]
 function = 'sin' | 'cos' | 'tan' | 'arcsin' | 'arccos' | 'arctan' | 'tanh' | 'exp' 
-         | 'log' | 'sign' | 'relu' | 'abs' | 'det' | 'inv'
+         | 'log' | 'sign' | 'relu' | 'abs' | 'det' | 'inv' | 'adj'
 
 argument = 'derivative wrt' tensorname

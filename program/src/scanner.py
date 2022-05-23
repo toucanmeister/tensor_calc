@@ -58,7 +58,7 @@ KEYWORDS = {
 }
 
 ELEMENTWISE_FUNCTIONS = {'sin', 'cos', 'tan', 'arcsin', 'arccos', 'arctan', 'tanh', 'exp', 'log', 'abs', 'sign', 'relu'}
-SPECIAL_FUNCTIONS = {'inv', 'det'}
+SPECIAL_FUNCTIONS = {'inv', 'det', 'adj'}
 
 class Scanner():
     def __init__(self, input):

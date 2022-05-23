@@ -28,6 +28,7 @@ class Parser():
         self.arg = self.dag.find(self.arg_name)
         self.dag.set_tensorrank(self.variable_ranks, self.arg)
         self.split_double_powers()
+        self.split_adj()
         self.dag.set_tensorrank(self.variable_ranks, self.arg)
         if clean:
             self.dag.eliminate_common_subtrees()
@@ -227,10 +228,24 @@ class Parser():
             if node.right and node.right.type == NODETYPE.POWER and node.right.left.contains(self.arg) and node.right.right.contains(self.arg):
                 node.right = create_split_power(node.right)
         split_powers_helper(self.dag)
-
+    
+    def split_adj(self):
+        if self.dag.type == NODETYPE.SPECIAL_FUNCTION and self.dag.name == 'adj':
+            self.dag = Tree(NODETYPE.PRODUCT, '*(,ij->ij)', Tree(NODETYPE.SPECIAL_FUNCTION, 'det', None, self.dag.right), Tree(NODETYPE.SPECIAL_FUNCTION, 'inv', None, self.dag.right))
+            self.dag.set_indices('', 'ij', 'ij')
+        def split_adj_helper(node):
+            if node.left: split_adj_helper(node.left)
+            if node.right: split_adj_helper(node.right)
+            if node.left and node.left.type == NODETYPE.SPECIAL_FUNCTION and node.left.name == 'adj':
+                node.left = Tree(NODETYPE.PRODUCT, '*(,ij->ij)', Tree(NODETYPE.SPECIAL_FUNCTION, 'det', None, node.left.right), Tree(NODETYPE.SPECIAL_FUNCTION, 'inv', None, node.left.right))
+                node.left.set_indices('', 'ij', 'ij')
+            if node.right and node.right.type == NODETYPE.SPECIAL_FUNCTION and node.right.name == 'adj':
+                node.right = Tree(NODETYPE.PRODUCT, '*(,ij->ij)', Tree(NODETYPE.SPECIAL_FUNCTION, 'det', None, node.right.right), Tree(NODETYPE.SPECIAL_FUNCTION, 'inv', None, node.right.right))
+                node.right.set_indices('', 'ij', 'ij')
+        split_adj_helper(self.dag)
 
 if __name__ == '__main__':
-    example = 'declare A 2 x 1 expression (A + 1) *(ij,j->i) 1 derivative wrt x'
+    example = 'declare X 2 expression adj(X) derivative wrt X'
     p = Parser(example)
     p.parse()
     p.dag.dot('tree')
