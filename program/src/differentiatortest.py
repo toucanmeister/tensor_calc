@@ -258,7 +258,7 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare x 0 a 1 expression x^x derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(((_delta(0) *(,->) (exp((x *(,->) (log(x)))))) *(,->) (log(x))) + (((_delta(0) *(,->) (exp((x *(,->) (log(x)))))) *(,->) x) *(,->) (elementwise_inverse(x))))')
+        self.assertEqual(str(d.diffDag), '(((_delta(0) *(,->) (x ^ x)) *(,->) (log(x))) + (((_delta(0) *(,->) (x ^ x)) *(,->) x) *(,->) (elementwise_inverse(x))))')
 
     def test_inv(self):
         test = 'declare A 2 expression inv(A) derivative wrt A'

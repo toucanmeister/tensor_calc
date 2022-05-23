@@ -32,6 +32,7 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
         x Jede Funktion braucht ihre eigene Prozedur um ihren output-tensorrang zu berechnen
 - Vereinfachung
 	x a + (- b) = a - b
+	x log(exp(...)) = a^b
 	- Konstanten zusammenfassen
 	- Unnütze deltas entfernen
 	

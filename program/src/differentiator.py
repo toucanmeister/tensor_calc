@@ -199,12 +199,30 @@ class Differentiator():
     def simplify(self, node):
         if node.left: self.simplify(node.left)
         if node.right: self.simplify(node.right)
-        if node.type == NODETYPE.SUM:
-            if node.right.type == NODETYPE.ELEMENTWISE_FUNCTION and node.right.name == '-':
-                node.type = NODETYPE.DIFFERENCE
-                node.name = '-'
-                node.right = node.right.right
+        if self.is_simplifiable_sum(node): # Simplify (a + (- b)) to (a - b)
+            node.type = NODETYPE.DIFFERENCE
+            node.name = '-'
+            node.right = node.right.right
+        if self.is_simplifiable_power(node): # Simplify exp(g(x) * log(f(x))) to (a ^ b)
+            node.type = NODETYPE.POWER
+            node.name = '^'
+            node.left = node.right.left
+            node.right = node.right.right.right
 
+    def is_simplifiable_sum(self, node):
+    
+        return  node.type == NODETYPE.SUM and \
+                node.right.type == NODETYPE.ELEMENTWISE_FUNCTION and \
+                node.right.name == '-'
+
+    def is_simplifiable_power(self, node):
+        return  node.type == NODETYPE.ELEMENTWISE_FUNCTION and \
+                node.name == 'exp' and \
+                node.right.type == NODETYPE.PRODUCT and \
+                node.right.left.rank == 0 and \
+                node.right.rightIndices == node.right.resultIndices and \
+                node.right.right.type == NODETYPE.ELEMENTWISE_FUNCTION and \
+                node.right.right.name == 'log'
 
     def render(self, filename='diffdag'):
         self.diffDag.dot(filename)
