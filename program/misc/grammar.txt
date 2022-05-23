@@ -16,6 +16,7 @@ factor = {'-'} atom ('^' ('(' expr ')' | atom))*
 atom = number | function '(' expr ')' | tensorname | '(' expr ')'
 number = ['-'] digit* '.' digit* [( 'e' | 'E' ) ['+' | '-'] (digit)*]
 digit = [0-9]
-function = 'sin' | 'cos' | 'tan' | 'arcsin' | 'arccos' | 'arctan' | 'tanh' | 'exp' | 'log' | 'sign' | 'relu' | 'abs' | 'det' | 'inv'
+function = 'sin' | 'cos' | 'tan' | 'arcsin' | 'arccos' | 'arctan' | 'tanh' | 'exp' 
+         | 'log' | 'sign' | 'relu' | 'abs' | 'det' | 'inv'
 
 argument = 'derivative wrt' tensorname
