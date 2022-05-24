@@ -229,9 +229,12 @@ class Differentiator():
 
 if __name__ == '__main__':
     example = '''
-    declare 
+    declare
+        a 0
         X 2
-    expression (1/det(X)) *(,ab->ab) (adj(X) *(ij,->ji) 1)
+        Y 2
+        Z 2
+    expression ((2*(,->)a) *(,ij->ij) W) - (X*(ij,->ji)1 *(ij,jk->ik) (Y /(      (0.00000001) + exp(X*(ij,jk->ik)W) /(exp(X*(ij,jk->ik)W)*(ij,jk->ik)1        )) *(ij,ij->ij) exp(X*(ij,jk->ik)W) / (exp(X*(ij,jk->ik)W)*(ij,jk->ik)1        )) - (X*(ij,->ji)1) *(ij,jk->ik) (1 *(,i->ii) (exp(X*(ij,jk->ik)W) *(ij,ij->ij) (Y /((0.00000001)      + exp(X*(ij,jk->ik)W) / (exp(X*(ij,jk->ik)W)*(ij,->ji)1          ))) / ((exp(X*(ij,jk->ik)W)*(ij,j->i)1) *(i,i->i)   (exp(X*(ij,jk->ik)W)*(ij,j->j)1 )*(i,j->ij)1) *(ij,j->j)1))*exp(X*(ij,jk->ik)W))
     derivative wrt X
     '''
     d = Differentiator(example)
