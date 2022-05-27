@@ -33,8 +33,8 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
 - Vereinfachung
 	x a + (- b) = a - b
 	x log(exp(...)) = a^b
-	- det(X)*inv(X) = adj(X)
-	- Konstanten zusammenfassen
+	x det(X)*inv(X) = adj(X)
+	x Konstanten zusammenfassen
 	- Unnütze deltas entfernen
 	
 x delta(K) als Ersatz für Identity
@@ -43,4 +43,4 @@ x statt 'declare argument expression', 'declare expression derivative wrt'
 x Broadcasting für Sachen wie A + 1
 - Delta(k) oder Delta(2k)?
 - Wann ist Multiplikation mit Delta eine neutrale Operation?
-- eventuell .* als Shortcut für punktweise Multiplikation
+- Schöneres Print

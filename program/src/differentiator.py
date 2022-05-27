@@ -1,3 +1,5 @@
+from ast import Constant
+from http.client import CONFLICT
 from parser import Parser
 from scanner import ELEMENTWISE_FUNCTIONS, TOKEN_ID
 from tree import Tree, NODETYPE
@@ -28,8 +30,8 @@ class Differentiator():
         self.variable_ranks[f'_delta({deltaRank})'] = deltaRank
         self.diffDag = self.reverse_mode_diff(self.originalDag, self.diffDag)
         self.diffDag.eliminate_common_subtrees()
-        self.simplify(self.diffDag)
         self.diffDag.set_tensorrank(self.variable_ranks, self.arg)
+        self.simplify(self.diffDag)
 
     def reverse_mode_diff(self, node, diff):  # Computes derivative of node.left and node.right | node: node in original dag | diff : node that contains derivative with respect to node.
         if node.type == NODETYPE.PRODUCT:
@@ -199,7 +201,7 @@ class Differentiator():
     def simplify(self, node):
         if node.left: self.simplify(node.left)
         if node.right: self.simplify(node.right)
-        if self.is_simplifiable_sum(node): # Simplify (a + (- b)) to (a - b)
+        if self.is_simplifiable_sum_minus_1(node): # Simplify (a + (- b)) to (a - b)
             node.type = NODETYPE.DIFFERENCE
             node.name = '-'
             node.right = node.right.right
@@ -208,9 +210,35 @@ class Differentiator():
             node.name = '^'
             node.left = node.right.left
             node.right = node.right.right.right
+        if self.is_simplifiable_adj(node): # Simplify det(X) * inv(X) = adj(X)
+            node.type = NODETYPE.SPECIAL_FUNCTION
+            node.name = 'adj'
+            node.left = None
+            node.right = node.right.right
+        if self.is_simplifiable_const_minus(node): # Turn (- (const)) into a const with a minus
+            node.type = NODETYPE.CONSTANT
+            if node.right.name.startswith('-'):
+                node.name = node.right.name.strip('-')
+            else:
+                node.name = '-' + node.right.name
+            node.left = None
+            node.right = None
+        if self.is_simplifiable_const_sum(node): # Compute sum of constants
+            node.type = NODETYPE.CONSTANT
+            node.name = str(int(node.left.name) + int(node.right.name))
+            node.left = None
+            node.right = None
+        if self.is_simplifiable_const_sum_minus(node): # Simplify (a + b) to (a - (-b)) when b is a const and has a -
+            node.type = NODETYPE.DIFFERENCE
+            node.name = '-'
+            node.right.name = node.right.name.strip('-')
+        if self.is_simplifiable_const_diff(node): # Compute difference of constants
+            node.type = NODETYPE.CONSTANT
+            node.name = str(int(node.left.name) - int(node.right.name))
+            node.left = None
+            node.right = None
 
-    def is_simplifiable_sum(self, node):
-    
+    def is_simplifiable_sum_minus_1(self, node):
         return  node.type == NODETYPE.SUM and \
                 node.right.type == NODETYPE.ELEMENTWISE_FUNCTION and \
                 node.right.name == '-'
@@ -224,18 +252,40 @@ class Differentiator():
                 node.right.right.type == NODETYPE.ELEMENTWISE_FUNCTION and \
                 node.right.right.name == 'log'
 
+    def is_simplifiable_adj(self, node):
+        return  node.type == NODETYPE.PRODUCT and \
+                node.left.type == NODETYPE.SPECIAL_FUNCTION and \
+                node.right.type == NODETYPE.SPECIAL_FUNCTION and \
+                node.left.name == 'det' and \
+                node.right.name == 'inv' and \
+                node.left.right == node.right.right
+    
+    def is_simplifiable_const_minus(self, node):
+        return  node.type == NODETYPE.ELEMENTWISE_FUNCTION and \
+                node.name == '-' and \
+                node.right.type == NODETYPE.CONSTANT
+    
+    def is_simplifiable_const_sum(self, node):
+        return  node.type == NODETYPE.SUM and \
+                node.left.type == NODETYPE.CONSTANT and \
+                node.right.type == NODETYPE.CONSTANT
+    
+    def is_simplifiable_const_sum_minus(self, node):
+        return  node.type == NODETYPE.SUM and \
+                node.right.type == NODETYPE.CONSTANT and \
+                node.right.name.startswith('-')
+            
+    def is_simplifiable_const_diff(self, node):
+        return  node.type == NODETYPE.DIFFERENCE and \
+                node.left.type == NODETYPE.CONSTANT and \
+                node.right.type == NODETYPE.CONSTANT
+
     def render(self, filename='diffdag'):
         self.diffDag.dot(filename)
 
 if __name__ == '__main__':
     example = '''
-    declare
-        a 0
-        X 2
-        Y 2
-        Z 2
-    expression ((2*(,->)a) *(,ij->ij) W) - (X*(ij,->ji)1 *(ij,jk->ik) (Y /(      (0.00000001) + exp(X*(ij,jk->ik)W) /(exp(X*(ij,jk->ik)W)*(ij,jk->ik)1        )) *(ij,ij->ij) exp(X*(ij,jk->ik)W) / (exp(X*(ij,jk->ik)W)*(ij,jk->ik)1        )) - (X*(ij,->ji)1) *(ij,jk->ik) (1 *(,i->ii) (exp(X*(ij,jk->ik)W) *(ij,ij->ij) (Y /((0.00000001)      + exp(X*(ij,jk->ik)W) / (exp(X*(ij,jk->ik)W)*(ij,->ji)1          ))) / ((exp(X*(ij,jk->ik)W)*(ij,j->i)1) *(i,i->i)   (exp(X*(ij,jk->ik)W)*(ij,j->j)1 )*(i,j->ij)1) *(ij,j->j)1))*exp(X*(ij,jk->ik)W))
-    derivative wrt X
+    declare x 1 a 0 expression x^a derivative wrt x
     '''
     d = Differentiator(example)
     d.differentiate()

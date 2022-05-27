@@ -48,19 +48,19 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare a 0 b 0 expression a - b derivative wrt b'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(0) *(,->) (-(1)))')
+        self.assertEqual(str(d.diffDag), '(_delta(0) *(,->) -1)')
     
     def test_difference_2(self):
         test = 'declare a 0 b 0 expression a - a - b derivative wrt a'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(0) + (_delta(0) *(,->) (-(1))))')
+        self.assertEqual(str(d.diffDag), '(_delta(0) + (_delta(0) *(,->) -1))')
     
     def test_difference_3(self):
         test = 'declare a 0 b 0 expression a - b - a derivative wrt a'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(0) + (_delta(0) *(,->) (-(1))))')
+        self.assertEqual(str(d.diffDag), '(_delta(0) + (_delta(0) *(,->) -1))')
     
     def test_sum_product_1(self):
         test = 'declare a 1 b 1 c 1 expression a*(i,i->i)a + b + c derivative wrt a'
@@ -132,7 +132,7 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare a 1 b 1 c 1 expression a*(i,i->i)b - a*(i,i->i)c derivative wrt a'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '((_delta(2) *(ai,i->ai) b) + ((_delta(2) *(ba,a->ba) (-(1))) *(ai,i->ai) c))')
+        self.assertEqual(str(d.diffDag), '((_delta(2) *(ai,i->ai) b) + ((_delta(2) *(ba,a->ba) -1) *(ai,i->ai) c))')
 
     def test_difference_product_3(self):
         test = 'declare A 2 B 2 x 1 expression (A-B)*(ij,j->i)x derivative wrt x'
