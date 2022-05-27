@@ -116,8 +116,8 @@ class Tree():
             self.left.set_tensorrank(variable_ranks, arg)
         if self.right:
             self.right.set_tensorrank(variable_ranks, arg)
-        if self.type == NODETYPE.CONSTANT:   # If we reach a constant, it gets rank 0.
-            self.rank = 0
+        if self.type == NODETYPE.CONSTANT:   # If we reach a constant, it gets rank -1, and will get broadcasted later.
+            self.rank = -1
         elif self.type == NODETYPE.VARIABLE:
             self.rank = variable_ranks[self.name]
         elif self.type == NODETYPE.ELEMENTWISE_FUNCTION:
@@ -146,12 +146,15 @@ class Tree():
             self.rank = self.left.rank
         elif self.type == NODETYPE.POWER:
             if self.right.rank != 0:
-                raise Exception(f'Rank of right operand \'{self.right.name}\' ({self.right.rank}) in power node is not 0.')
-            else:
-                self.rank = self.left.rank
+                if not self.right.try_broadcasting(0):
+                    raise Exception(f'Rank of right operand \'{self.right.name}\' ({self.right.rank}) in power node is not 0.')
+            self.rank = self.left.rank
         elif self.type == NODETYPE.PRODUCT:
             if self.name == '_TO_BE_SET_ELEMENTWISE':
-                indices = ''.join([i for i in string.ascii_lowercase][0:self.left.rank])
+                if self.left.rank == -1:
+                    indices = ''.join([i for i in string.ascii_lowercase][0:self.right.rank])
+                else:
+                    indices = ''.join([i for i in string.ascii_lowercase][0:self.left.rank])
                 self.set_indices(indices, indices, indices)
                 self.name = f'*({indices},{indices}->{indices})'
             self.check_multiplication()

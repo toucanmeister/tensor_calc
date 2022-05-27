@@ -245,7 +245,7 @@ class Parser():
         split_adj_helper(self.dag)
 
 if __name__ == '__main__':
-    example = 'declare X 2 expression adj(X) derivative wrt X'
+    example = 'declare X 2 expression arccos(X) derivative wrt X'
     p = Parser(example)
     p.parse()
     p.dag.dot('tree')

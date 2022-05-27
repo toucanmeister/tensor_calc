@@ -280,14 +280,15 @@ class Differentiator():
                 node.left.type == NODETYPE.CONSTANT and \
                 node.right.type == NODETYPE.CONSTANT
 
-    def render(self, filename='diffdag'):
+    def render(self, filename='dags/diffdag'):
         self.diffDag.dot(filename)
 
 if __name__ == '__main__':
     example = '''
-    declare x 1 a 0 expression x^a derivative wrt x
+    declare X 2 expression arccos(X) derivative wrt X
     '''
     d = Differentiator(example)
+    d.originalDag.dot('dags/original')
     d.differentiate()
     d.render()
     print(d.diffDag)
