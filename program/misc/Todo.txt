@@ -44,6 +44,6 @@ x Tensorrang in abgeleitetem Ausdruck richtig angeben
 x statt 'declare argument expression', 'declare expression derivative wrt'
 x Broadcasting für Sachen wie A + 1
 x delta(k) statt delta(2k)
+x Im Graphen linkes und rechtes Kind kennzeichnen
+- Achsennamen speichern und propagieren
 - Schöneres Print
-- Dimension der Deltas angeben
-- Im Graphen linkes und rechtes Kind kennzeichnen

@@ -79,9 +79,9 @@ class Tree():
                     g.node(str(node.id), str(node.name))
         for node in nodes:
             if node and node.left:
-                g.edge(str(node.id), str(node.left.id))
+                g.edge(str(node.id), str(node.left.id), '<')
             if node and node.right:
-                g.edge(str(node.id), str(node.right.id))
+                g.edge(str(node.id), str(node.right.id), '>')
         g.render(filename)
 
     def contains(self, node):
