@@ -30,6 +30,7 @@ class Parser():
         self.split_double_powers()
         self.split_adj()
         self.dag.set_tensorrank(self.variable_ranks, self.arg)
+        self.dag.dot('tree', False)
         if clean:
             self.dag.eliminate_common_subtrees()
 
@@ -245,8 +246,8 @@ class Parser():
         split_adj_helper(self.dag)
 
 if __name__ == '__main__':
-    example = 'declare X 2 expression arccos(X) derivative wrt X'
+    example = 'declare X 2 expression (X+1) + X*(ij,ij->ij) (X+1) derivative wrt X'
     p = Parser(example)
     p.parse()
-    p.dag.dot('tree')
+    p.dag.dot('dag', False)
     print(p.dag)

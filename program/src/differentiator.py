@@ -25,9 +25,9 @@ class Differentiator():
             raise Exception('Argument \'{self.parser.arg_name}\' not found in expression.')
 
     def differentiate(self):
-        deltaRank = self.originalDag.rank * 2
+        deltaRank = self.originalDag.rank
         self.diffDag = Tree(NODETYPE.VARIABLE, f'_delta({deltaRank})')   # Derivative of the top node y with respect to itself, unnecessary ones will later be removed
-        self.variable_ranks[f'_delta({deltaRank})'] = deltaRank
+        self.variable_ranks[f'_delta({deltaRank})'] = deltaRank * 2
         self.diffDag = self.reverse_mode_diff(self.originalDag, self.diffDag)
         self.diffDag.eliminate_common_subtrees()
         self.diffDag.set_tensorrank(self.variable_ranks, self.arg)
@@ -157,7 +157,7 @@ class Differentiator():
     
     def diff_special_function(self, node, diff):
         if node.name == 'inv':
-            funcDiff = Tree(NODETYPE.PRODUCT, f'*(ij,kl->ijkl)', Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, node), node)
+            funcDiff = Tree(NODETYPE.PRODUCT, f'*(ij,kl->jikl)', Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, node), node)
             funcDiff.set_indices('ij', 'kl', 'ijkl')
         if node.name == 'det':
             funcDiff = Tree(NODETYPE.PRODUCT, '*(ij,->ji)', Tree(NODETYPE.SPECIAL_FUNCTION, 'adj', None, node.right), Tree(NODETYPE.CONSTANT, '1'))
@@ -205,7 +205,7 @@ class Differentiator():
             node.type = NODETYPE.DIFFERENCE
             node.name = '-'
             node.right = node.right.right
-        if self.is_simplifiable_power(node): # Simplify exp(g(x) * log(f(x))) to (a ^ b)
+        if self.is_simplifiable_power(node): # Simplify exp(b * log(a)) to (a ^ b)
             node.type = NODETYPE.POWER
             node.name = '^'
             node.left = node.right.left
@@ -285,7 +285,7 @@ class Differentiator():
 
 if __name__ == '__main__':
     example = '''
-    declare X 2 expression arccos(X) derivative wrt X
+    declare X 2 a 0 expression a*(,ij->)X derivative wrt X
     '''
     d = Differentiator(example)
     d.originalDag.dot('dags/original')

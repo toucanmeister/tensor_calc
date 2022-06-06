@@ -27,7 +27,8 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
         x relu
         x (^)
     x Besondere Funktionen
-        x Determinante und Inverse von Matrizen
+        x Determinant
+		x Inverse
         x Adjungierte
         x Jede Funktion braucht ihre eigene Prozedur um ihren output-tensorrang zu berechnen
 - Delta als Eingabe erlauben
@@ -42,6 +43,7 @@ x delta(K) als Ersatz für Identity
 x Tensorrang in abgeleitetem Ausdruck richtig angeben
 x statt 'declare argument expression', 'declare expression derivative wrt'
 x Broadcasting für Sachen wie A + 1
-- Delta(k) oder Delta(2k)?
-- Wann ist Multiplikation mit Delta eine neutrale Operation?
+x delta(k) statt delta(2k)
 - Schöneres Print
+- Dimension der Deltas angeben
+- Im Graphen linkes und rechtes Kind kennzeichnen

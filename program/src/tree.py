@@ -69,7 +69,7 @@ class Tree():
         return [self] + leftSubtrees + rightSubtrees
     
     def dot(self, filename, printrank=True):
-        g = Digraph(format='png', strict=True, edge_attr={'dir': 'back'})
+        g = Digraph(format='png', strict=True, edge_attr={'dir': 'back'}, graph_attr={'dpi': '300'})
         nodes = self.get_all_subtrees()
         for node in nodes:
             if node:
