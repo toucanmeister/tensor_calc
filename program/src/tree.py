@@ -1,4 +1,5 @@
 from enum import Enum
+from unittest import result
 from graphviz import Digraph
 import string
 
@@ -14,6 +15,7 @@ class NODETYPE(Enum):
 
 class Tree():
     running_id = 0
+    axes_counter = 1
     def __init__(self, nodetype, name, left=None, right=None):
         self.type = nodetype
         self.name = name
@@ -21,6 +23,7 @@ class Tree():
         self.right = right
         self.incoming = []  # Nodes from incoming edges, only filled after common subexpression elimination
         self.rank = -1      # Initialization value
+        self.axes = []
         if self.type == NODETYPE.PRODUCT:    
             self.leftIndices = ''       # Indices in the einstein product notation
             self.rightIndices = ''
@@ -52,7 +55,7 @@ class Tree():
             return f'{self.name}'
     
     def __eq__(self, other):
-        return other and self.type == other.type and self.name == other.name and self.rank == other.rank and self.left == other.left and self.right == other.right
+        return other and self.type == other.type and self.name == other.name and self.rank == other.rank and self.left == other.left and self.right == other.right and self.axes == other.axes
     
     def __hash__(self): # Necessary for instances to behave sanely in dicts and sets.
         return hash((self.type, self.name, self.rank, self.left, self.right))
@@ -68,13 +71,13 @@ class Tree():
             rightSubtrees = self.right.get_all_subtrees()
         return [self] + leftSubtrees + rightSubtrees
     
-    def dot(self, filename, printrank=True):
-        g = Digraph(format='png', strict=True, edge_attr={'dir': 'back'}, graph_attr={'dpi': '300'})
+    def dot(self, filename, print_axes=True):
+        g = Digraph(format='png', edge_attr={'dir': 'back'}, graph_attr={'dpi': '300'})
         nodes = self.get_all_subtrees()
         for node in nodes:
             if node:
-                if printrank:
-                    g.node(str(node.id), str(node.name) + '(' + str(node.rank) + ')')
+                if print_axes:
+                    g.node(str(node.id), f'{node.name} \n {node.axes}')
                 else:
                     g.node(str(node.id), str(node.name))
         for node in nodes:
@@ -102,14 +105,25 @@ class Tree():
 
     def check_multiplication(self):
         if self.left.rank != len(self.leftIndices):
-            if not self.left.try_broadcasting(len(self.leftIndices)):
+            desired_axes = []
+            for i in self.leftIndices:
+                desired_axes.append(self.new_axis())
+            if not self.left.try_broadcasting(len(self.leftIndices), desired_axes):
                 raise Exception(f'Rank of left input \'{self.left.name}\' ({self.left.rank}) to product node does not match product indices \'{self.leftIndices}\'.')
         elif self.right.rank != len(self.rightIndices):
-            if not self.right.try_broadcasting(len(self.rightIndices)):
+            desired_axes = []
+            for i in self.rightIndices:
+                desired_axes.append(self.new_axis())
+            if not self.right.try_broadcasting(len(self.rightIndices), desired_axes):
                 raise Exception(f'Rank of right input \'{self.right.name}\' ({self.right.rank}) to product node does not match product indices \'{self.rightIndices}\'.')
         for index in self.resultIndices:
             if not (index in self.leftIndices or index in self.rightIndices):
                 raise Exception(f'Result index \'{index}\' of product node \'{self.name}\' not in left or right index set.')
+
+    def new_axis(self):
+        axis = Tree.axes_counter
+        Tree.axes_counter += 1
+        return axis
 
     def set_tensorrank(self, variable_ranks, arg):
         if self.left:
@@ -120,35 +134,44 @@ class Tree():
             self.rank = -1
         elif self.type == NODETYPE.VARIABLE:
             self.rank = variable_ranks[self.name]
+            if self.axes == []:
+                for i in range(self.rank):
+                    self.axes.append(self.new_axis())
         elif self.type == NODETYPE.ELEMENTWISE_FUNCTION:
             self.rank = self.right.rank
+            self.axes = self.right.axes
         elif self.type == NODETYPE.SPECIAL_FUNCTION:
             if self.name == 'inv':
                 if self.right.rank != 2:
-                    if not self.right.try_broadcasting(2):
+                    if not self.right.try_broadcasting(2, [self.new_axis(), self.new_axis()]):
                         raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
                 self.rank = 2
+                self.axes = self.right.axes
             elif self.name == 'det':
                 if self.right.rank != 2:
-                    if not self.right.try_broadcasting(2):
+                    if not self.right.try_broadcasting(2, [self.new_axis(), self.new_axis()]):
                         raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
                 self.rank = 0
+                self.axes = []
             elif self.name == 'adj':
                 if self.right.rank != 2:
-                    if not self.right.try_broadcasting(2):
+                    if not self.right.try_broadcasting(2, [self.new_axis(), self.new_axis()]):
                         raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
                 self.rank = 2
+                self.axes = self.right.axes
         elif self.type == NODETYPE.SUM or self.type == NODETYPE.DIFFERENCE:
             if self.right.rank != self.left.rank:
-                if not self.left.try_broadcasting(self.right.rank):
-                    if not self.right.try_broadcasting(self.left.rank):
+                if not self.left.try_broadcasting(self.right.rank, self.right.axes):
+                    if not self.right.try_broadcasting(self.left.rank, self.left.axes):
                         raise Exception(f'Ranks of operands \'{self.left.name}\' ({self.left.rank}) and \'{self.right.name}\' ({self.right.rank}) in sum node do not match.')
             self.rank = self.left.rank
+            self.axes = self.left.axes
         elif self.type == NODETYPE.POWER:
             if self.right.rank != 0:
-                if not self.right.try_broadcasting(0):
+                if not self.right.try_broadcasting(0, []):
                     raise Exception(f'Rank of right operand \'{self.right.name}\' ({self.right.rank}) in power node is not 0.')
             self.rank = self.left.rank
+            self.axes = self.left.axes
         elif self.type == NODETYPE.PRODUCT:
             if self.name == '_TO_BE_SET_ELEMENTWISE':
                 if self.left.rank == -1:
@@ -159,16 +182,51 @@ class Tree():
                 self.name = f'*({indices},{indices}->{indices})'
             self.check_multiplication()
             self.rank = len(self.resultIndices)
+            for i in self.resultIndices: # Gets the correct axes from left and right child nodes
+                if i in self.leftIndices:
+                    self.axes.append(self.left.axes[self.leftIndices.index(i)])
+                elif i in self.rightIndices:
+                    self.axes.append(self.right.axes[self.rightIndices.index(i)])
         else:
             raise Exception(f'Unknown node type at node \'{self.name}\'.')
-    
-    def try_broadcasting(self, desired_rank):
+
+    def unify_axes(self):
+        if self.type == NODETYPE.CONSTANT:
+            pass
+        if self.type == NODETYPE.VARIABLE:
+            pass
+        if self.type == NODETYPE.ELEMENTWISE_FUNCTION:
+            self.right.axes = self.axes
+        if self.type == NODETYPE.SPECIAL_FUNCTION:
+            if self.name == 'inv' or self.name == 'adj':
+                self.right.axes = self.axes
+        if self.type == NODETYPE.SUM or self.type == NODETYPE.DIFFERENCE:
+            self.left.axes = self.axes
+            self.right.axes = self.axes
+        if self.type == NODETYPE.POWER:
+            self.left.axes = self.axes
+        if self.type == NODETYPE.PRODUCT:
+            for i in range(len(self.resultIndices)):
+                for j in range(len(self.leftIndices)):
+                    if self.resultIndices[i] == self.leftIndices[j]:
+                        self.left.axes[j] = self.axes[i]
+                for j in range(len(self.rightIndices)):
+                    if self.resultIndices[i] == self.rightIndices[j]:
+                        self.right.axes[j] = self.axes[i]
+        if self.left:
+            self.left.unify_axes()
+        if self.right:
+            self.right.unify_axes()
+
+    def try_broadcasting(self, desired_rank, desired_axes):
         if self.type == NODETYPE.CONSTANT:
             self.rank = desired_rank
+            self.axes = desired_axes
             return True
         elif self.type == NODETYPE.ELEMENTWISE_FUNCTION:
-            if self.right.try_broadcasting(desired_rank):
+            if self.right.try_broadcasting(desired_rank, desired_axes):
                 self.rank = desired_rank
+                self.axes = desired_axes
                 return True
             else:
                 return False

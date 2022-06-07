@@ -285,7 +285,7 @@ class Differentiator():
 
 if __name__ == '__main__':
     example = '''
-    declare X 2 a 0 expression a*(,ij->)X derivative wrt X
+    declare a 0 b 0 expression a + b + a derivative wrt a
     '''
     d = Differentiator(example)
     d.originalDag.dot('dags/original')

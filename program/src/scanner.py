@@ -15,7 +15,7 @@ class Input():
         else:
             return None
 
-class TOKEN_ID(Enum):
+class TOKEN_ID(Enum): # Every token is one of these
     CONSTANT = 'constant'
     NATNUM = 'natnum'
     DECLARE = 'declare'

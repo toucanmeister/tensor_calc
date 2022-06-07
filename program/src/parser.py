@@ -25,14 +25,15 @@ class Parser():
         self.declaration()
         self.dag = self.expressionpart()
         self.argument()
-        self.arg = self.dag.find(self.arg_name)
+        if clean:
+            self.dag.eliminate_common_subtrees()
         self.dag.set_tensorrank(self.variable_ranks, self.arg)
+        self.arg = self.dag.find(self.arg_name)
         self.split_double_powers()
         self.split_adj()
         self.dag.set_tensorrank(self.variable_ranks, self.arg)
-        self.dag.dot('tree', False)
-        if clean:
-            self.dag.eliminate_common_subtrees()
+        self.dag.unify_axes()
+        self.arg = self.dag.find(self.arg_name)
 
     def declaration(self):
         if self.fits(TOKEN_ID.DECLARE):
@@ -246,8 +247,7 @@ class Parser():
         split_adj_helper(self.dag)
 
 if __name__ == '__main__':
-    example = 'declare X 2 expression (X+1) + X*(ij,ij->ij) (X+1) derivative wrt X'
+    example = 'declare a 0 b 0 expression a + b + a derivative wrt a'
     p = Parser(example)
     p.parse()
-    p.dag.dot('dag', False)
-    print(p.dag)
+    p.dag.dot('dags/dag')
