@@ -52,10 +52,6 @@
 \setcounter{page}{3}
 
 \chapter{Introduction}
-% Content:
-% - Why is this interesting
-% - What is the novel idea
-% - Scope
 
 With the rise of machine learning applications, interest in optimization problems has been growing.
 In these kinds of problems, one seeks to find values for a number of parameters that maximize or minimize a given scalar objective function.
@@ -76,13 +72,13 @@ If the function's inputs are naturally organized in a matrix or higher-order ten
 The prevalent machine learning frameworks have no way to directly compute these derivatives, and classical computer algebra systems struggle with efficiency, as they work on the level of individual tensor entries.
 
 To bridge this gap, we design and implement a tensor calculus that allows for automatic symbolic differentiation of tensor expressions of any order.
-Additionally, this calculus will use Einstein summation notation to represent tensor products, rather than the more complex notation used in Ricci calculus.
+Additionally, this calculus will use an Einstein-like notation to represent tensor products, rather than the more complex notation used in Ricci calculus.
 
 This thesis builds on the work by Laue, Mitterreiter and Giesen, who have built a similar calculus for matrix derivatives [Matrix Calculus] and developed the theoretical foundation for an Einstein notation based tensor calculus [Tensor Paper].
 
 The structure of the thesis is as follows.
 First, the syntax of the calculus is developed in form of a grammar.
-Then, the parsing and representation of tensor expressions is discussed.
+Then, the parsing and representation of tensor expressions are discussed.
 ...
 
 \chapter{A Syntax for Tensor Expressions}
@@ -108,19 +104,19 @@ For example, the inner product of two vectors, $y^Tx$, would be written as $y_ix
 While Ricci calculus can be useful, for example to physicists, the many indices on each tensor make it less readable.
 
 Since, for our purposes, tensors are simply containers for variables, we have no need to expressly define some tensors as multilinear functions.
-The main part of Ricci calculus that we bring over into our notation is the Einstein summation convention.
+The main part of Ricci calculus that we bring over into our notation is a derivative of the Einstein summation convention.
 This is a notational convention that allows elegant representation of tensor products.
 Since tensors, depending on their order, may be multiplied in many ways, we need a way to describe which tensor axes should be multiplied in what way.
 For example, two vectors could be multiplied by taking their inner product, their outer product, or even their elementwise product.
 Einstein notation handles this problem by adding index sets to the inputs and the output of the product, each index representing an axis in the respective tensor.
 If an index appears in both inputs, the respective axes will be multiplied.
-If an index appears in inputs but not in the output, this axis will be summed over.
+If an index appears in inputs but not in the output, this axis will be summed over. (In true Einstein-notation, output indices are omitted. So indices that appear in both inputs are always summed over. For more generality, we include output indices.)
 This simple set of rules provides an elegant way to express the main tensor operations.
 
 We take a large part of the syntax for tensor multiplication from the established Python software package \textit{Numpy}, specifically it's \codeword{einsum} procedure.
 A product of two tensors \codeword{x} and \codeword{y} has the form \codeword{x*(a,b->c)y}, where a,b and c are strings of indices.
 
-As an example, see the inner, outer and elementwise product of two order-1 tensors (vectors) \codeword{x} and \codeword{y}: \codeword{x*(i,i->)y}, \codeword{x*(i,j->ij)y}, \codeword{x*(i,i->i)y}.
+As an example, see the inner, outer and elementwise product of two order 1 tensors (vectors) \codeword{x} and \codeword{y}: \codeword{x*(i,i->)y}, \codeword{x*(i,j->ij)y}, \codeword{x*(i,i->i)y}.
 The application of a matrix \codeword{A} to a vector \codeword{v} would be written as \codeword{A*(ij,j->i)v}, while the elementwise product of two matrices \codeword{A} and \codeword{B} would be \codeword{A*(ij,ij->ij)B}.
 One may even take diagonals of tensors using this notation, the inner product of a square matrix \codeword{A}'s main diagonal and a vector \codeword{v} would be \codeword{A*(ii,i->)v}.
 
@@ -130,19 +126,19 @@ With the representation of tensor products handled, we can now define the full s
 The grammar, presented here in extended backus-naur form, is based on a standard grammar for mathematical expressions by Julien Klaus.
 It was adapted to tensor expressions by generalizing multiplication to tensor products using the einstein summation convention.
 \begin{verbatim}
-expr = term (( '+' | '-' ) term)*
-term = factor (( '*(' productindices ')') factor | '/' factor)*
+expr = term {( '+' | '-' ) term}+
+term = factor {( '*(' productindices ')') factor | '/' factor}+
 productindices = tensorindices ',' tensorindices '->' tensorindices
-tensorindices = (smallalpha)*
-factor = {'-'} atom ('^' ('(' expr ')' | atom))*
+tensorindices = {smallalpha}+
+factor = {'-'} atom {'^' ('(' expr ')' | atom)}+
 atom = number | function '(' expr ')' | tensorname | '(' expr ')'
-number = ['-'] digit* '.' digit* [( 'e' | 'E' ) ['+' | '-'] (digit)*]
+number = ['-'] digit* '.' digit* [( 'e' | 'E' ) ['+' | '-'] {digit}+]
 digit = [0-9]
 function = 'sin' | 'cos' | 'tan' | 'arcsin' | 'arccos' | 
     'arctan' | 'abs' | 'tanh' | 'exp' | 'log' | 'sign' | 
     'relu' | 'det' | 'inv' | 'adj'
 \end{verbatim}
-Here \texttt{\string{x\string}} describes that \texttt{x} may occur any number of times, while \texttt{(x)*} lets \texttt{x} appear at least once.
+Here \texttt{\string{x\string}} describes that \texttt{x} may occur any number of times, while \texttt{(x)+} lets \texttt{x} appear at least once.
 
 As can be seen in the grammar, we allow the following binary operations on tensors: products (\codeword{*(,->)}), sums (\codeword{+}), differences (\codeword{-}) and quotients (\codeword{/}).
 With the exception of tensor products, which have already been discussed, these operations are executed elementwise.
@@ -150,7 +146,7 @@ Exponentiation (\codeword{^}) is also included, but not as a true binary operato
 This is not apparent from the grammar, as tensor variable order is specified separately from the tensor expression itself.
 
 A variety of functions with relevance to optimization and machine learning are included, mostly being applied elementwise to tensors of any order.
-The exceptions to this are the matrix inverse \codeword{inv} and the matrix determinant \codeword{det}, both of which are not applied elemtwise and may only operate on order-2 tensors.
+The exceptions to this are the matrix inverse \codeword{inv} and the matrix determinant \codeword{det}, both of which are not applied elementwise and may only operate on order 2 tensors.
 The inclusion of these functions takes away from the generality of our grammar, as the idea of an inverse and a determinant can only be applied to matrices, not higher-order tensors, but they are crucial to some common optimization problems.
 
 \chapter{Parsing and Representation}
@@ -173,14 +169,21 @@ Each of these tokens represents a logical unit that is used in the next step of 
 Tokenization allows the parser to work only with well-defined tokens, not having to work on the level of individual characters.
 Each token is made up of two parts, the descriptor and the identifier.
 The descriptor is one of a few defined categories, describing what kind of logical unit the token forms, while the identifier contains the characters the token was formed from.
-As an example, the string \codeword{A + sin(b)} would be tokenized into the following sequence: \codeword{[(ALPHANUM, 'a'), (PLUS, '+'), (ELEMENTWISE_FUNCTION, 'sin'), (LRBRACKET, '('), (LOWERCASE_ALPHA, 'b'), (RRBRACKET, ')')]}.
+As an example, the string \codeword{A + sin(b)} would be tokenized into the following sequence: \codeword{(ALPHANUM, 'a'), (PLUS, '+'), (ELEMENTWISE_FUNCTION, 'sin'), (LRBRACKET, '('), (LOWERCASE_ALPHA, 'b'), (RRBRACKET, ')')}.
 We define token descriptors for constants (e.g. \codeword{'1.05'}), variable names (e.g. \codeword{'A'}, \codeword{'b'}, \codeword{'C1'}), special symbols (\codeword{'+'}, \codeword{'-'}, \codeword{'*'}, \codeword{'/'}, \codeword{'^'}, \codeword{','}, \codeword{'('}, \codeword{')'}, \codeword{'>'}), keywords (\codeword{'declare'}, \codeword{'expression'}, \codeword{'derivative'}, \codeword{'wrt'}) and function names, which are recognized using the list of functions given in the grammar (e.g. \codeword{'sin'}, \codeword{'abs'}, \codeword{'det'}).
 There are two token descriptors for functions, \codeword{ELEMENTWISE_FUNCTION} and \codeword{SPECIAL_FUNCTION}, because derivative rules are different for these two types.
 Examples for special functions are the matrix determinant \codeword{det} and the matrix inverse \codeword{inv}.
 
 \subsection{Tree Building}
 The output of the tokenizer is used to build a binary tree representing the expression.
-This process follows the structure of the grammar defined in the previous chapter.
+
+A binary tree is a type of tree where each node has exactly two child nodes.
+Like in other trees, each node has exactly one parent node.
+Exceptions to this are the root, which has no parent, and the leaves, which have no children.
+Formally, we define a binary tree $B$ as follows:
+$B$ is either empty or contains two child nodes, $\text{left}(B)$ and $\text{right}(B)$, which are also binary trees and have $B$ as their only parent.
+
+The process  of constructing such a tree from a given expression follows the structure of the grammar defined in the previous chapter.
 Starting with \codeword{expr}, we recursively step through the grammar, using the tokens to decide which options to follow.
 For each of the words defined in the grammar, there is a function in our parser.
 When a certain word is expected, the function is called.
@@ -190,7 +193,8 @@ Leaf nodes are created when we reach constants or variable names, and they are c
 Each node, with its subtree, represents a subexpression, with the root node of the whole tree representing the entire expression.
 If there is ever a point at which expectations are not met, for example, if a left round bracket token (\codeword{(LRBRACKET, '(')}) is expected but not found, an exception is thrown and the program aborted.
 
-As an example, we take the expression from before, \codeword{A + sin(b)}, tokenized to \codeword{[(ALPHANUM, 'a'), (PLUS, '+'), (ELEMENTWISE_FUNCTION, 'sin'), (LRBRACKET, '('), (LOWERCASE_ALPHA, 'b'), (RRBRACKET, ')')]}.
+As an example, we take the expression from before, \codeword{A + sin(b)}, tokenized to \codeword{(ALPHANUM, 'a'), (PLUS, '+'), (ELEMENTWISE_FUNCTION, 'sin'), (LRBRACKET, '('), (LOWERCASE_ALPHA, 'b'), (RRBRACKET, ')')}.
+
 The order of function calls generated when parsing this expression would be the following:
 
 \begin{itemize}
@@ -214,13 +218,13 @@ Note that, by convention, we set the argument of a unary function node to its ri
 \begin{figure}
     \centering
     \includegraphics[scale=0.25]{tree_example.png}
-    \caption{Binary expression tree generated from the expression string \texttt{A + sin(b)}.}
+    \caption{Binary expression tree generated from the expression string \texttt{A + sin(b)}. Empty nodes are omitted.}
     \label{fig:tree_example}
 \end{figure}
 
 \section{Preprocessing}
 Having described how a binary expression tree is created from a given tensor expression, we now describe how this tree is processed further to prepare it for differentiation.
-We employ the following three preprocessing steps:
+We employ the following three preprocessing steps.
 \begin{itemize}
     \item Some subtrees are substituted with equivalent ones which are more easily differentiated.
     \item Subtrees which occur more than once are fused.
@@ -232,7 +236,7 @@ Some operations or functions may be viewed as equivalent to, or as a special cas
 In these cases, we substitute the more general case to reduce the number of differentiation rules that need to be implemented.
 For example, when encountering the expression \codeword{A - B}, we substitute \codeword{A + -(B)}, viewing \codeword{-} as an elementwise function.
 This allows us to use the differentiation rules for sums and elementwise functions, not having to implement a new rule for differences.
-A full overview of the substituted expressions can be seen in table \ref{tab:substitutions}.
+A full overview of the substituted expressions can be seen in Table \ref{tab:substitutions}.
 \begin{table}[ht]
     \centering
     \begin{tabular}{l | l}
@@ -242,7 +246,7 @@ A full overview of the substituted expressions can be seen in table \ref{tab:sub
         \codeword{A / B} & \codeword{A .* elementwise_inverse(B)} \\
         \codeword{adj(X)} & \codeword{det(X) *(,ij->ij) inv(X)} \\ 
     \end{tabular}
-    \caption{Table showing all operations that get substituted during preprocessing, along with their substitutes. Note that \texttt{.*} is a placeholder for elementwise multiplication and \texttt{*} a placeholder for scalar multiplication which are replaced with the appropriate tensor products during tensororder determination. \texttt{elementwise\_inverse} is an elementwise function for which a differentiation rule is implemented.}
+    \caption{Table showing all operations that get substituted during preprocessing, along with their substitutes. Note that \texttt{.*} is a placeholder for elementwise multiplication and \texttt{*} a placeholder for scalar multiplication. Both are replaced with the appropriate tensor products during tensor order determination. \texttt{elementwise\_inverse} is an elementwise function for which a differentiation rule is implemented.}
     \label{tab:substitutions}
 \end{table}
 \FloatBarrier
@@ -264,6 +268,7 @@ We first obtain all subtrees by traversing the whole tree.
 Then, we store each unique subtree we find in a hash table.
 When we encounter a subtree that is already present in our hashmap, we let its parent node point to the tree in the hashmap instead of the original.
 In doing so, we remove duplicate subtrees and transform the binary expression tree into a directed acyclic graph (DAG) representing the expression.
+Nodes in the DAG still only have two child nodes, but may have many parent nodes.
 \begin{figure}
     \centering
     \begin{minipage}{7cm}
@@ -282,14 +287,14 @@ In doing so, we remove duplicate subtrees and transform the binary expression tr
 To be able to accurately create new product nodes, which require knowledge of the tensor orders of both inputs and the output, we determine the output tensor order of all nodes in the expression DAG.
 Starting at the bottom of the DAG, tensor orders are propagated upwards towards the root.
 The bottom nodes contain either variables or constants.
-The tensororders of variables need to be given, as they function as the start for the upwards propagation of tensor orders.
+The tensor orders of variables need to be given, as they function as the start for the upwards propagation of tensor orders.
 Each parent node calculates its output tensor order based on its child nodes.
 For example, a sum will have its output order set equal to the output order of its children.
 A full overview of these order determination rules can be found in table \ref{tab:order_rules}.
 
-So far we have not addressed how the tensororder of a constant is determined.
+So far we have not addressed how the tensor order of a constant is determined.
 Constants may need to be broadcast to fit into the expression.
-For example, in the expression \codeword{1 + det(X)} with an order-2 tensor \codeword{X}, \codeword{1} would be a scalar (order 0 tensor) since it needs to be summed with another scalar.
+For example, in the expression \codeword{1 + det(X)} with an order 2 tensor \codeword{X}, \codeword{1} would be a scalar (order 0 tensor) since it needs to be summed with another scalar.
 But in the expression \codeword{det(X + 1)}, \codeword{1} would need to be an order 2 tensor filled with ones, because it is summed with another order 2 tensor.
 To accomplish this broadcasting, constants have their order set to $-1$ to start with.
 Then, when an error is encountered during tensor order determination because a order $-1$ constant does not fit into a part of the expression, the order of the constant is set to the value that makes it fit.
