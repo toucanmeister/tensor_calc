@@ -28,9 +28,11 @@ class Differentiator():
         deltaRank = self.originalDag.rank
         self.diffDag = Tree(NODETYPE.VARIABLE, f'_delta({deltaRank})')   # Derivative of the top node y with respect to itself, unnecessary ones will later be removed
         self.variable_ranks[f'_delta({deltaRank})'] = deltaRank * 2
+        self.diffDag.axes = self.originalDag.axes + self.originalDag.axes
         self.diffDag = self.reverse_mode_diff(self.originalDag, self.diffDag)
         self.diffDag.eliminate_common_subtrees()
         self.diffDag.set_tensorrank(self.variable_ranks, self.arg)
+        self.diffDag.unify_axes()
         self.simplify(self.diffDag)
 
     def reverse_mode_diff(self, node, diff):  # Computes derivative of node.left and node.right | node: node in original dag | diff : node that contains derivative with respect to node.
@@ -157,8 +159,8 @@ class Differentiator():
     
     def diff_special_function(self, node, diff):
         if node.name == 'inv':
-            funcDiff = Tree(NODETYPE.PRODUCT, f'*(ij,kl->jikl)', Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, node), node)
-            funcDiff.set_indices('ij', 'kl', 'ijkl')
+            funcDiff = Tree(NODETYPE.PRODUCT, f'*(ij,kl->iklj)', Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, node), node)
+            funcDiff.set_indices('ij', 'kl', 'iklj')
         if node.name == 'det':
             funcDiff = Tree(NODETYPE.PRODUCT, '*(ij,->ji)', Tree(NODETYPE.SPECIAL_FUNCTION, 'adj', None, node.right), Tree(NODETYPE.CONSTANT, '1'))
             funcDiff.set_indices('ij', '', 'ji')
@@ -285,7 +287,7 @@ class Differentiator():
 
 if __name__ == '__main__':
     example = '''
-    declare a 0 b 0 expression a + b + a derivative wrt a
+    declare X 2 expression ((1 / ((det(X)))) *(,ab->ab) ((adj(X)) *(ij,->ji) 1)) derivative wrt X
     '''
     d = Differentiator(example)
     d.originalDag.dot('dags/original')

@@ -33,7 +33,7 @@ class Parser():
         self.split_adj()
         self.dag.set_tensorrank(self.variable_ranks, self.arg)
         self.dag.unify_axes()
-        self.arg = self.dag.find(self.arg_name)
+        self.arg = self.dag.find(self.arg_name) # Call this again since arg-subtree may have changed
 
     def declaration(self):
         if self.fits(TOKEN_ID.DECLARE):

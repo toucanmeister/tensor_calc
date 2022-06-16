@@ -50,6 +50,8 @@ class Tree():
             if self.left:
                 return f'({self.left} {self.name} {self.right})'
             else:
+                if self.name == 'elementwise_inverse':
+                    return f'1 / ({self.right})'
                 return f'({self.name}({self.right}))'
         else:
             return f'{self.name}'
@@ -73,6 +75,7 @@ class Tree():
     
     def dot(self, filename, print_axes=True):
         g = Digraph(format='png', edge_attr={'dir': 'back'}, graph_attr={'dpi': '300'})
+        done_nodes = []
         nodes = self.get_all_subtrees()
         for node in nodes:
             if node:
@@ -81,10 +84,12 @@ class Tree():
                 else:
                     g.node(str(node.id), str(node.name))
         for node in nodes:
-            if node and node.left:
-                g.edge(str(node.id), str(node.left.id), '<')
-            if node and node.right:
-                g.edge(str(node.id), str(node.right.id), '>')
+            if node not in done_nodes:
+                if node and node.left:
+                    g.edge(str(node.id), str(node.left.id), '<')
+                if node and node.right:
+                    g.edge(str(node.id), str(node.right.id), '>')
+                done_nodes.append(node)
         g.render(filename)
 
     def contains(self, node):
@@ -182,11 +187,12 @@ class Tree():
                 self.name = f'*({indices},{indices}->{indices})'
             self.check_multiplication()
             self.rank = len(self.resultIndices)
-            for i in self.resultIndices: # Gets the correct axes from left and right child nodes
-                if i in self.leftIndices:
-                    self.axes.append(self.left.axes[self.leftIndices.index(i)])
-                elif i in self.rightIndices:
-                    self.axes.append(self.right.axes[self.rightIndices.index(i)])
+            if self.axes == []:
+                for i in self.resultIndices: # Gets the correct axes from left and right child nodes
+                    if i in self.leftIndices:
+                        self.axes.append(self.left.axes[self.leftIndices.index(i)])
+                    elif i in self.rightIndices:
+                        self.axes.append(self.right.axes[self.rightIndices.index(i)])
         else:
             raise Exception(f'Unknown node type at node \'{self.name}\'.')
 
@@ -200,6 +206,7 @@ class Tree():
         if self.type == NODETYPE.SPECIAL_FUNCTION:
             if self.name == 'inv' or self.name == 'adj':
                 self.right.axes = self.axes
+                self.right.axes[0] = self.right.axes[1]
         if self.type == NODETYPE.SUM or self.type == NODETYPE.DIFFERENCE:
             self.left.axes = self.axes
             self.right.axes = self.axes

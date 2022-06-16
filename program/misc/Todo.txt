@@ -3,7 +3,7 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
     x Alle Unterbäume listen
     x Gleiche Unterbäume eliminieren
     x Baum neu aufbauen
-- Ableitungsregeln
+x Ableitungsregeln
     x Produktregel
         x Regel
         x Tests
@@ -31,12 +31,13 @@ x Mehrfachvorkommen eliminieren (common subexpression elimination):
 		x Inverse
         x Adjungierte
         x Jede Funktion braucht ihre eigene Prozedur um ihren output-tensorrang zu berechnen
-- Delta als Eingabe erlauben
+x Delta als Eingabe erlauben
 - Vereinfachung
 	x a + (- b) = a - b
 	x log(exp(...)) = a^b
 	x det(X)*inv(X) = adj(X)
 	x Konstanten zusammenfassen
+	x elementwise_inverse in 1/x verwandeln
 	- Unnütze deltas entfernen
 	
 x delta(K) als Ersatz für Identity
@@ -45,5 +46,19 @@ x statt 'declare argument expression', 'declare expression derivative wrt'
 x Broadcasting für Sachen wie A + 1
 x delta(k) statt delta(2k)
 x Im Graphen linkes und rechtes Kind kennzeichnen
+x Doppelte Pfeile fixen
 - Achsennamen speichern und propagieren
+  x Doppelnennung der Achsen in der Liste fixen
+  - Dictionary, das Achsennamen zu ihrem Ursprung zuordnet
+  - Für String-Ausgabe: Konstanten kriegen eigenen Namen, damit wir ihre Achsennamen ausgeben können
+  - Achsen, die in inv/det/adj kommen, sind gleich
+  - Achsenursprünge ausgeben
+  x Achsenvertauschungen bei Multiplikationen fixen
+- Spezialfall verschwindende Achsen handlen (Delta aufpusten)
 - Schöneres Print
+
+----------------------------------
+Use Cases:
+- Codeerzeugung
+- Konvexitätstests über Graphendarstellung
+- Stringausgabe
