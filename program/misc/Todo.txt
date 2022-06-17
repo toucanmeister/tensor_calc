@@ -50,9 +50,9 @@ x Doppelte Pfeile fixen
 - Achsennamen speichern und propagieren
   x Doppelnennung der Achsen in der Liste fixen
   - Dictionary, das Achsennamen zu ihrem Ursprung zuordnet
-  - Für String-Ausgabe: Konstanten kriegen eigenen Namen, damit wir ihre Achsennamen ausgeben können
-  - Achsen, die in inv/det/adj kommen, sind gleich
   - Achsenursprünge ausgeben
+  - Für String-Ausgabe: Konstanten kriegen eigenen Namen, damit wir ihre Achsennamen ausgeben können
+  x Achsen, die in inv/det/adj kommen, sind gleich
   x Achsenvertauschungen bei Multiplikationen fixen
 - Spezialfall verschwindende Achsen handlen (Delta aufpusten)
 - Schöneres Print

@@ -45,7 +45,7 @@ class ParserTests(unittest.TestCase):
         test = 'declare a 3 b 3 c 0 expression ((a / b) *(ijk,ijk->) a) + (-(c)) derivative wrt a'
         p = Parser(test)
         p.parse()
-        self.assertEqual(str(p.dag), '(((a *(abc,abc->abc) (elementwise_inverse(b))) *(ijk,ijk->) a) + (-(c)))')
+        self.assertEqual(str(p.dag), '(((a *(abc,abc->abc) (1 / (b))) *(ijk,ijk->) a) + (-(c)))')
     def test_goodexpression_4(self):
         test = 'declare x 1 a 0 expression x^(x *(i,i->) x + a) derivative wrt x'
         p = Parser(test)
@@ -95,7 +95,7 @@ class ParserTests(unittest.TestCase):
         test = 'declare a 3 b 3 expression a / b derivative wrt a'
         p = Parser(test)
         p.parse()
-        self.assertEqual(str(p.dag), '(a *(abc,abc->abc) (elementwise_inverse(b)))')
+        self.assertEqual(str(p.dag), '(a *(abc,abc->abc) (1 / (b)))')
     def test_special_function(self):
         test = 'declare a 2 expression inv(a) derivative wrt a'
         p = Parser(test)

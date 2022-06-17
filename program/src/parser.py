@@ -27,10 +27,12 @@ class Parser():
         self.argument()
         if clean:
             self.dag.eliminate_common_subtrees()
+        self.dag.add_incoming_edges()
         self.dag.set_tensorrank(self.variable_ranks, self.arg)
         self.arg = self.dag.find(self.arg_name)
         self.split_double_powers()
         self.split_adj()
+        self.dag.add_incoming_edges()
         self.dag.set_tensorrank(self.variable_ranks, self.arg)
         self.dag.unify_axes()
         self.arg = self.dag.find(self.arg_name) # Call this again since arg-subtree may have changed

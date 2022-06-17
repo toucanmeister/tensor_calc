@@ -1,6 +1,8 @@
 from ast import Constant
 from http.client import CONFLICT
 from parser import Parser
+
+from pyrsistent import s
 from scanner import ELEMENTWISE_FUNCTIONS, TOKEN_ID
 from tree import Tree, NODETYPE
 import string
@@ -30,10 +32,12 @@ class Differentiator():
         self.variable_ranks[f'_delta({deltaRank})'] = deltaRank * 2
         self.diffDag.axes = self.originalDag.axes + self.originalDag.axes
         self.diffDag = self.reverse_mode_diff(self.originalDag, self.diffDag)
+        self.diffDag.set_tensorrank(self.variable_ranks, self.arg)
+        self.simplify(self.diffDag)
         self.diffDag.eliminate_common_subtrees()
+        self.diffDag.add_incoming_edges()
         self.diffDag.set_tensorrank(self.variable_ranks, self.arg)
         self.diffDag.unify_axes()
-        self.simplify(self.diffDag)
 
     def reverse_mode_diff(self, node, diff):  # Computes derivative of node.left and node.right | node: node in original dag | diff : node that contains derivative with respect to node.
         if node.type == NODETYPE.PRODUCT:
@@ -287,7 +291,7 @@ class Differentiator():
 
 if __name__ == '__main__':
     example = '''
-    declare X 2 expression ((1 / ((det(X)))) *(,ab->ab) ((adj(X)) *(ij,->ji) 1)) derivative wrt X
+    declare X 2 expression adj(X) derivative wrt X
     '''
     d = Differentiator(example)
     d.originalDag.dot('dags/original')

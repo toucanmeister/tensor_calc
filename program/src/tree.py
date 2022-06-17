@@ -51,7 +51,7 @@ class Tree():
                 return f'({self.left} {self.name} {self.right})'
             else:
                 if self.name == 'elementwise_inverse':
-                    return f'1 / ({self.right})'
+                    return f'(1 / ({self.right}))'
                 return f'({self.name}({self.right}))'
         else:
             return f'{self.name}'
@@ -204,9 +204,12 @@ class Tree():
         if self.type == NODETYPE.ELEMENTWISE_FUNCTION:
             self.right.axes = self.axes
         if self.type == NODETYPE.SPECIAL_FUNCTION:
+            if self.name == 'inv' or self.name == 'adj' or self.name =='det':
+                old_axis = self.right.axes[1]
+                self.right.axes[1] = self.right.axes[0]
+                self.get_root().rename_axis(old_axis, self.right.axes[0])
             if self.name == 'inv' or self.name == 'adj':
                 self.right.axes = self.axes
-                self.right.axes[0] = self.right.axes[1]
         if self.type == NODETYPE.SUM or self.type == NODETYPE.DIFFERENCE:
             self.left.axes = self.axes
             self.right.axes = self.axes
@@ -224,6 +227,20 @@ class Tree():
             self.left.unify_axes()
         if self.right:
             self.right.unify_axes()
+    
+    def rename_axis(self, axis_to_rename, new_name):
+        self.axes = [new_name if axis == axis_to_rename else axis for axis in self.axes]
+        if self.left:
+            self.left.rename_axis(axis_to_rename, new_name)
+        if self.right:
+            self.right.rename_axis(axis_to_rename, new_name)
+    
+    def get_root(self): # Requires incoming edges which are added during CSE
+        if not self.incoming:
+            return self
+        else:
+            return self.incoming[0].get_root()
+
 
     def try_broadcasting(self, desired_rank, desired_axes):
         if self.type == NODETYPE.CONSTANT:
@@ -254,7 +271,7 @@ class Tree():
             else:
                 hashmap[subtree.right] = subtree.right
         for subtree in subtrees:
-            helper(subtree)    
+            helper(subtree)
     
     def add_incoming_edges(self):
         if self and self.left and (self not in self.left.incoming):

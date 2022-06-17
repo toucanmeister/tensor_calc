@@ -180,37 +180,37 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare y 1 x 1 expression y / x derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '((_delta(1) *(ba,a->ba) y) *(ba,a->ba) (-((elementwise_inverse((x *(a,a->a) x))))))')
+        self.assertEqual(str(d.diffDag), '((_delta(1) *(ba,a->ba) y) *(ba,a->ba) (-((1 / ((x *(a,a->a) x))))))')
 
     def test_tan(self):
         test = 'declare x 1 expression tan(x) derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(1) *(ba,a->ba) (elementwise_inverse(((cos(x)) *(a,a->a) (cos(x))))))')
+        self.assertEqual(str(d.diffDag), '(_delta(1) *(ba,a->ba) (1 / (((cos(x)) *(a,a->a) (cos(x))))))')
     
     def test_arcsin(self):
         test = 'declare x 1 expression arcsin(x) derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(1) *(ba,a->ba) (elementwise_inverse(((1 - (x ^ 2)) ^ 0.5))))')
+        self.assertEqual(str(d.diffDag), '(_delta(1) *(ba,a->ba) (1 / (((1 - (x ^ 2)) ^ 0.5))))')
     
     def test_arccos(self):
         test = 'declare x 1 expression arccos(x) derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(1) *(ba,a->ba) (-((elementwise_inverse(((1 - (x ^ 2)) ^ 0.5))))))')
+        self.assertEqual(str(d.diffDag), '(_delta(1) *(ba,a->ba) (-((1 / (((1 - (x ^ 2)) ^ 0.5))))))')
 
     def test_arctan(self):
         test = 'declare x 1 expression arctan(x) derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(1) *(ba,a->ba) (elementwise_inverse(((x *(a,a->a) x) + 1))))')
+        self.assertEqual(str(d.diffDag), '(_delta(1) *(ba,a->ba) (1 / (((x *(a,a->a) x) + 1))))')
     
     def test_log(self):
         test = 'declare x 1 expression log(x) derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(1) *(ba,a->ba) (elementwise_inverse(x)))')
+        self.assertEqual(str(d.diffDag), '(_delta(1) *(ba,a->ba) (1 / (x)))')
 
     def test_tanh(self):
         test = 'declare x 1 expression tanh(x) derivative wrt x'
@@ -258,13 +258,13 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare x 0 a 1 expression x^x derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(((_delta(0) *(,->) (x ^ x)) *(,->) (log(x))) + (((_delta(0) *(,->) (x ^ x)) *(,->) x) *(,->) (elementwise_inverse(x))))')
+        self.assertEqual(str(d.diffDag), '(((_delta(0) *(,->) (x ^ x)) *(,->) (log(x))) + (((_delta(0) *(,->) (x ^ x)) *(,->) x) *(,->) (1 / (x))))')
 
     def test_inv(self):
         test = 'declare A 2 expression inv(A) derivative wrt A'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(2) *(efcd,cdab->efab) ((-((inv(A)))) *(ij,kl->jikl) (inv(A))))')
+        self.assertEqual(str(d.diffDag), '(_delta(2) *(efcd,cdab->efab) ((-((inv(A)))) *(ij,kl->iklj) (inv(A))))')
     
     def test_det(self):
         test = 'declare A 2 expression det(A) derivative wrt A'
@@ -276,7 +276,7 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare X 2 expression adj(X) derivative wrt X'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(((_delta(2) *(abij,ij->ab) (inv(X))) *(cd,ab->cdab) ((adj(X)) *(ij,->ji) 1)) + ((_delta(2) *(abij,->abij) (det(X))) *(efcd,cdab->efab) ((-((inv(X)))) *(ij,kl->jikl) (inv(X)))))')
+        self.assertEqual(str(d.diffDag), '(((_delta(2) *(abij,ij->ab) (inv(X))) *(cd,ab->cdab) ((adj(X)) *(ij,->ji) 1)) + ((_delta(2) *(abij,->abij) (det(X))) *(efcd,cdab->efab) ((-((inv(X)))) *(ij,kl->iklj) (inv(X)))))')
 
 if __name__ == '__main__':
     unittest.main()
