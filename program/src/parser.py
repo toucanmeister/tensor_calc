@@ -167,12 +167,12 @@ class Parser():
     
     def atom(self):
         if self.fits(TOKEN_ID.CONSTANT) or self.fits(TOKEN_ID.NATNUM):
-            tree = Tree(NODETYPE.CONSTANT, self.ident)
+            tree = Tree(NODETYPE.CONSTANT, f'{self.ident}_{Tree.new_constant()}')
             self.get_sym()
         elif self.fits(TOKEN_ID.MINUS):
             self.get_sym()
             if self.fits(TOKEN_ID.CONSTANT) or self.fits(TOKEN_ID.NATNUM):
-                tree = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, Tree(NODETYPE.CONSTANT, self.ident))
+                tree = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, Tree(NODETYPE.CONSTANT, f'{self.ident}_{Tree.new_constant()}'))
                 self.get_sym()
             else:
                 self.error(TOKEN_ID.CONSTANT.value + ' or ' + TOKEN_ID.NATNUM.value)
@@ -213,6 +213,11 @@ class Parser():
         else:
             self.error(TOKEN_ID.CONSTANT.value + ' or ' + TOKEN_ID.ELEMENTWISE_FUNCTION.value + ' or ' + 'tensorname' +  ' or ' + TOKEN_ID.LRBRACKET.value)
         return tree
+
+    def new_constant(self):
+        constant = self.constant_id_counter
+        self.constant_id_counter += 1
+        return constant
 
     def split_double_powers(self):
         def create_split_power(node):

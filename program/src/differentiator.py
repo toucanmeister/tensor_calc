@@ -84,7 +84,7 @@ class Differentiator():
             raise Exception('Encountered power node with argument in left and right operands during differentiation.')  # This case is handled by a previous transform of the expression
         if node.left and node.left.contains(self.arg):
             indices = ''.join([i for i in string.ascii_lowercase][0:node.left.rank])
-            one = Tree(NODETYPE.CONSTANT, '1')
+            one = Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}')
             one.rank = 0
             newpower = Tree(NODETYPE.POWER, '^', node.left, Tree(NODETYPE.SUM, '+', node.right, Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, one)))
             funcDiff = Tree(NODETYPE.PRODUCT, f'*(,{indices}->{indices})', node.right, newpower)
@@ -107,7 +107,7 @@ class Differentiator():
     
     def diff_elementwise_function(self, node, diff):
         if node.name == '-':
-            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, Tree(NODETYPE.CONSTANT, f'1'))
+            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}'))
         elif node.name == 'sin':
             funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'cos', None, node.right)
         elif node.name == 'cos':
@@ -119,18 +119,18 @@ class Differentiator():
             cos_squared.set_indices(indices, indices, indices)
             funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, cos_squared)
         elif node.name == 'arcsin':
-            x_squared = Tree(NODETYPE.POWER, '^', node.right, Tree(NODETYPE.CONSTANT, 2))
-            inside_root = Tree(NODETYPE.SUM, '+', Tree(NODETYPE.CONSTANT, f'1'), Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, x_squared))
-            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, Tree(NODETYPE.POWER, '^', inside_root, Tree(NODETYPE.CONSTANT, 0.5)))
+            x_squared = Tree(NODETYPE.POWER, '^', node.right, Tree(NODETYPE.CONSTANT, f'2_{Tree.new_constant()}'))
+            inside_root = Tree(NODETYPE.SUM, '+', Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}'), Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, x_squared))
+            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, Tree(NODETYPE.POWER, '^', inside_root, Tree(NODETYPE.CONSTANT, f'0.5_{Tree.new_constant()}')))
         elif node.name == 'arccos':
-            x_squared = Tree(NODETYPE.POWER, '^', node.right, Tree(NODETYPE.CONSTANT, 2))
-            inside_root = Tree(NODETYPE.SUM, '+', Tree(NODETYPE.CONSTANT, f'1'), Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, x_squared))
-            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, Tree(NODETYPE.POWER, '^', inside_root, Tree(NODETYPE.CONSTANT, 0.5))))
+            x_squared = Tree(NODETYPE.POWER, '^', node.right, Tree(NODETYPE.CONSTANT, f'2_{Tree.new_constant()}'))
+            inside_root = Tree(NODETYPE.SUM, '+', Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}'), Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, x_squared))
+            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, Tree(NODETYPE.POWER, '^', inside_root, Tree(NODETYPE.CONSTANT, f'0.5_{Tree.new_constant()}'))))
         elif node.name == 'arctan':
             indices = ''.join([i for i in string.ascii_lowercase][0:node.right.rank])
             squared = Tree(NODETYPE.PRODUCT, f'*({indices},{indices}->{indices})', node.right, node.right)
             squared.set_indices(indices, indices, indices)
-            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, Tree(NODETYPE.SUM, '+', squared, Tree(NODETYPE.CONSTANT, f'1')))
+            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, Tree(NODETYPE.SUM, '+', squared, Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}')))
         elif node.name == 'exp':
             funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'exp', None, node.right)
         elif node.name == 'log':
@@ -139,11 +139,11 @@ class Differentiator():
             indices = ''.join([i for i in string.ascii_lowercase][0:node.right.rank])
             squared = Tree(NODETYPE.PRODUCT, f'*({indices},{indices}->{indices})', node, node)
             squared.set_indices(indices, indices, indices)
-            funcDiff = Tree(NODETYPE.SUM, '+', Tree(NODETYPE.CONSTANT, f'1'), Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, squared))
+            funcDiff = Tree(NODETYPE.SUM, '+', Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}'), Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, squared))
         elif node.name == 'abs':
             funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'sign', None, node.right)
         elif node.name == 'sign':
-            funcDiff = Tree(NODETYPE.CONSTANT, f'0')
+            funcDiff = Tree(NODETYPE.CONSTANT, f'0_{Tree.new_constant()}')
             funcDiff.rank = node.right.rank
         elif node.name == 'relu':
             funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'relu', None, Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'sign', None, node.right))
@@ -167,7 +167,7 @@ class Differentiator():
             funcDiff = Tree(NODETYPE.PRODUCT, f'*(ij,kl->iklj)', Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, node), node)
             funcDiff.set_indices('ij', 'kl', 'iklj')
         if node.name == 'det':
-            funcDiff = Tree(NODETYPE.PRODUCT, '*(ij,->ji)', Tree(NODETYPE.SPECIAL_FUNCTION, 'adj', None, node.right), Tree(NODETYPE.CONSTANT, '1'))
+            funcDiff = Tree(NODETYPE.PRODUCT, '*(ij,->ji)', Tree(NODETYPE.SPECIAL_FUNCTION, 'adj', None, node.right), Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}'))
             funcDiff.set_indices('ij', '', 'ji')
         s1 = ''.join(string.ascii_lowercase[0:node.right.rank])
         s2 = ''.join([i for i in string.ascii_lowercase if i not in s1][0:node.rank])
@@ -298,10 +298,12 @@ class Differentiator():
             if node and (not node in done_nodes) and (node.type == NODETYPE.VARIABLE or node.type == NODETYPE.CONSTANT):
                 print(f'{node.name} {node.axes}')
                 done_nodes.append(node)
+        for constant in Tree.printing_constants.keys():
+            print(f'{constant} {Tree.printing_constants[constant]}')
 
 if __name__ == '__main__':
     example = '''
-    declare X 2 expression adj(X) derivative wrt X
+    declare X 2 expression 1/X derivative wrt X
     '''
     d = Differentiator(example)
     d.originalDag.dot('dags/original')
