@@ -289,3 +289,18 @@ class Tree():
         if self and self.right and (self not in self.right.incoming):
             self.right.incoming.append(self)
             self.right.add_incoming_edges()
+        
+    def remove_nonexistant_axes(self):  # Removes from Tree.axis_to_origin all axes that do not occur in this (sub)tree
+        def contains_axis(node, axis):
+            if not node:
+                return False
+            else:
+                return (axis in node.axes) or contains_axis(node.left, axis) or contains_axis(node.right, axis)
+        axes_to_remove = []
+        for axis in Tree.axis_to_origin.keys():
+            if not contains_axis(self, axis):
+                axes_to_remove.append(axis)
+        for axis in axes_to_remove:
+            Tree.axis_to_origin.pop(axis)
+
+

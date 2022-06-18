@@ -38,6 +38,7 @@ class Differentiator():
         self.diffDag.add_incoming_edges()
         self.diffDag.set_tensorrank(self.variable_ranks, self.arg)
         self.diffDag.unify_axes()
+        self.diffDag.remove_nonexistant_axes()
 
     def reverse_mode_diff(self, node, diff):  # Computes derivative of node.left and node.right | node: node in original dag | diff : node that contains derivative with respect to node.
         if node.type == NODETYPE.PRODUCT:
@@ -288,15 +289,23 @@ class Differentiator():
 
     def render(self, filename='dags/diffdag'):
         self.diffDag.dot(filename)
+    
+    def print_axes_help(self):
+        print(f'Axes Origins: {d.diffDag.axis_to_origin}')
+        print(f'Variable and Constant Axes:')
+        done_nodes = []
+        for node in self.diffDag.get_all_subtrees():
+            if node and (not node in done_nodes) and (node.type == NODETYPE.VARIABLE or node.type == NODETYPE.CONSTANT):
+                print(f'{node.name} {node.axes}')
+                done_nodes.append(node)
 
 if __name__ == '__main__':
     example = '''
-    declare X 2 expression (((1 / ((det(X))))) *(,ab->ab) ((adj(X)) *(ij,->ji) 1)) derivative wrt X
+    declare X 2 expression adj(X) derivative wrt X
     '''
     d = Differentiator(example)
     d.originalDag.dot('dags/original')
     d.differentiate()
     d.render()
     print(d.diffDag)
-    print(f'Axes Origins: {d.diffDag.axis_to_origin}')
-    print(f'Axes:')
+    d.print_axes_help()
