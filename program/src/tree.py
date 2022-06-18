@@ -16,6 +16,8 @@ class NODETYPE(Enum):
 class Tree():
     running_id = 0
     axes_counter = 1
+    axis_to_origin = {}
+    
     def __init__(self, nodetype, name, left=None, right=None):
         self.type = nodetype
         self.name = name
@@ -112,13 +114,17 @@ class Tree():
         if self.left.rank != len(self.leftIndices):
             desired_axes = []
             for i in self.leftIndices:
-                desired_axes.append(self.new_axis())
+                axis = self.new_axis()
+                desired_axes.append(axis)
+                Tree.axis_to_origin[axis] = self
             if not self.left.try_broadcasting(len(self.leftIndices), desired_axes):
                 raise Exception(f'Rank of left input \'{self.left.name}\' ({self.left.rank}) to product node does not match product indices \'{self.leftIndices}\'.')
         elif self.right.rank != len(self.rightIndices):
             desired_axes = []
             for i in self.rightIndices:
-                desired_axes.append(self.new_axis())
+                axis = self.new_axis()
+                desired_axes.append(axis)
+                Tree.axis_to_origin[axis] = self
             if not self.right.try_broadcasting(len(self.rightIndices), desired_axes):
                 raise Exception(f'Rank of right input \'{self.right.name}\' ({self.right.rank}) to product node does not match product indices \'{self.rightIndices}\'.')
         for index in self.resultIndices:
@@ -141,26 +147,34 @@ class Tree():
             self.rank = variable_ranks[self.name]
             if self.axes == []:
                 for i in range(self.rank):
-                    self.axes.append(self.new_axis())
+                    axis = self.new_axis()
+                    self.axes.append(axis)
+                    Tree.axis_to_origin[axis] = self
         elif self.type == NODETYPE.ELEMENTWISE_FUNCTION:
             self.rank = self.right.rank
             self.axes = self.right.axes
         elif self.type == NODETYPE.SPECIAL_FUNCTION:
             if self.name == 'inv':
                 if self.right.rank != 2:
-                    if not self.right.try_broadcasting(2, [self.new_axis(), self.new_axis()]):
+                    axis = self.new_axis()
+                    Tree.axis_to_origin[axis] = self
+                    if not self.right.try_broadcasting(2, [axis, axis]):
                         raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
                 self.rank = 2
                 self.axes = self.right.axes
             elif self.name == 'det':
                 if self.right.rank != 2:
-                    if not self.right.try_broadcasting(2, [self.new_axis(), self.new_axis()]):
+                    axis = self.new_axis()
+                    Tree.axis_to_origin[axis] = self
+                    if not self.right.try_broadcasting(2, [axis, axis]):
                         raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
                 self.rank = 0
                 self.axes = []
             elif self.name == 'adj':
                 if self.right.rank != 2:
-                    if not self.right.try_broadcasting(2, [self.new_axis(), self.new_axis()]):
+                    axis = self.new_axis()
+                    Tree.axis_to_origin[axis] = self
+                    if not self.right.try_broadcasting(2, [axis, axis]):
                         raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
                 self.rank = 2
                 self.axes = self.right.axes

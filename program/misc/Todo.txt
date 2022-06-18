@@ -31,7 +31,7 @@ x Ableitungsregeln
 		x Inverse
         x Adjungierte
         x Jede Funktion braucht ihre eigene Prozedur um ihren output-tensorrang zu berechnen
-x Delta als Eingabe erlauben
+- Delta als Eingabe erlauben
 - Vereinfachung
 	x a + (- b) = a - b
 	x log(exp(...)) = a^b
@@ -49,8 +49,8 @@ x Im Graphen linkes und rechtes Kind kennzeichnen
 x Doppelte Pfeile fixen
 - Achsennamen speichern und propagieren
   x Doppelnennung der Achsen in der Liste fixen
-  - Dictionary, das Achsennamen zu ihrem Ursprung zuordnet
-  - Achsenursprünge ausgeben
+  x Dictionary, das Achsennamen zu ihrem Ursprung zuordnet
+  x Achsenursprünge ausgeben
   - Für String-Ausgabe: Konstanten kriegen eigenen Namen, damit wir ihre Achsennamen ausgeben können
   x Achsen, die in inv/det/adj kommen, sind gleich
   x Achsenvertauschungen bei Multiplikationen fixen

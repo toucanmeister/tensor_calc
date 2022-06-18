@@ -291,10 +291,11 @@ class Differentiator():
 
 if __name__ == '__main__':
     example = '''
-    declare X 2 expression adj(X) derivative wrt X
+    declare X 2 expression (((1 / ((det(X))))) *(,ab->ab) ((adj(X)) *(ij,->ji) 1)) derivative wrt X
     '''
     d = Differentiator(example)
     d.originalDag.dot('dags/original')
     d.differentiate()
     d.render()
     print(d.diffDag)
+    print(f"Axes Origins: {d.diffDag.axis_to_origin}")
