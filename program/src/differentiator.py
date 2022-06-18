@@ -298,4 +298,5 @@ if __name__ == '__main__':
     d.differentiate()
     d.render()
     print(d.diffDag)
-    print(f"Axes Origins: {d.diffDag.axis_to_origin}")
+    print(f'Axes Origins: {d.diffDag.axis_to_origin}')
+    print(f'Axes:')
