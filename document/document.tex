@@ -7,6 +7,8 @@
 \usepackage{graphicx}
 \usepackage{amsmath}
 \usepackage{placeins}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric}
 
 \titleformat{\chapter}[hang]{\Huge\bfseries}{\thechapter}{20pt}{\Huge\bfseries}
 
@@ -78,8 +80,7 @@ This thesis builds on the work by Laue, Mitterreiter and Giesen, who have built 
 
 The structure of the thesis is as follows.
 First, the syntax of the calculus is developed in form of a grammar.
-Then, the parsing and representation of tensor expressions are discussed.
-...
+Then, the parsing and representation of tensor expressions are discussed, followed by a chapter on the differentiation process.
 
 \chapter{A Syntax for Tensor Expressions}
 \section{Aims}
@@ -181,7 +182,7 @@ A binary tree is a type of tree where each node has exactly two child nodes.
 Like in other trees, each node has exactly one parent node.
 Exceptions to this are the root, which has no parent, and the leaves, which have no children.
 Formally, we define a binary tree $B$ as follows:
-$B$ is either empty or contains two child nodes, $\text{left}(B)$ and $\text{right}(B)$, which are also binary trees and have $B$ as their only parent.
+$B$ is either the empty set or a tuple $(\text{left}(B),\text{root}(B),\text{right}(B))$, where $\text{left}(B)$ and $\text{right}(B)$ are also binary trees and have $B$ as their only parent, and $\text{root}(B)$ is the root of the tree, containing some value.
 
 The process  of constructing such a tree from a given expression follows the structure of the grammar defined in the previous chapter.
 Starting with \codeword{expr}, we recursively step through the grammar, using the tokens to decide which options to follow.
@@ -217,7 +218,17 @@ Note that, by convention, we set the argument of a unary function node to its ri
 
 \begin{figure}
     \centering
-    \includegraphics[scale=0.25]{tree_example.png}
+    \begin{tikzpicture}[main/.style={draw, circle, minimum size=30pt, line width=2pt}, info/.style={rectangle, rounded corners=5, draw}, n/.style={-latex, line width=0.75pt}, d/.style={-latex, line width=0.75pt, dashed}]
+        % nodes
+        \node[main] (A) at (0,2) {\codeword{A}};
+        \node[main] (b) at (2,0) {\codeword{b}};
+        \node[main] (+) at (1,4) {\codeword{+}};
+        \node[main] (sin) at (2,2) {\codeword{sin}};
+        % edges
+        \draw [->, n] (A) -- (+);
+        \draw [->, n] (b) -- (sin);
+        \draw [->, n] (sin) -- (+);
+    \end{tikzpicture}
     \caption{Binary expression tree generated from the expression string \texttt{A + sin(b)}. Empty nodes are omitted.}
     \label{fig:tree_example}
 \end{figure}
@@ -269,15 +280,52 @@ Then, we store each unique subtree we find in a hash table.
 When we encounter a subtree that is already present in our hashmap, we let its parent node point to the tree in the hashmap instead of the original.
 In doing so, we remove duplicate subtrees and transform the binary expression tree into a directed acyclic graph (DAG) representing the expression.
 Nodes in the DAG still only have two child nodes, but may have many parent nodes.
+
 \begin{figure}
     \centering
     \begin{minipage}{7cm}
         \centering
-        \includegraphics[scale=0.15]{tree.png}
+        \scalebox{0.8}{
+        \begin{tikzpicture}[main/.style={draw, circle, minimum size=30pt, line width=2pt}, info/.style={rectangle, rounded corners=5, draw}, n/.style={-latex, line width=0.75pt}, d/.style={-latex, line width=0.75pt, dashed}]
+            % nodes
+            \node[main] (x1) at (1,0) {\texttt{X}};
+            \node[main] (11) at (3,0) {\texttt{1}};
+            \node[main] (+1) at (3,2) {\texttt{+}};
+            \node[main] (+2) at (4.5,4) {\texttt{+}};
+            \node[main, shape=ellipse] (*) at (6,2) {\texttt{*(ij,ij->ij)}};
+            \node[main] (x2) at (5,0) {\texttt{X}};
+            \node[main] (+3) at (7,0) {\texttt{+}};
+            \node[main] (x3) at (6,-2) {\texttt{X}};
+            \node[main] (12) at (8,-2) {\texttt{1}};
+            % edges
+            \draw [->, n] (x1) -- (+1);
+            \draw [->, n] (11) -- (+1);
+            \draw [->, n] (+1) -- (+2);
+            \draw [->, n] (*) -- (+2);
+            \draw [->, n] (x2) -- (*);
+            \draw [->, n] (+3) -- (*);
+            \draw [->, n] (x3) -- (+3);
+            \draw [->, n] (12) -- (+3);
+        \end{tikzpicture}}
     \end{minipage}
     \begin{minipage}{7cm}
         \centering
-        \includegraphics[scale=0.15]{dag.png}
+        \scalebox{0.8}{
+        \begin{tikzpicture}[main/.style={draw, circle, minimum size=30pt, line width=2pt}, info/.style={rectangle, rounded corners=5, draw}, n/.style={-latex, line width=0.75pt}, d/.style={-latex, line width=0.75pt, dashed}]
+            % nodes
+            \node[main] (x1) at (3.5,0) {\texttt{X}};
+            \node[main] (11) at (0,0) {\texttt{1}};
+            \node[main] (+1) at (0,2) {\texttt{+}};
+            \node[main] (+2) at (2,6) {\texttt{+}};
+            \node[main, shape=ellipse] (*) at (3.5,3.5) {\texttt{*(ij,ij->ij)}};
+            % edges
+            \draw [->, n] (x1) -- (+1);
+            \draw [->, n] (11) -- (+1);
+            \draw [->, n] (+1) -- (+2);
+            \draw [->, n] (*) -- (+2);
+            \draw [->, n] (x1) -- (*);
+            \draw [->, n] (+1) -- (*);
+        \end{tikzpicture}}
     \end{minipage}
     \caption{Left: Binary tree generated from the expression \texttt{(X+1) + X*(ij,ij->ij) (X+1)}. Right: DAG obtained by eliminating common subtrees in the left tree.}
     \label{fig:tree_to_dag}
@@ -322,6 +370,29 @@ Since summands always have the same order, \codeword{log(2)}, and by extension \
 \end{table}
 \FloatBarrier
 
+\chapter{Differentiation}
+The last chapter was concerned with creating a suitable internal representation for tensor expressions, a directed acyclic graph.
+In this chapter, we use this DAG representation of the expression to differentiate it.
+\section{Background}
+The theory for differentiating tensor expressions using our Einstein-like notation was developed by Laue, Mitterreiter and Giesen in [TENSOR PAPER].
+They developed differentiation rules for DAG representations of tensor expressions based on the Fr\'{e}chet Derivative.
+In their paper, they present two modes of differentiation, forward and reverse mode.
+This thesis utilizes reverse mode. %TODO: Warum reverse mode statt forward mode?
+In reverse mode, the computation traverses the DAG from top to bottom.
+The goal is to calculate for each node $v$ the derivative of the whole expression $y$ with respect to $v$, $\frac{dy}{dv}$, also called the pullback of $v$.
+Since this value is known for each parent node $u$ of $v$, we may apply the chain rule:
+
+\begin{equation*}
+    \frac{dy}{dv} = \sum_{u: (v,u) \in E} \frac{dy}{du} \cdot \frac{du}{dv}
+\end{equation*}
+
+where $(v,u) \in E$ means that there is an edge going from $v$ to $u$ in the DAG, which makes $u$ a parent of $v$. 
+Note also that $\cdot$ is a placeholder for an appropriate tensor product, which is specified in the differentiation rules. 
+This rule allows us to calculate the pullback of $v$ using the known pullbacks of $v$s parents $u$ and their derivatives with respect to $v$, $\frac{du}{dv}$.
+
+This computation starts with the topmost node $y$, representing the entire expression, and computes its pullback, which is the derivative of to itself.
+This pullback is then used to compute the pullback of $y$s child nodes, which are used to compute their child nodes, continuing recursively until all paths from the top node $y$ to the argument node have been traversed.
+The pullback for the node containing the argument is then the result of the differentiation, the derivative of the whole expression, $y$, with respect to the argument.
 
 \chapter{Literature}
 \chapter{Appendices}
