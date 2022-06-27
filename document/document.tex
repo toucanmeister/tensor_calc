@@ -408,30 +408,133 @@ Since we are computing $\frac{du}{dv}$, the rule applied depends on the type of 
 
 \subsection{Sum Rule}
 If $u$ is a sum node, the derivation is very simple.
-In this case, $u$ adds nothing of its own to the pullback of $v$.
-Thus, when differentiating a sum node like the one seen in figure \ref{fig:sum_rule}, the pullback of both $A$ and $X$ is simply the pullback of the sum node.
-That is, $\frac{dy}{d(A+X)}$ is the same as $\frac{dy}{dA}$ and $\frac{dy}{dX}$.
+In this case, $u$ adds nothing of its own to the pullback of $v$, so the contribution of $u$ to the pullback of $v$ is only $\frac{dy}{du}$.
+Thus, when differentiating a sum node that is their childrens only parent, like the one seen in figure \ref{fig:sum_rule}, the pullback of the children is simply the pullback of the sum node.
 
 \begin{figure}
     \centering
-    \begin{tikzpicture}[main/.style={draw, circle, minimum size=30pt, line width=2pt}, info/.style={rectangle, rounded corners=5, draw}, n/.style={-latex, line width=0.75pt}, d/.style={-latex, line width=0.75pt, dashed}]
-        % nodes
-        \node[]  (dots) at (1,4) {...};
-        \node[main] (A) at (0,0) {$A$};
-        \node[main] (X) at (2,0) {$X$};
-        \node[main] (+) at (1,2) {$+$};
-        % edges
-        \draw [->, n] (A) -- (+);
-        \draw [->, n] (X) -- (+);
-        \draw [->, n] (+) -- (dots);
-    \end{tikzpicture}
+    \scalebox{0.8}{
+        \begin{tikzpicture}[main/.style={draw, circle, minimum size=30pt, line width=2pt}, info/.style={rectangle, rounded corners=5, draw}, n/.style={-latex, line width=0.75pt}, d/.style={-latex, line width=0.75pt, dashed}]
+            % nodes
+            \node[]  (dots) at (1,4) {...};
+            \node[main] (A) at (0,0) {$A$};
+            \node[main] (X) at (2,0) {$X$};
+            \node[main] (+) at (1,2) {$+$};
+            % edges
+            \draw [->, n] (A) -- (+);
+            \draw [->, n] (X) -- (+);
+            \draw [->, n] (+) -- (dots);
+        \end{tikzpicture}
+    }
     \caption{A sum node in an expression DAG. Its childrens' pullbacks are the same as its pullback.}
     \label{fig:sum_rule}
 \end{figure}
 
 \subsection{Product Rule}
-If $u$ is a product node representing the subexpression $v *_{(s1, s2, s3)} w$ in a tensor expression with output indices \codeword{s4}, then we may apply the product rule as follows.
-The contribution of $u$ to the pullback of $v$ is \codeword{}
+If $u$ is a product node representing the subexpression $v *_{(s_1,s_2,s_3)} w$ in a tensor expression with output indices $s_4$, then we may apply the product rule as follows.
+The contribution of $u$ to the pullback of $v$ is 
+$$
+\frac{dy}{du} *_{(s_4s_3,s_2,s_4s_1)} w,
+$$
+and the contribution to the pullback of $w$ is 
+$$
+\frac{dy}{du} *_{(s_4s_3,s_1,s_4s_2)} v.
+$$
+An example of how the product rule is applied to an expression DAG can be seen in figure \ref{fig:prod_rule}.
+There is a caveat to the product rule, because by itself it is not applicable to all tensor products.
+This detail will be discussed further in the section on implementation details.
+
+\begin{figure}
+    \centering
+    \begin{minipage}{7cm}
+        \centering
+        \scalebox{0.8}{
+            \begin{tikzpicture}[main/.style={draw, circle, minimum size=30pt, line width=2pt}, info/.style={rectangle, rounded corners=5, draw}, n/.style={-latex, line width=0.75pt}, d/.style={-latex, line width=0.75pt, dashed}]
+                % nodes
+                \node[]  (dots) at (1,4) {...};
+                \node[main] (a) at (0,0) {$a$};
+                \node[main] (x) at (2,0) {$x$};
+                \node[main, ellipse] (*) at (1,2) {$*_{(, i \rightarrow i)}$};
+                % edges
+                \draw [->, n] (a) -- (*);
+                \draw [->, n] (x) -- (*);
+                \draw [->, n] (*) -- (dots);
+            \end{tikzpicture}
+        }
+    \end{minipage}
+    \begin{minipage}{7cm}
+        \centering
+        \scalebox{0.8}{
+            \begin{tikzpicture}[main/.style={draw, circle, minimum size=30pt, line width=2pt}, info/.style={rectangle, rounded corners=5, draw}, n/.style={-latex, line width=0.75pt}, d/.style={-latex, line width=0.75pt, dashed}]
+                % nodes
+                \node[]           (dots) at (0,0) {...};
+                \node[main, ellipse] (*) at (1,2) {$*_{(i, \rightarrow i)}$};
+                \node[main]          (a) at (2,0) {$a$};
+                % edges
+                \draw [->, n] (dots) -- (*);
+                \draw [->, n] (a) -- (*);
+            \end{tikzpicture}
+        }
+    \end{minipage}
+    \caption{\textbf{Left}: A product node representing a scalar-vector-product in an expression DAG. "..." represents the rest of the DAG. \textbf{Right}: Derivative of the left DAG with respect to $x$ computed using the product rule. "..." represents the pullback of the product node. Note that the topmost output node of the left DAG is assumed to be scalar here. Therefore $s_4$, the output index string, is empty.}
+    \label{fig:prod_rule}
+\end{figure}
+
+\subsection{Function Rule}
+If $u$ is a function node, we differentiate between two cases.
+$u$ either represents an elementwise function or one of the special functions.
+The elementwise case allows for a slight simplification over the special function case.
+
+If the node $u$ represents an elementwise function $f$ being applied to the child node $v$, then the contribution of $u$ to the pullback of $v$ is 
+$$
+\frac{dy}{du} *_{(s_2s_1,s_1,s_2s_1)} f'(v),
+$$
+where $s_1$ is the index string of $v$, $s_2$ is the index string of the output node of the DAG and $f'$ is the derivative of $f$.
+
+If the node $u$ however represents a special function $f$ being applied to the child node $v$, then the contribution of $u$ to the pullback $v$ is
+$$
+\frac{dy}{du} *_{(s_3s_2,s_2s_1,s_3s_1)} f'(v),
+$$
+where $s_1$ $v$s input, representing the domain of $f$, $s_2$ is the index string of $v$, representing the range of $f$, and $s_3$ is the index string of the output node of the DAG with $f'$ still being the derivative of $f$.
+The distinction between $s_1$ and $s_2$ is neccessary because domain and range of $f$ are not be the same anymore, as they are with elementwise functions.
+
+The derivatives $f'$ of all accepted functions $f$ need to be known. [Maybe insert a list of them here?]
+
+\begin{figure}
+    \centering
+    \begin{minipage}{7cm}
+        \centering
+        \scalebox{0.8}{
+            \begin{tikzpicture}[main/.style={draw, circle, minimum size=30pt, line width=2pt}, info/.style={rectangle, rounded corners=5, draw}, n/.style={-latex, line width=0.75pt}, d/.style={-latex, line width=0.75pt, dashed}]
+                % nodes
+                \node[]    (dots) at (0,4) {...};
+                \node[main] (sin) at (0,2) {$\text{sin}$};
+                \node[main] (x) at (0,0) {$X$};
+                % edges
+                \draw [->, n] (x) -- (sin);
+                \draw [->, n] (sin) -- (dots);
+            \end{tikzpicture}
+        }
+    \end{minipage}
+    \begin{minipage}{7cm}
+        \centering
+        \scalebox{0.8}{
+            \begin{tikzpicture}[main/.style={draw, circle, minimum size=30pt, line width=2pt}, info/.style={rectangle, rounded corners=5, draw}, n/.style={-latex, line width=0.75pt}, d/.style={-latex, line width=0.75pt, dashed}]
+                % nodes
+                \node[]           (dots) at (0,0) {...};
+                \node[main, ellipse] (*) at (1,2) {$*_{(ij, ij \rightarrow ij)}$};
+                \node[main]          (cos) at (2,0) {$\text{cos}$};
+                \node[main]          (x) at (2,-2) {$X$};
+                % edges
+                \draw [->, n] (dots) -- (*);
+                \draw [->, n] (cos) -- (*);
+                \draw [->, n] (x) -- (cos);
+            \end{tikzpicture}
+        }
+    \end{minipage}
+    \caption{\textbf{Left}: Part of a DAG that contains the subexpression $\text{sin(X)}$. $X$ is an order 2 tensor (matrix) and "..." represents the rest of the DAG. \textbf{Right}: Derivative of the left DAG with respect to $X$ computed using the rule for elementwise functions. "..." represents the pullback of the function node. Note that the topmost output node of the left DAG is assumed to be scalar here. Therefore $s_2$, the output index string, is empty.}
+    \label{fig:func_rule}
+\end{figure}
 
 \chapter{Literature}
 \chapter{Appendices}
