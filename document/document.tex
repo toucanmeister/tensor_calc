@@ -8,6 +8,8 @@
 \usepackage{amsmath}
 \usepackage{placeins}
 \usepackage{tikz}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 \usetikzlibrary{shapes.geometric}
 
 \titleformat{\chapter}[hang]{\Huge\bfseries}{\thechapter}{20pt}{\Huge\bfseries}
@@ -18,6 +20,7 @@
 \texttt{{#1}}%
 }
 
+\renewcommand*\contentsname{Table of Contents}
 
 \title{Designing and implementing a tensor calculus}
 \author{Farin Lippmann}
@@ -388,9 +391,10 @@ The goal is to calculate for each node $v$ the derivative of the whole expressio
 This value, $\frac{dy}{dv}$, is also called the pullback of $v$.
 Since the pullback is known for each parent node $u$ of $v$, we may apply the chain rule:
 
-\begin{equation*}
+\begin{equation}
     \frac{dy}{dv} = \sum_{u: (v,u) \in E} \frac{dy}{du} \cdot \frac{du}{dv}
-\end{equation*}
+    \label{eq:diff}
+\end{equation}
 
 where $(v,u) \in E$ means that there is an edge going from $v$ to $u$ in the DAG, which makes $u$ a parent of $v$. 
 Note also that $\cdot$ is a placeholder for an appropriate tensor product, which is specified in the differentiation rules. 
@@ -400,6 +404,11 @@ The only new calculation to be done for each node is the derivation of the paren
 This computation starts with the topmost node $y$, representing the entire expression, and computes its pullback, which is the derivative with respect to itself.
 This pullback is then used to compute the pullback of $y$s child nodes, which are used to compute their child nodes, continuing recursively until all paths from the top node $y$ to the argument node have been traversed.
 The pullback for the node containing the argument is then the result of the differentiation, the derivative of the whole expression, $y$, with respect to the argument.
+
+In the very first step of the procedure, the derivative of the top node $y$ with respect to itself is computed.
+Since $y$ is a tensor-valued function, its derivative is also a tensor.
+Specifically, differentiating $y$ with respect to itself means that each entry of the output of $y$ is differentiated once with respect to all other entries in the output of $y$.
+[EXPLAIN DELTA TENSORS HERE]
 
 \section{Differentiation Rules}
 Having established the basic derivation procedure, we will now describe the rules used to compute the derivative $\frac{du}{dv}$ for a node $v$ and its parent $u$.
@@ -535,6 +544,66 @@ The derivatives $f'$ of all accepted functions $f$ need to be known. [Maybe inse
     \caption{\textbf{Left}: Part of a DAG that contains the subexpression $\text{sin(X)}$. $X$ is an order 2 tensor (matrix) and "..." represents the rest of the DAG. \textbf{Right}: Derivative of the left DAG with respect to $X$ computed using the rule for elementwise functions. "..." represents the pullback of the function node. Note that the topmost output node of the left DAG is assumed to be scalar here. Therefore $s_2$, the output index string, is empty.}
     \label{fig:func_rule}
 \end{figure}
+
+\section{Implementation}
+% Basic procedure
+%   first node, delta tensor
+%   build diff DAG while traversing original DAG
+%   compute pullback contributions for child nodes
+%   save location for future contributions
+% Problem with product rule
+
+In this chapter we describe how the reverse mode differentiation procedure is implemented, using the DAG representation of tensor expressions and the differentiation rules introduced in the previous section.
+
+An overview of the differentiation procedure can be seen in algorithm \ref{alg:1} and \ref{alg:2}.
+The details will be explained in the following paragraphs.
+
+\begin{algorithm}
+    \caption{Differentiate (\textit{root}, \textit{argument})}\label{alg:1}
+    \begin{algorithmic}
+        \State \textit{diffdag} $\gets$ Node(delta(order(\textit{root})))
+        \State ReverseModeDiff(\textit{root}, \textit{argument}, \textit{diffdag}, EmptyDictionary())
+    \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+    \caption{ReverseModeDiff (\textit{child}, \textit{argument}, \textit{diffdag}, \textit{contributions})}\label{alg:2}
+    \begin{algorithmic}
+        \For{each \textit{child} of \textit{node}}
+            \If{subtree of \textit{child} does not contain \textit{argument}}
+                \State Continue with next \textit{child}
+            \EndIf
+            \State Apply fitting differentiation rule (depending on \textit{node}) to \textit{child}
+            \If{\textit{child} is in keys(\textit{contributions})}
+                \State Add new contribution to \textit{contributions}[\textit{child}] using a sum node
+                \State Move all parents of the \textit{contributions}[\textit{child}] to the sum node
+                \State Update \textit{contributions}[\textit{child}] as the sum node
+            \Else
+                \State \textit{contributions}[\textit{child}] $\gets$ \textit{diffdag}
+                \State \textit{diffdag} $\gets$ ReverseModeDiff(\textit{child}, \textit{argument}, \textit{diffdag}, \textit{contributions})
+            \EndIf
+        \EndFor \\
+        \Return diffdag
+    \end{algorithmic}
+\end{algorithm}
+
+As can be seen in algorithm \ref{alg:1}, the first node is added specially, before real differentiation algorithm starts.
+This node is the derivative of the top node $y$ with respect to itself. [Elaborate on delta tensor]
+
+The original DAG is traversed from the top node down to the argument node, building up the differentiation DAG alongside it.
+With each node $u$ of the original DAG that is processed, its contributions to the pullbacks of its child nodes are added to the differentiation DAG.
+These pullbacks are computed using the differentiation rules discussed in the previous chapter.
+
+As we are operating on a DAG and not a tree, a single node may be reached multiple times during differentiation.
+When differentiating a node $u$, one of its children $v$ may have already been reached through a different parent.
+In this case, a part of the pullback of $v$ has already been computed and is present in the differentiation DAG.
+The new pullback contribution we computed from $u$ needs to be added to the old part, as can be seen from equation \ref{eq:diff}.
+To be able to do this, we keep a dictionary mapping from nodes in the original DAG which we have already reached to their pullback in the differentiation DAG.
+This lets us easily add the old and new pullback contributions with a sum node.
+Afterwards, we update the entry in the dictionary to the sum node that was just added.
+We also need to move all nodes in the differentiation DAG that rely on the pullback of $v$, which are its parents.
+Thus, we set all parents of the old pullback to have the updated pullback as their child.
+This way, we build up the correct pullback over time, adding contributions as we find new ways to reach each node.
 
 \chapter{Literature}
 \chapter{Appendices}
