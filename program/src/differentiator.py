@@ -7,7 +7,7 @@ from scanner import ELEMENTWISE_FUNCTIONS, TOKEN_ID
 from tree import Tree, NODETYPE
 import string
 
-# This class differentiates an expression dag with respect to an argument supplied by the parser
+# This class differentiates an expression DAG with respect to an argument supplied by the parser
 class Differentiator():
     def __init__(self, input):
         self.input = input
@@ -18,7 +18,7 @@ class Differentiator():
         self.arg = parser.arg
         self.diffDag = None
         self.originalNodeToDiffNode = {}   # For a node X, we save where dY/dX is, to allow adding more chain rule contributions when we reach that node again later
-        self.originalNodeToDiffTree = {}   # For a node X, we also the tree which contains dX/dZ (for possibly 2 nodes Z), which also we need to update when adding chain rule contributions
+        self.originalNodeToDiffTree = {}   # For a node X, we also save the top of the tree which contains dX/dZ (for possibly 2 nodes Z), which also we need to update when adding chain rule contributions
 
     def arg_check(self):
         if self.parser.arg_name not in self.variable_ranks:
@@ -28,10 +28,11 @@ class Differentiator():
 
     def differentiate(self):
         deltaRank = self.originalDag.rank
-        self.diffDag = Tree(NODETYPE.VARIABLE, f'_delta({deltaRank})')   # Derivative of the top node y with respect to itself, unnecessary ones will later be removed
+        self.diffDag = Tree(NODETYPE.VARIABLE, f'_delta({deltaRank})')   # Derivative of the top node y with respect to itself
         self.variable_ranks[f'_delta({deltaRank})'] = deltaRank * 2
         self.diffDag.axes = self.originalDag.axes + self.originalDag.axes
         self.diffDag = self.reverse_mode_diff(self.originalDag, self.diffDag)
+        self.diffDag.dot('dags/inbetween')
         self.diffDag.set_tensorrank(self.variable_ranks, self.arg)
         self.simplify(self.diffDag)
         self.diffDag.eliminate_common_subtrees()
@@ -54,7 +55,7 @@ class Differentiator():
         elif node.type == NODETYPE.VARIABLE:
             diff = self.diff_variable(node, diff)
         return diff
-    
+
     def diff_product(self, node, diff):
         currentDiffNode = diff
         s1 = node.leftIndices
@@ -107,7 +108,10 @@ class Differentiator():
     
     def diff_elementwise_function(self, node, diff):
         if node.name == '-':
-            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}'))
+            const = Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}')
+            const.rank = node.right.rank
+            const.axes = node.right.axes
+            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, const)
         elif node.name == 'sin':
             funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'cos', None, node.right)
         elif node.name == 'cos':
@@ -119,18 +123,39 @@ class Differentiator():
             cos_squared.set_indices(indices, indices, indices)
             funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, cos_squared)
         elif node.name == 'arcsin':
-            x_squared = Tree(NODETYPE.POWER, '^', node.right, Tree(NODETYPE.CONSTANT, f'2_{Tree.new_constant()}'))
-            inside_root = Tree(NODETYPE.SUM, '+', Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}'), Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, x_squared))
-            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, Tree(NODETYPE.POWER, '^', inside_root, Tree(NODETYPE.CONSTANT, f'0.5_{Tree.new_constant()}')))
+            const1 = Tree(NODETYPE.CONSTANT, f'2_{Tree.new_constant()}')
+            const1.rank = node.right.rank
+            const1.axes = node.right.axes
+            x_squared = Tree(NODETYPE.POWER, '^', node.right, const1)
+            const2 = Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}')
+            const2.rank = node.right.rank
+            const2.axes = node.right.axes
+            inside_root = Tree(NODETYPE.SUM, '+', const2, Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, x_squared))
+            const3 = Tree(NODETYPE.CONSTANT, f'0.5_{Tree.new_constant()}')
+            const3.rank = 0
+            const3.axes = []
+            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, Tree(NODETYPE.POWER, '^', inside_root, const3))
         elif node.name == 'arccos':
-            x_squared = Tree(NODETYPE.POWER, '^', node.right, Tree(NODETYPE.CONSTANT, f'2_{Tree.new_constant()}'))
-            inside_root = Tree(NODETYPE.SUM, '+', Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}'), Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, x_squared))
-            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, Tree(NODETYPE.POWER, '^', inside_root, Tree(NODETYPE.CONSTANT, f'0.5_{Tree.new_constant()}'))))
+            const1 = Tree(NODETYPE.CONSTANT, f'2_{Tree.new_constant()}')
+            const1.rank = node.right.rank
+            const1.axes = node.right.axes
+            x_squared = Tree(NODETYPE.POWER, '^', node.right, const1)
+            const2 = Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}')
+            const2.rank = node.right.rank
+            const2.axes = node.right.axes
+            inside_root = Tree(NODETYPE.SUM, '+', const2, Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, x_squared))
+            const3 = Tree(NODETYPE.CONSTANT, f'0.5_{Tree.new_constant()}')
+            const3.rank = 0
+            const3.axes = []
+            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, Tree(NODETYPE.POWER, '^', inside_root, const3)))
         elif node.name == 'arctan':
             indices = ''.join([i for i in string.ascii_lowercase][0:node.right.rank])
             squared = Tree(NODETYPE.PRODUCT, f'*({indices},{indices}->{indices})', node.right, node.right)
             squared.set_indices(indices, indices, indices)
-            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, Tree(NODETYPE.SUM, '+', squared, Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}')))
+            const = Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}')
+            const.rank = node.right.rank
+            const.axes = node.right.axes
+            funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'elementwise_inverse', None, Tree(NODETYPE.SUM, '+', squared, const))
         elif node.name == 'exp':
             funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'exp', None, node.right)
         elif node.name == 'log':
@@ -139,12 +164,16 @@ class Differentiator():
             indices = ''.join([i for i in string.ascii_lowercase][0:node.right.rank])
             squared = Tree(NODETYPE.PRODUCT, f'*({indices},{indices}->{indices})', node, node)
             squared.set_indices(indices, indices, indices)
-            funcDiff = Tree(NODETYPE.SUM, '+', Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}'), Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, squared))
+            const = Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}')
+            const.rank = node.right.rank
+            const.axes = node.right.axes
+            funcDiff = Tree(NODETYPE.SUM, '+', const, Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, squared))
         elif node.name == 'abs':
             funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'sign', None, node.right)
         elif node.name == 'sign':
             funcDiff = Tree(NODETYPE.CONSTANT, f'0_{Tree.new_constant()}')
             funcDiff.rank = node.right.rank
+            funcDiff.axes = node.right.axes
         elif node.name == 'relu':
             funcDiff = Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'relu', None, Tree(NODETYPE.ELEMENTWISE_FUNCTION, 'sign', None, node.right))
         elif node.name == 'elementwise_inverse':
@@ -291,7 +320,7 @@ class Differentiator():
         self.diffDag.dot(filename)
     
     def print_axes_help(self):
-        print(f'Axes Origins: {d.diffDag.axis_to_origin}')
+        print(f'Axes Origins: {Tree.axis_to_origin}')
         print(f'Variable and Constant Axes:')
         done_nodes = []
         for node in self.diffDag.get_all_subtrees():
@@ -303,7 +332,9 @@ class Differentiator():
 
 if __name__ == '__main__':
     example = '''
-    declare X 2 expression 1/X derivative wrt X
+    declare x 1 
+    expression sign(x) 
+    derivative wrt x
     '''
     d = Differentiator(example)
     d.originalDag.dot('dags/original')

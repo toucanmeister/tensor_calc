@@ -16,7 +16,7 @@ class NODETYPE(Enum):
 class Tree():
     node_counter = 0        # Running id for nodes, just used for the visualization
     axes_counter = 1        # Running id for axes
-    axis_to_origin = {}     # Axis -> Node from which that axis originated
+    axis_to_origin = {}     # Axis -> Name of node from which that axis originated
     constant_counter = 0    # Running id for constants
     printing_constants = {} # A dict for saving constants that only get created during printing and their axes 
                             # (this is for convenience when transforming elementwise_inverse(x) to 1/x during printing)
@@ -151,15 +151,15 @@ class Tree():
             self.left.set_tensorrank(variable_ranks, arg)
         if self.right:
             self.right.set_tensorrank(variable_ranks, arg)
-        if self.type == NODETYPE.CONSTANT:   # If we reach a constant, it gets rank -1, and will get broadcasted later.
-            self.rank = -1
+        if self.type == NODETYPE.CONSTANT:   # If we reach a constant, it keeps rank -1 and will get broadcasted later (unless it already has a rank)
+            pass
         elif self.type == NODETYPE.VARIABLE:
             self.rank = variable_ranks[self.name]
             if self.axes == []:
                 for i in range(self.rank):
                     axis = Tree.new_axis()
                     self.axes.append(axis)
-                    Tree.axis_to_origin[axis] = self  # All axes should originally come from a variable
+                    Tree.axis_to_origin[axis] = self.name  # All axes should originally come from a variable
         elif self.type == NODETYPE.ELEMENTWISE_FUNCTION:
             self.rank = self.right.rank
             self.axes = self.right.axes
@@ -237,19 +237,28 @@ class Tree():
         if self.type == NODETYPE.POWER:
             self.left.axes = self.axes
         if self.type == NODETYPE.PRODUCT:
-            for i in range(len(self.resultIndices)):
+            for i in range(len(self.resultIndices)): # Sets left and right child axes to the axes in this node, using indices as guidance
                 for j in range(len(self.leftIndices)):
                     if self.resultIndices[i] == self.leftIndices[j]:
                         self.left.axes[j] = self.axes[i]
                 for j in range(len(self.rightIndices)):
                     if self.resultIndices[i] == self.rightIndices[j]:
                         self.right.axes[j] = self.axes[i]
+            for i in range(len(self.leftIndices)): # Unifies left and right child axes that are the same, using indices as guidance
+                indexInRight = self.rightIndices.find(self.leftIndices[i])
+                if indexInRight != -1:
+                    self.get_root().rename_axis(self.left.axes[i], self.right.axes[indexInRight])
         if self.left:
             self.left.unify_axes()
         if self.right:
             self.right.unify_axes()
     
     def rename_axis(self, axis_to_rename, new_name):
+        if axis_to_rename in Tree.axis_to_origin.keys() and new_name in Tree.axis_to_origin.keys() and axis_to_rename != new_name:
+            Tree.axis_to_origin.pop(axis_to_rename)
+        elif axis_to_rename in Tree.axis_to_origin.keys() and new_name not in Tree.axis_to_origin.keys():
+            Tree.axis_to_origin[new_name] = Tree.axis_to_origin[axis_to_rename]
+            Tree.axis_to_origin.pop(axis_to_rename)
         self.axes = [new_name if axis == axis_to_rename else axis for axis in self.axes]
         if self.left:
             self.left.rename_axis(axis_to_rename, new_name)
@@ -315,4 +324,35 @@ class Tree():
         for axis in axes_to_remove:
             Tree.axis_to_origin.pop(axis)
 
+    def fix_missing_indices(self, arg):
+        def add_blowup(missingIndices):
+            blowup = Tree(NODETYPE.PRODUCT, f'*({missingIndices},{missingIndices}->)', self, Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}'))
+            blowup.set_indices(missingIndices, missingIndices, '')
+            self.add_incoming_edges()
+            for parent in self.incoming:
+                if parent.left == self:
+                    parent.left = blowup
+                if parent.right == self:
+                    parent.right = blowup
+            return blowup
+        new_self = self
+        if self.type == NODETYPE.PRODUCT:
+            s1 = self.leftIndices
+            s2 = self.rightIndices
+            s3 = self.resultIndices
+            missingIndices = ''
+            if self.left and self.left.contains(arg):
+                missingIndices = ''.join([index for index in s1 if not (index in s2 or index in s3)])
+            elif self.right and self.right.contains(arg):
+                missingIndices = ''.join([index for index in s2 if not (index in s1 or index in s3)])
 
+            if missingIndices: # Special problem case
+                self.resultIndices += missingIndices
+                self.name = f'*({s1},{s2}->{self.resultIndices})'
+                new_self = add_blowup(missingIndices)
+                
+            if self.left:
+                self.left.fix_missing_indices(arg)
+            if self.right:
+                self.right.fix_missing_indices(arg)
+        return new_self

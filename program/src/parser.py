@@ -32,6 +32,7 @@ class Parser():
         self.arg = self.dag.find(self.arg_name)
         self.split_double_powers()
         self.split_adj()
+        self.dag = self.dag.fix_missing_indices(self.arg)
         self.dag.add_incoming_edges()
         self.dag.set_tensorrank(self.variable_ranks, self.arg)
         self.dag.unify_axes()

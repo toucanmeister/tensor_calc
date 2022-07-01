@@ -10,7 +10,7 @@ x Ableitungsregeln
     x Summenregel
         x Regel
         x Tests
-    - Elementweise Funktionen
+    x Elementweise Funktionen
         x (-)
         x sin
         x cos
@@ -39,7 +39,7 @@ x Ableitungsregeln
 	x Konstanten zusammenfassen
 	x elementwise_inverse in 1/x verwandeln
 	- Unnütze deltas entfernen
-	
+
 x delta(K) als Ersatz für Identity
 x Tensorrang in abgeleitetem Ausdruck richtig angeben
 x statt 'declare argument expression', 'declare expression derivative wrt'
