@@ -16,7 +16,7 @@ class NODETYPE(Enum):
 class Tree():
     node_counter = 0        # Running id for nodes, just used for the visualization
     axes_counter = 1        # Running id for axes
-    axis_to_origin = {}     # Axis -> Name of node from which that axis originated
+    axis_to_origin = {}     # Axis -> Name of node from which that axis originated, along with the index of that axis in the original node
     constant_counter = 0    # Running id for constants
     printing_constants = {} # A dict for saving constants that only get created during printing and their axes 
                             # (this is for convenience when transforming elementwise_inverse(x) to 1/x during printing)
@@ -159,7 +159,7 @@ class Tree():
                 for i in range(self.rank):
                     axis = Tree.new_axis()
                     self.axes.append(axis)
-                    Tree.axis_to_origin[axis] = self.name  # All axes should originally come from a variable
+                    Tree.axis_to_origin[axis] = f'{self.name}[{i}]'  # All axes should originally come from a variable
         elif self.type == NODETYPE.ELEMENTWISE_FUNCTION:
             self.rank = self.right.rank
             self.axes = self.right.axes

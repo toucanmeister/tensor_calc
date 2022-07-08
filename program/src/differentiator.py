@@ -320,7 +320,7 @@ class Differentiator():
         self.diffDag.dot(filename)
     
     def print_axes_help(self):
-        print(f'Axes Origins: {Tree.axis_to_origin}')
+        print(f'Axis Origins: {Tree.axis_to_origin}')
         print(f'Variable and Constant Axes:')
         done_nodes = []
         for node in self.diffDag.get_all_subtrees():
@@ -332,11 +332,19 @@ class Differentiator():
 
 if __name__ == '__main__':
     example = '''
-    declare x 1 
-    expression sign(x) 
-    derivative wrt x
+    declare X 2 
+    expression 1*(,ij->)X 
+    derivative wrt X
     '''
-    d = Differentiator(example)
+    example2 = '''
+    declare 
+        a 1 
+        b 0 
+        X 2 
+    expression b *(,->) (a*(i,ij->)X) 
+    derivative wrt X
+    '''
+    d = Differentiator(example2)
     d.originalDag.dot('dags/original')
     d.differentiate()
     d.render()
