@@ -40,6 +40,7 @@ class Differentiator():
         self.diffDag.set_tensorrank(self.variable_ranks, self.arg)
         self.diffDag.unify_axes()
         self.diffDag.remove_nonexistant_axes()
+        self.diffDag = self.diffDag.remove_unneccessary_deltas()
 
     def reverse_mode_diff(self, node, diff):  # Computes derivative of node.left and node.right | node: node in original dag | diff : node that contains derivative with respect to node.
         if node.type == NODETYPE.PRODUCT:

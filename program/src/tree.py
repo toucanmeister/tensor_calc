@@ -3,6 +3,8 @@ from unittest import result
 from graphviz import Digraph
 import string
 
+from numpy import indices
+
 class NODETYPE(Enum):
     CONSTANT = 'constant'
     VARIABLE = 'variable'
@@ -323,6 +325,43 @@ class Tree():
                 axes_to_remove.append(axis)
         for axis in axes_to_remove:
             Tree.axis_to_origin.pop(axis)
+        
+    def remove_unneccessary_deltas(self):
+        def left_indices_fit():
+            is_delta_zero = self.leftIndices == '' and self.rightIndices == self.resultIndices
+            fits_one_way = self.rightIndices == self.leftIndices[:(len(self.leftIndices)//2)] and self.resultIndices == self.leftIndices[(len(self.leftIndices)//2):]
+            fits_the_other_way = self.rightIndices == self.leftIndices[(len(self.leftIndices)//2):] and self.resultIndices == self.leftIndices[:(len(self.leftIndices)//2)]
+            return is_delta_zero or fits_one_way or fits_the_other_way
+        def right_indices_fit():
+            is_delta_zero = self.rightIndices == '' and self.leftIndices == self.resultIndices
+            fits_one_way = self.leftIndices == self.rightIndices[:(len(self.rightIndices)//2)] and self.resultIndices == self.rightIndices[(len(self.rightIndices)//2):]
+            fits_the_other_way = self.leftIndices == self.rightIndices[(len(self.rightIndices)//2):] and self.resultIndices == self.rightIndices[:(len(self.rightIndices)//2)]
+            return is_delta_zero or fits_one_way or fits_the_other_way
+        new_self = self
+        if self.type == NODETYPE.PRODUCT:
+            if self.left.name.startswith('_delta') and left_indices_fit():
+                new_self = self.right
+                self.add_incoming_edges()
+                for parent in self.incoming:
+                    if parent.left == self:
+                        parent.left = new_self
+                    if parent.right == self:
+                        parent.right = new_self
+            if self.right.name.startswith('_delta') and right_indices_fit():
+                new_self = self.left
+                self.add_incoming_edges()
+                for parent in self.incoming:
+                    if parent.left == self:
+                        parent.left = new_self
+                    if parent.right == self:
+                        parent.right = new_self
+        if self.left:
+            self.left.remove_unneccessary_deltas()
+        if self.right:
+            self.right.remove_unneccessary_deltas()
+        return new_self
+
+
 
     def fix_missing_indices(self, arg):
         def add_blowup(missingIndices):

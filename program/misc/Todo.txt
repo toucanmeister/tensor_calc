@@ -32,13 +32,13 @@ x Ableitungsregeln
         x Adjungierte
         x Jede Funktion braucht ihre eigene Prozedur um ihren output-tensorrang zu berechnen
 - Delta als Eingabe erlauben
-- Vereinfachung
+x Vereinfachung
 	x a + (- b) = a - b
 	x log(exp(...)) = a^b
 	x det(X)*inv(X) = adj(X)
 	x Konstanten zusammenfassen
 	x elementwise_inverse in 1/x verwandeln
-	- Unnütze deltas entfernen
+	x Unnütze deltas entfernen
 
 x delta(K) als Ersatz für Identity
 x Tensorrang in abgeleitetem Ausdruck richtig angeben
@@ -51,7 +51,7 @@ x Achsennamen speichern und propagieren
   x Doppelnennung der Achsen in der Liste fixen
   x Dictionary, das Achsennamen zu ihrem Ursprung zuordnet
   x Achsenursprünge ausgeben
-    - Achse selbst mit ausgeben, nicht nur Variablenname
+    x Achse selbst mit ausgeben, nicht nur Variablenname
   x Für String-Ausgabe: Konstanten kriegen eigenen Namen, damit wir ihre Achsennamen ausgeben können
   x Achsen, die in inv/det/adj kommen, sind gleich
   x Achsenvertauschungen bei Multiplikationen fixen

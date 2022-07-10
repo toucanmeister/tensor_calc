@@ -22,21 +22,21 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare a 1 b 1 c 0 expression (a*(i,i->)b)*(,->)c derivative wrt c'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(0) *(,->) (a *(i,i->) b))')
+        self.assertEqual(str(d.diffDag), '(a *(i,i->) b)')
 
     def test_product_2(self):
         self.reset_tree_attributes()
         test = 'declare a 0 expression (a*(,->)a) derivative wrt a'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '((_delta(0) *(,->) a) + (_delta(0) *(,->) a))')
+        self.assertEqual(str(d.diffDag), '(a + a)')
     
     def test_product_3(self):
         self.reset_tree_attributes()
         test = 'declare a 0 b 0 expression (b*(,->)a) *(,->) a derivative wrt a'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(((_delta(0) *(,->) a) *(,->) b) + (_delta(0) *(,->) (b *(,->) a)))')
+        self.assertEqual(str(d.diffDag), '((a *(,->) b) + (b *(,->) a))')
 
 
     def test_sum_1(self):
@@ -65,21 +65,21 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare a 0 b 0 expression a - b derivative wrt b'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(0) *(,->) -1_0)')
+        self.assertEqual(str(d.diffDag), '-1_0')
     
     def test_difference_2(self):
         self.reset_tree_attributes()
         test = 'declare a 0 b 0 expression a - a - b derivative wrt a'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(0) + (_delta(0) *(,->) -1_0))')
+        self.assertEqual(str(d.diffDag), '(_delta(0) + -1_0)')
 
     def test_difference_3(self):
         self.reset_tree_attributes()
         test = 'declare a 0 b 0 expression a - b - a derivative wrt a'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(0) + (_delta(0) *(,->) -1_0))')
+        self.assertEqual(str(d.diffDag), '(_delta(0) + -1_0)')
     
     def test_sum_product_1(self):
         self.reset_tree_attributes()
@@ -100,7 +100,7 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare a 1 b 1 c 0 expression a*(i,i->)b + c derivative wrt a'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(0) *(,i->i) b)')
+        self.assertEqual(str(d.diffDag), 'b')
     
     def test_sum_product_4(self):
         self.reset_tree_attributes()
@@ -142,14 +142,14 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare x 1 expression x*(i,i->)x derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '((_delta(0) *(,i->i) x) + (_delta(0) *(,i->i) x))')
+        self.assertEqual(str(d.diffDag), '(x + x)')
     
     def test_sum_product_10(self):
         self.reset_tree_attributes()
         test = 'declare a 1 b 1 c 1 d 1 expression a*(i,i->)b + a*(i,i->)c + a*(i,i->)d derivative wrt a'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(((_delta(0) *(,i->i) b) + (_delta(0) *(,i->i) c)) + (_delta(0) *(,i->i) d))')
+        self.assertEqual(str(d.diffDag), '((b + c) + d)')
 
     def test_difference_product_1(self):
         self.reset_tree_attributes()
@@ -295,21 +295,21 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare x 1 a 0 expression (x^a) *(i,i->) x derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(((_delta(0) *(,i->i) x) *(a,a->a) (a *(,a->a) (x ^ (a - 1_0)))) + (_delta(0) *(,i->i) (x ^ a)))')
+        self.assertEqual(str(d.diffDag), '((x *(a,a->a) (a *(,a->a) (x ^ (a - 1_0)))) + (x ^ a))')
 
     def test_power_3(self):
         self.reset_tree_attributes()
         test = 'declare x 0 a 1 expression a^x derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(1) *(ab,b->a) ((a ^ x) *(b,b->b) (log(a))))')
+        self.assertEqual(str(d.diffDag), '((a ^ x) *(b,b->b) (log(a)))')
     
     def test_power_4(self):
         self.reset_tree_attributes()
         test = 'declare x 0 a 1 expression x^x derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(((_delta(0) *(,->) (x ^ x)) *(,->) (log(x))) + (((_delta(0) *(,->) (x ^ x)) *(,->) x) *(,->) (1_0 / (x))))')
+        self.assertEqual(str(d.diffDag), '(((x ^ x) *(,->) (log(x))) + (((x ^ x) *(,->) x) *(,->) (1_0 / (x))))')
 
     def test_inv(self):
         self.reset_tree_attributes()
@@ -323,28 +323,28 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare A 2 expression det(A) derivative wrt A'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(_delta(0) *(,ab->ab) ((adj(A)) *(ij,->ji) 1_0))')
+        self.assertEqual(str(d.diffDag), '((adj(A)) *(ij,->ji) 1_0)')
     
     def test_adj(self):
         self.reset_tree_attributes()
         test = 'declare X 2 expression adj(X) derivative wrt X'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(((_delta(2) *(abij,ij->ab) (inv(X))) *(cd,ab->cdab) ((adj(X)) *(ij,->ji) 1_0)) + ((_delta(2) *(abij,->abij) (det(X))) *(efcd,cdab->efab) ((-((inv(X)))) *(ij,kl->iklj) (inv(X)))))')
+        self.assertEqual(str(d.diffDag), '(((inv(X)) *(cd,ab->cdab) ((adj(X)) *(ij,->ji) 1_0)) + ((_delta(2) *(abij,->abij) (det(X))) *(efcd,cdab->efab) ((-((inv(X)))) *(ij,kl->iklj) (inv(X)))))')
 
     def test_missing_indices_1(self):
         self.reset_tree_attributes()
         test = 'declare X 2 expression 1*(,ij->)X derivative wrt X'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '((_delta(0) *(,ij->ij) 1_1) *(ij,->ij) 1_0)')
+        self.assertEqual(str(d.diffDag), '(1_1 *(ij,->ij) 1_0)')
 
     def test_missing_indices_2(self):
         self.reset_tree_attributes()
         test = 'declare a 1 b 0 X 2 expression b *(,->) (a*(i,ij->)X) derivative wrt X'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(((_delta(0) *(,->) b) *(,j->j) 1_0) *(j,i->ij) a)')
+        self.assertEqual(str(d.diffDag), '((b *(,j->j) 1_0) *(j,i->ij) a)')
 
 
 if __name__ == '__main__':
