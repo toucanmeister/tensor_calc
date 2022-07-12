@@ -216,7 +216,7 @@ The order of function calls generated when parsing this expression would be the 
     \item \codeword{atom} | We identify \codeword{'b'} as a variable name and generate another leaf node as the child of our elementwise-function node. We jump back up the call stack, find the expected \codeword{')'}, jump all the way up the call stack and finish.
 \end{itemize}
 
-The binary tree generated from this can be seen in figure \ref{fig:tree_example}.
+The binary tree generated from this can be seen in Figure \ref{fig:tree_example}.
 Note that, by convention, we set the argument of a unary function node to its right child.
 
 \begin{figure}
@@ -375,10 +375,10 @@ Since summands always have the same order, \codeword{log(2)}, and by extension \
 \FloatBarrier
 
 \chapter{Differentiation}
-The last chapter was concerned with creating a suitable internal representation for tensor expressions, a directed acyclic graph.
-In this chapter, we use this DAG representation of the expression to differentiate it.
-We will start by giving some background information on the general differentiation procedure and describe the differentiation rules applied in theory.
-Following that, we elaborate on the details of our implementation of this procedure and these rules.
+The last chapter was concerned with creating a suitable internal representation for tensor expressions, which turned out to be a directed acyclic graph (DAG).
+In this chapter, we use this DAG representation of the expression for the differentiation.
+We start by giving some background information on the general differentiation procedure and describe the differentiation rules applied in theory.
+Following that, we elaborate on the details of our implementation of this procedure and rules.
 
 \section{Background}
 The theory for differentiating tensor expressions using our Einstein-like notation was developed by Laue, Mitterreiter and Giesen.
@@ -403,22 +403,56 @@ The only new calculation to be done for each node is the derivation of the paren
 
 This computation starts with the topmost node $y$, representing the entire expression, and computes its pullback, which is the derivative with respect to itself.
 This pullback is then used to compute the pullback of $y$s child nodes, which are used to compute their child nodes, continuing recursively until all paths from the top node $y$ to the argument node have been traversed.
-The pullback for the node containing the argument is then the result of the differentiation, the derivative of the whole expression, $y$, with respect to the argument.
+The pullback for the node containing the argument is the result of the differentiation, the derivative of the whole expression, $y$, with respect to the argument.
 
 In the very first step of the procedure, the derivative of the top node $y$ with respect to itself is computed.
 Since $y$ is a tensor-valued function, its derivative is also a tensor.
-Specifically, differentiating $y$ with respect to itself means that each entry of the output of $y$ is differentiated once with respect to all other entries in the output of $y$.
-[EXPLAIN DELTA TENSORS HERE]
+Specifically, differentiating $y$ with respect to itself means that each entry of the tensor represented by $y$ is differentiated once with respect to all other entries.
+Thus, this differentiation creates a new tensor of the same size as $y$ for each entry in $y$, where for each of these tensors, only one entry is $1$, while the rest are $0$.
+Concretely, if $y$ is an order $n$ tensor, then it's derivative is a tensor $\delta_n$ of order $2n$, where
+\begin{equation}
+    \delta_n[i_1,..,i_{2n}] = 
+    \begin{cases}
+        1 \quad \text{if} \; (i_1,..,i_n) = (i_{n+1}...i_{2n}) \\
+        0 \quad \text{else}
+    \end{cases}
+    \label{eq:delta}
+\end{equation}
+\begin{figure}
+    $$
+    \begin{pmatrix}
+        x_1\\
+        x_2\\
+        x_3
+    \end{pmatrix} \quad \quad \quad \quad 
+    \begin{pmatrix}
+        \frac{\partial x_1}{\partial x_1} & \frac{\partial x_2}{\partial x_1} & \frac{\partial x_3}{\partial x_1} \\
+        \frac{\partial x_1}{\partial x_2} & \frac{\partial x_2}{\partial x_2} & \frac{\partial x_3}{\partial x_2} \\
+        \frac{\partial x_1}{\partial x_3} & \frac{\partial x_2}{\partial x_3} & \frac{\partial x_3}{\partial x_3}
+    \end{pmatrix}
+    =
+    \begin{pmatrix}
+        1 & 0 & 0 \\
+        0 & 1 & 0 \\
+        0 & 0 & 1
+    \end{pmatrix}
+    $$
+    \caption{Left: An order 1 tensor. Right: The derivative of the left tensor with respect to itself, resulting in an order 2 delta tensor.}
+\end{figure}
+Intuitively, the first $n$ indices point to the entry of $y$ that is being differentiated, while the last $n$ indices point to the entry that is being differentiated with respect to.
+Tensors that satisfy Equation \ref{eq:delta} are called delta tensors.
+Note that we call a delta tensor of order $2n$ $\delta_n$, because delta tensors may only have even order.
+The first node created in the differentiation procedure is always a delta tensor representing the topmost node $y$ differentiated with respect to itself.
 
 \section{Differentiation Rules}
 Having established the basic derivation procedure, we will now describe the rules used to compute the derivative $\frac{du}{dv}$ for a node $v$ and its parent $u$.
-Proofs for the correctness of these rules can be found in [TENSOR PAPER].
-Since we are computing $\frac{du}{dv}$, the rule applied depends on the type of node $u$ is.
+Proofs for the correctness of these rules can be found in the paper by Laue, Mitterreiter and Giesen %TODO: REFERENCE HERE.
+Since we are computing $\frac{du}{dv}$, the applied rule depends on the type of node $u$ is.
 
 \subsection{Sum Rule}
 If $u$ is a sum node, the derivation is very simple.
 In this case, $u$ adds nothing of its own to the pullback of $v$, so the contribution of $u$ to the pullback of $v$ is only $\frac{dy}{du}$.
-Thus, when differentiating a sum node that is their childrens only parent, like the one seen in figure \ref{fig:sum_rule}, the pullback of the children is simply the pullback of the sum node.
+Thus, when differentiating a sum node that is their childrens only parent, like the one seen in Figure \ref{fig:sum_rule}, the pullback of the children is simply the pullback of the sum node.
 
 \begin{figure}
     \centering
@@ -435,21 +469,21 @@ Thus, when differentiating a sum node that is their childrens only parent, like 
             \draw [->, n] (+) -- (dots);
         \end{tikzpicture}
     }
-    \caption{A sum node in an expression DAG. Its childrens' pullbacks are the same as its pullback.}
+    \caption{A sum node in an expression DAG. The pullbacks of its children $A$ and $X$ are the same as its pullback.}
     \label{fig:sum_rule}
 \end{figure}
 
 \subsection{Product Rule}
-If $u$ is a product node representing the subexpression $v *_{(s_1,s_2,s_3)} w$ in a tensor expression with output indices $s_4$, then we may apply the product rule as follows.
+If $u$ is a product node representing the subexpression $v *_{(s_1,s_2 \rightarrow s_3)} w$ in a tensor expression where the topmost node has indices $s4$, then we may apply the product rule as follows.
 The contribution of $u$ to the pullback of $v$ is 
 $$
-\frac{dy}{du} *_{(s_4s_3,s_2,s_4s_1)} w,
+\frac{dy}{du} *_{(s_4s_3,s_2 \rightarrow s_4s_1)} w,
 $$
 and the contribution to the pullback of $w$ is 
 $$
-\frac{dy}{du} *_{(s_4s_3,s_1,s_4s_2)} v.
+\frac{dy}{du} *_{(s_4s_3,s_1 \rightarrow s_4s_2)} v.
 $$
-An example of how the product rule is applied to an expression DAG can be seen in figure \ref{fig:prod_rule}.
+An example of how the product rule is applied to an expression DAG can be seen in Figure \ref{fig:prod_rule}.
 There is a caveat to the product rule, because by itself it is not applicable to all tensor products.
 This detail will be discussed further in the section on implementation details.
 
@@ -485,26 +519,26 @@ This detail will be discussed further in the section on implementation details.
             \end{tikzpicture}
         }
     \end{minipage}
-    \caption{\textbf{Left}: A product node representing a scalar-vector-product in an expression DAG. "..." represents the rest of the DAG. \textbf{Right}: Derivative of the left DAG with respect to $x$ computed using the product rule. "..." represents the pullback of the product node. Note that the topmost output node of the left DAG is assumed to be scalar here. Therefore $s_4$, the output index string, is empty.}
+    \caption{\textbf{Left}: A product node representing a scalar-vector-product in an expression DAG. "..." represents the rest of the DAG. \textbf{Right}: Derivative of the left DAG with respect to $x$ computed using the product rule. "..." represents the pullback of the product node. Note that the product indices in the right DAG depend on the indices $s4$ of the topmost node in the left DAG (not visible here), which is assumed to be scalar in this case.}
     \label{fig:prod_rule}
 \end{figure}
 
 \subsection{Function Rule}
-If $u$ is a function node, we differentiate between two cases.
-$u$ either represents an elementwise function or one of the special functions.
+If $u$ is a function node, we distinguish between two cases.
+The node $u$ either represents an elementwise function or a special function.
 The elementwise case allows for a slight simplification over the special function case.
 
 If the node $u$ represents an elementwise function $f$ being applied to the child node $v$, then the contribution of $u$ to the pullback of $v$ is 
 $$
-\frac{dy}{du} *_{(s_2s_1,s_1,s_2s_1)} f'(v),
+\frac{dy}{du} *_{(s_2s_1,s_1 \rightarrow s_2s_1)} f'(v),
 $$
 where $s_1$ is the index string of $v$, $s_2$ is the index string of the output node of the DAG and $f'$ is the derivative of $f$.
 
 If the node $u$ however represents a special function $f$ being applied to the child node $v$, then the contribution of $u$ to the pullback $v$ is
 $$
-\frac{dy}{du} *_{(s_3s_2,s_2s_1,s_3s_1)} f'(v),
+\frac{dy}{du} *_{(s_3s_2,s_2s_1 \rightarrow s_3s_1)} f'(v),
 $$
-where $s_1$ $v$s input, representing the domain of $f$, $s_2$ is the index string of $v$, representing the range of $f$, and $s_3$ is the index string of the output node of the DAG with $f'$ still being the derivative of $f$.
+where $s_1$ is $v$s input, representing the domain of $f$, $s_2$ is the index string of $v$, representing the range of $f$, and $s_3$ is the index string of the output node of the DAG with $f'$ still being the derivative of $f$.
 The distinction between $s_1$ and $s_2$ is neccessary because domain and range of $f$ are not be the same anymore, as they are with elementwise functions.
 
 The derivatives $f'$ of all accepted functions $f$ need to be known. [Maybe insert a list of them here?]
@@ -541,10 +575,108 @@ The derivatives $f'$ of all accepted functions $f$ need to be known. [Maybe inse
             \end{tikzpicture}
         }
     \end{minipage}
-    \caption{\textbf{Left}: Part of a DAG that contains the subexpression $\text{sin(X)}$. $X$ is an order 2 tensor (matrix) and "..." represents the rest of the DAG. \textbf{Right}: Derivative of the left DAG with respect to $X$ computed using the rule for elementwise functions. "..." represents the pullback of the function node. Note that the topmost output node of the left DAG is assumed to be scalar here. Therefore $s_2$, the output index string, is empty.}
+    \caption{\textbf{Left}: Part of a DAG that contains the subexpression $\text{sin(X)}$. $X$ is an order 2 tensor (matrix) and "..." represents the rest of the DAG. \textbf{Right}: Derivative of the left DAG with respect to $X$ computed using the rule for elementwise functions. "..." represents the pullback of the function node. Note that the topmost output node of the left DAG is assumed to be scalar here, which has an impact on the indices in the product node in the right DAG.}
     \label{fig:func_rule}
 \end{figure}
 
+\FloatBarrier
+\section{Example}
+In this section, we present a detailed example of the differentiation procedure.
+Consider the simple DAG in Figure \ref{fig:diff_example_original}, representing the expression $X *(ij,ij->ij) X$, the elementwise product of a matrix $X$ with itself.
+We will be differentiating this DAG with respect to $X$.
+Each step of the process is visualized in Figure \ref{fig:diff_example_steps}.
+
+Following the differentiation procedure, we start by differentiating the topmost node with respect to itself.
+Since the expression is an order-2 tensor, this creates a delta tensor $\delta_2$ of order 4.
+Continuing from the topmost node, we (arbitrarily) compute its contribution to the pullback of the left child first.
+In this case, the left child and the right child are the same, but are still handled separately.
+Using the product rule, we can see that the contribution of the top node $y$ to the left child is $\frac{dy}{dy} *_{(abij,ij->abij)} X$, with $\frac{dy}{dy}$ being $\delta_2$.
+Since $X$ has no children, we continue with the right child of $y$.
+Here, we again apply the product rule and obtain the same $\delta_2 *_{(abij,ij->abij)} X$ as the contribution to the pullback of $X$.
+As contributions to the pullbacks of the same node need to be added (see Equation \ref{eq:diff}), we add a sum node as the root of our differentiation DAG.
+As all ways from the root node to the argument have been processed, we are finished.
+The final DAG, simplified using common subtree elimination, can be seen in Figure \ref{fig:diff_example_final}.
+
+\begin{figure}
+    \centering
+    \scalebox{0.8}{
+        \begin{tikzpicture}[main/.style={draw, circle, minimum size=30pt, line width=2pt}, info/.style={rectangle, rounded corners=5, draw}, n/.style={-latex, line width=0.75pt}, d/.style={-latex, line width=0.75pt, dashed}]
+            % nodes
+            \node[main] (X) at (0,0) {$X$};
+            \node[main, ellipse] (*) at (0,2) {$*_{(ij,ij->ij)}$};
+            % edges
+            \draw [->, n] (X) to[out=145, in=-135] (*);
+            \draw [->, n] (X) to[out=35, in=-45] (*);
+        \end{tikzpicture}
+    }
+    \caption{Expression DAG representing the elementwise product of a matrix $X$ with itself.}
+    \label{fig:diff_example_original}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \scalebox{0.8}{
+        \begin{tikzpicture}[main/.style={draw, circle, minimum size=30pt, line width=2pt}, info/.style={rectangle, rounded corners=5, draw}, n/.style={-latex, line width=0.75pt}, d/.style={-latex, line width=0.75pt, dashed}]
+            % nodes
+            \node[main] (1delta1) at (0,0) {$\delta_2$};
+
+            \node[] (arr11) at (1.5,1) {};
+            \node[] (arr12) at (2.5,1) {};
+
+            \node[main] (1delta1) at (4,0) {$\delta_2$};
+            \node[main] (1x1) at (6,0) {$X$};
+            \node[main, ellipse] (1*1) at (5,2) {$*_{(abij,ij->abij)}$};
+
+            \node[] (arr21) at (7.5,1) {};
+            \node[] (arr22) at (8.5,1) {};
+
+            \node[main] (3delta1) at (10,0) {$\delta_2$};
+            \node[main] (3x1) at (12,0) {$X$};
+            \node[main, ellipse] (3*1) at (11,2) {$*_{(abij,ij->abij)}$};
+            \node[main] (3delta2) at (14,0) {$\delta_2$};
+            \node[main] (3x2) at (16,0) {$X$};
+            \node[main, ellipse] (3*2) at (15,2) {$*_{(abij,ij->abij)}$};
+            \node[main] (3+) at (13,4) {$+$};
+            % edges
+            \draw [->, n] (1delta1) -- (1*1);
+            \draw [->, n] (1x1) -- (1*1);
+
+            \draw [->, n] (3delta1) -- (3*1);
+            \draw [->, n] (3x1) -- (3*1);
+            \draw [->, n] (3x2) -- (3*2);
+            \draw [->, n] (3delta2) -- (3*2);
+            \draw [->, n] (3*1) -- (3+);
+            \draw [->, n] (3*2) -- (3+);
+
+            \draw [->, n] (arr11) -- (arr12);
+            \draw [->, n] (arr21) -- (arr22);
+        \end{tikzpicture}
+    }
+    \caption{Progression of the differentiation procedure on the DAG in Figure \ref{fig:diff_example_original}. Left: Pullback of the topmost node. Middle: One contribution to the pullback of $X$. Right: Pullback of $X$, both contributions summed.}
+    \label{fig:diff_example_steps}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \scalebox{0.8}{
+        \begin{tikzpicture}[main/.style={draw, circle, minimum size=30pt, line width=2pt}, info/.style={rectangle, rounded corners=5, draw}, n/.style={-latex, line width=0.75pt}, d/.style={-latex, line width=0.75pt, dashed}]
+            % nodes
+            \node[main] (1delta1) at (0,0) {$\delta_2$};
+            \node[main] (1x1) at (2,0) {$X$};
+            \node[main, ellipse] (1*1) at (1,2) {$*_{(abij,ij->abij)}$};
+            \node[main] (+) at (1,4) {+};
+            % edges
+            \draw [->, n] (1delta1) -- (1*1);
+            \draw [->, n] (1x1) -- (1*1);
+            \draw [->, n] (1*1) to[out=135, in=-135] (+);
+            \draw [->, n] (1*1) to[out=45, in=-45] (+);
+        \end{tikzpicture}
+    }
+    \caption{Differentiation DAG of the original DAG in Figure \ref{fig:diff_example_original}, simplified using common subtree elimination.}
+    \label{fig:diff_example_final}
+\end{figure}
+
+\FloatBarrier
 \section{Implementation}
 % Basic procedure
 %   first node, delta tensor
@@ -555,7 +687,7 @@ The derivatives $f'$ of all accepted functions $f$ need to be known. [Maybe inse
 
 In this chapter we describe how the reverse mode differentiation procedure is implemented, using the DAG representation of tensor expressions and the differentiation rules introduced in the previous section.
 
-An overview of the differentiation procedure can be seen in algorithm \ref{alg:1} and \ref{alg:2}.
+An overview of the differentiation procedure can be seen in Algorithm \ref{alg:1} and Algorithm \ref{alg:2}.
 The details will be explained in the following paragraphs.
 
 \begin{algorithm}
@@ -587,7 +719,7 @@ The details will be explained in the following paragraphs.
     \end{algorithmic}
 \end{algorithm}
 
-As can be seen in algorithm \ref{alg:1}, the first node is added specially, before real differentiation algorithm starts.
+As can be seen in Algorithm \ref{alg:1}, the first node is added specially, before the real differentiation algorithm starts.
 This node is the derivative of the top node $y$ with respect to itself. [Elaborate on delta tensor]
 
 The original DAG is traversed from the top node down to the argument node, building up the differentiation DAG alongside it.
@@ -597,13 +729,14 @@ These pullbacks are computed using the differentiation rules discussed in the pr
 As we are operating on a DAG and not a tree, a single node may be reached multiple times during differentiation.
 When differentiating a node $u$, one of its children $v$ may have already been reached through a different parent.
 In this case, a part of the pullback of $v$ has already been computed and is present in the differentiation DAG.
-The new pullback contribution we computed from $u$ needs to be added to the old part, as can be seen from equation \ref{eq:diff}.
+The new pullback contribution we computed from $u$ needs to be added to the old part, as can be seen from Equation \ref{eq:diff}.
 To be able to do this, we keep a dictionary mapping from nodes in the original DAG which we have already reached to their pullback in the differentiation DAG.
 This lets us easily add the old and new pullback contributions with a sum node.
 Afterwards, we update the entry in the dictionary to the sum node that was just added.
 We also need to move all nodes in the differentiation DAG that rely on the pullback of $v$, which are its parents.
 Thus, we set all parents of the old pullback to have the updated pullback as their child.
 This way, we build up the correct pullback over time, adding contributions as we find new ways to reach each node.
+% TODO: Add an example
 
 \chapter{Literature}
 \chapter{Appendices}
