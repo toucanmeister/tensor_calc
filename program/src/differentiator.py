@@ -41,6 +41,7 @@ class Differentiator():
         self.diffDag.unify_axes()
         self.diffDag.remove_nonexistant_axes()
         self.diffDag = self.diffDag.remove_unneccessary_deltas()
+        self.diffDag.rename_equivalent_constants() # TODO: IMPLEMENT
 
     def reverse_mode_diff(self, node, diff):  # Computes derivative of node.left and node.right | node: node in original dag | diff : node that contains derivative with respect to node.
         if node.type == NODETYPE.PRODUCT:
@@ -275,6 +276,7 @@ class Differentiator():
             node.left = None
             node.right = None
 
+
     def is_simplifiable_sum_minus_1(self, node):
         return  node.type == NODETYPE.SUM and \
                 node.right.type == NODETYPE.ELEMENTWISE_FUNCTION and \
@@ -335,7 +337,7 @@ if __name__ == '__main__':
     example = '''
         declare
             v 1
-        expression v*(i, i -> )v + 1*(i, i -> )(v)
+        expression (v *(i,i->i) v) + (v *(i,i->i) v)
         derivative wrt v
         '''
     d = Differentiator(example)

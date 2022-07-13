@@ -369,13 +369,17 @@ class DifferentiatorTests(unittest.TestCase):
 
     def test_missing_indices_7(self):
         self.reset_tree_attributes()
-        test = 'declare v 1 expression v*(i, i -> )v + 1*(i, i -> )(v) derivative wrt X'
+        test = 'declare v 1 expression v*(i, i -> )v + 1*(i, i -> )(v) derivative wrt v'
         d = Differentiator(test)
         d.differentiate()
         self.assertEqual(str(d.diffDag), '((v + v) + 1_0)')
 
-
-
+    def test_adding_contribtutions(self):
+        self.reset_tree_attributes()
+        test = 'declare v 1 expression (v *(i,i->i) v) + (v *(i,i->i) v) derivative wrt v'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(((_delta(1) + _delta(1)) *(ai,i->ai) v) + ((_delta(1) + _delta(1)) *(ai,i->ai) v))')
 
 if __name__ == '__main__':
     unittest.main()

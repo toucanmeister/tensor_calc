@@ -306,10 +306,10 @@ class Tree():
             helper(subtree)
     
     def add_incoming_edges(self):
-        if self and self.left and (self not in self.left.incoming):
+        if self and self.left:
             self.left.incoming.append(self)
             self.left.add_incoming_edges()
-        if self and self.right and (self not in self.right.incoming):
+        if self and self.right:
             self.right.incoming.append(self)
             self.right.add_incoming_edges()
         
@@ -361,8 +361,6 @@ class Tree():
             self.right.remove_unneccessary_deltas()
         return new_self
 
-
-
     def fix_missing_indices(self, arg):
         def add_blowup(missingIndices):
             blowup = Tree(NODETYPE.PRODUCT, f'*({missingIndices},{missingIndices}->)', self, Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}'))
@@ -395,3 +393,6 @@ class Tree():
             if self.right:
                 self.right.fix_missing_indices(arg)
         return new_self
+    
+    def rename_equivalent_constants(self):
+        pass # TODO: IMPLEMENT

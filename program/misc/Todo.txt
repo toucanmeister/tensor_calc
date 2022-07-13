@@ -39,7 +39,6 @@ x Vereinfachung
 	x Konstanten zusammenfassen
 	x elementwise_inverse in 1/x verwandeln
 	x Unnütze deltas entfernen
-  - X + X = 2X
   - Äquivalente Konstanten gleich benennen
 
 x delta(K) als Ersatz für Identity
