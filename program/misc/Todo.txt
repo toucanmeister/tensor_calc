@@ -39,6 +39,8 @@ x Vereinfachung
 	x Konstanten zusammenfassen
 	x elementwise_inverse in 1/x verwandeln
 	x Unnütze deltas entfernen
+  - X + X = 2X
+  - Äquivalente Konstanten gleich benennen
 
 x delta(K) als Ersatz für Identity
 x Tensorrang in abgeleitetem Ausdruck richtig angeben
@@ -56,8 +58,10 @@ x Achsennamen speichern und propagieren
   x Achsen, die in inv/det/adj kommen, sind gleich
   x Achsenvertauschungen bei Multiplikationen fixen
 x Spezialfall verschwindende Achsen handlen (Delta aufpusten)
+  - Mehr Tests
 - Numerischer Check für die Ableitungen
 - Schöneres Print
+- Codeerzeugung
 
 ----------------------------------
 Use Cases:

@@ -339,12 +339,42 @@ class DifferentiatorTests(unittest.TestCase):
         d.differentiate()
         self.assertEqual(str(d.diffDag), '(1_1 *(ij,->ij) 1_0)')
 
-    def test_missing_indices_2(self):
+    def test_missing_indices_3(self):
         self.reset_tree_attributes()
-        test = 'declare a 1 b 0 X 2 expression b *(,->) (a*(i,ij->)X) derivative wrt X'
+        test = 'declare X 2 expression X + X derivative wrt X'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '((b *(,j->j) 1_0) *(j,i->ij) a)')
+        self.assertEqual(str(d.diffDag), '(_delta(2) + _delta(2))')
+
+    def test_missing_indices_4(self):
+        self.reset_tree_attributes()
+        test = 'declare X 2 expression 1*(ij, ij -> )(X + X) derivative wrt X'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(1_0 + 1_0)')
+
+    def test_missing_indices_5(self):
+        self.reset_tree_attributes()
+        test = 'declare X 2 expression 1*(ij, ij -> )X + 1*(ij, ij -> )X derivative wrt X'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(1_0 + 1_1)')
+    
+    def test_missing_indices_6(self):
+        self.reset_tree_attributes()
+        test = 'declare X 2 expression 1*(ij, ij -> )X + 1*(ij, ij -> )(X+1) derivative wrt X'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '(1_0 + 1_1)')
+
+    def test_missing_indices_7(self):
+        self.reset_tree_attributes()
+        test = 'declare v 1 expression v*(i, i -> )v + 1*(i, i -> )(v) derivative wrt X'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '((v + v) + 1_0)')
+
+
 
 
 if __name__ == '__main__':

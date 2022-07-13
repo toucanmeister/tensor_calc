@@ -333,19 +333,12 @@ class Differentiator():
 
 if __name__ == '__main__':
     example = '''
-    declare X 2 
-    expression 1*(,ij->)X 
-    derivative wrt X
-    '''
-    example2 = '''
-    declare 
-        a 1 
-        b 0 
-        X 2 
-    expression b *(,->) (a*(i,ij->)X) 
-    derivative wrt X
-    '''
-    d = Differentiator(example2)
+        declare
+            v 1
+        expression v*(i, i -> )v + 1*(i, i -> )(v)
+        derivative wrt v
+        '''
+    d = Differentiator(example)
     d.originalDag.dot('dags/original')
     d.differentiate()
     d.render()
