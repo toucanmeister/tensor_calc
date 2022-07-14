@@ -678,14 +678,7 @@ The final DAG, simplified using common subtree elimination, can be seen in Figur
 
 \FloatBarrier
 \section{Implementation}
-% Basic procedure
-%   first node, delta tensor
-%   build diff DAG while traversing original DAG
-%   compute pullback contributions for child nodes
-%   save location for future contributions
-% Problem with product rule
-
-In this chapter we describe how the reverse mode differentiation procedure is implemented, using the DAG representation of tensor expressions and the differentiation rules introduced in the previous section.
+In this chapter we describe how the reverse mode differentiation procedure is implemented using the DAG representation of tensor expressions and the differentiation rules introduced in the previous section.
 
 An overview of the differentiation procedure can be seen in Algorithm \ref{alg:1} and Algorithm \ref{alg:2}.
 The details will be explained in the following paragraphs.
@@ -720,7 +713,7 @@ The details will be explained in the following paragraphs.
 \end{algorithm}
 
 As can be seen in Algorithm \ref{alg:1}, the first node is added specially, before the real differentiation algorithm starts.
-This node is the derivative of the top node $y$ with respect to itself. [Elaborate on delta tensor]
+This node, a delta tensor, is the derivative of the top node $y$ with respect to itself and has double the order of the original top node.
 
 The original DAG is traversed from the top node down to the argument node, building up the differentiation DAG alongside it.
 With each node $u$ of the original DAG that is processed, its contributions to the pullbacks of its child nodes are added to the differentiation DAG.
@@ -731,12 +724,33 @@ When differentiating a node $u$, one of its children $v$ may have already been r
 In this case, a part of the pullback of $v$ has already been computed and is present in the differentiation DAG.
 The new pullback contribution we computed from $u$ needs to be added to the old part, as can be seen from Equation \ref{eq:diff}.
 To be able to do this, we keep a dictionary mapping from nodes in the original DAG which we have already reached to their pullback in the differentiation DAG.
-This lets us easily add the old and new pullback contributions with a sum node.
+This lets us add the old and new pullback contributions with a sum node.
 Afterwards, we update the entry in the dictionary to the sum node that was just added.
 We also need to move all nodes in the differentiation DAG that rely on the pullback of $v$, which are its parents.
 Thus, we set all parents of the old pullback to have the updated pullback as their child.
 This way, we build up the correct pullback over time, adding contributions as we find new ways to reach each node.
-% TODO: Add an example
+
+To better illustrate this process of building a pullback piece by piece, we showcase an example.
+Consider the DAG in Figure \ref{fig:alg_example_1} representing the expression $\text{sin}(v) + \text{sin}(v)$ for an order 1 tensor $v$.
+
+
+\begin{figure}
+    \centering
+    \scalebox{0.8}{
+        \begin{tikzpicture}[main/.style={draw, circle, minimum size=30pt, line width=2pt}, info/.style={rectangle, rounded corners=5, draw}, n/.style={-latex, line width=0.75pt}, d/.style={-latex, line width=0.75pt, dashed}]
+            % nodes
+            \node[main] (v) at (0,0) {$v$};
+            \node[main] (sin) at (0,2) {$\text{sin}$};
+            \node[main] (+) at (0,4) {+};
+            % edges
+            \draw [->, n] (v) -- (sin);
+            \draw [->, n] (sin) to[out=135, in=-135] (+);
+            \draw [->, n] (sin) to[out=45, in=-45] (+);
+        \end{tikzpicture}
+    }
+    \caption{DAG representing the expression $\text{sin}(v) + \text{sin}(v)$.}
+    \label{fig:alg_example_1}
+\end{figure}
 
 \chapter{Literature}
 \chapter{Appendices}

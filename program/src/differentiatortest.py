@@ -358,14 +358,14 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare X 2 expression 1*(ij, ij -> )X + 1*(ij, ij -> )X derivative wrt X'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(1_0 + 1_1)')
+        self.assertEqual(str(d.diffDag), '(1_0 + 1_0)')
     
     def test_missing_indices_6(self):
         self.reset_tree_attributes()
         test = 'declare X 2 expression 1*(ij, ij -> )X + 1*(ij, ij -> )(X+1) derivative wrt X'
         d = Differentiator(test)
         d.differentiate()
-        self.assertEqual(str(d.diffDag), '(1_0 + 1_1)')
+        self.assertEqual(str(d.diffDag), '(1_0 + 1_0)')
 
     def test_missing_indices_7(self):
         self.reset_tree_attributes()

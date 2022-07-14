@@ -34,6 +34,7 @@ class Differentiator():
         self.diffDag = self.reverse_mode_diff(self.originalDag, self.diffDag)
         self.diffDag.dot('dags/inbetween')
         self.diffDag.set_tensorrank(self.variable_ranks, self.arg)
+        self.diffDag.rename_equivalent_constants() # TODO: IMPLEMENT
         self.simplify(self.diffDag)
         self.diffDag.eliminate_common_subtrees()
         self.diffDag.add_incoming_edges()
@@ -41,7 +42,6 @@ class Differentiator():
         self.diffDag.unify_axes()
         self.diffDag.remove_nonexistant_axes()
         self.diffDag = self.diffDag.remove_unneccessary_deltas()
-        self.diffDag.rename_equivalent_constants() # TODO: IMPLEMENT
 
     def reverse_mode_diff(self, node, diff):  # Computes derivative of node.left and node.right | node: node in original dag | diff : node that contains derivative with respect to node.
         if node.type == NODETYPE.PRODUCT:
@@ -336,9 +336,9 @@ class Differentiator():
 if __name__ == '__main__':
     example = '''
         declare
-            v 1
-        expression (v *(i,i->i) v) + (v *(i,i->i) v)
-        derivative wrt v
+            X 2
+        expression 1*(ij, ij -> )X + 1*(ij, ij -> )X
+        derivative wrt X
         '''
     d = Differentiator(example)
     d.originalDag.dot('dags/original')

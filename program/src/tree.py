@@ -395,4 +395,19 @@ class Tree():
         return new_self
     
     def rename_equivalent_constants(self):
-        pass # TODO: IMPLEMENT
+        constants = []
+        def helper(node):
+            if node.type == NODETYPE.CONSTANT:
+                equivalent_constant_in_list = None
+                for constant in constants:
+                    if constant.name.split('_')[0] == node.name.split('_')[0] and constant.axes == node.axes: # Same number and same axes
+                        equivalent_constant_in_list = constant
+                if node not in constants and not equivalent_constant_in_list:
+                    constants.append(node)
+                elif node not in constants and equivalent_constant_in_list:
+                    node.name = constant.name
+            if node.left:
+                helper(node.left)
+            if node.right:
+                helper(node.right)
+        helper(self)
