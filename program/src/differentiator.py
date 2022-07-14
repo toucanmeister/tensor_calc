@@ -27,9 +27,9 @@ class Differentiator():
             raise Exception('Argument \'{self.parser.arg_name}\' not found in expression.')
 
     def differentiate(self):
-        deltaRank = self.originalDag.rank
-        self.diffDag = Tree(NODETYPE.VARIABLE, f'_delta({deltaRank})')   # Derivative of the top node y with respect to itself
-        self.variable_ranks[f'_delta({deltaRank})'] = deltaRank * 2
+        originalRank = self.originalDag.rank
+        self.diffDag = Tree(NODETYPE.DELTA, f'_delta({originalRank})')   # Derivative of the top node y with respect to itself
+        self.diffDag.rank = originalRank * 2
         self.diffDag.axes = self.originalDag.axes + self.originalDag.axes
         self.diffDag = self.reverse_mode_diff(self.originalDag, self.diffDag)
         self.diffDag.dot('dags/inbetween')
@@ -263,7 +263,7 @@ class Differentiator():
             node.right = None
         if self.is_simplifiable_const_sum(node): # Compute sum of constants
             node.type = NODETYPE.CONSTANT
-            node.name = str(int(node.left.name) + int(node.right.name))
+            node.name = str(int(node.left.name.split()[0]) + int(node.right.name.split()[0]))
             node.left = None
             node.right = None
         if self.is_simplifiable_const_sum_minus(node): # Simplify (a + b) to (a - (-b)) when b is a const and has a -
@@ -272,7 +272,7 @@ class Differentiator():
             node.right.name = node.right.name.strip('-')
         if self.is_simplifiable_const_diff(node): # Compute difference of constants
             node.type = NODETYPE.CONSTANT
-            node.name = str(int(node.left.name) - int(node.right.name))
+            node.name = str(int(node.left.name.split()[0]) - int(node.right.name.split()[0]))
             node.left = None
             node.right = None
 
@@ -327,7 +327,7 @@ class Differentiator():
         print(f'Variable and Constant Axes:')
         done_nodes = []
         for node in self.diffDag.get_all_subtrees():
-            if node and (not node in done_nodes) and (node.type == NODETYPE.VARIABLE or node.type == NODETYPE.CONSTANT):
+            if node and (not node in done_nodes) and (node.type == NODETYPE.VARIABLE or node.type == NODETYPE.CONSTANT or node.type == NODETYPE.DELTA):
                 print(f'{node.name} {node.axes}')
                 done_nodes.append(node)
         for constant in Tree.printing_constants.keys():
@@ -336,8 +336,9 @@ class Differentiator():
 if __name__ == '__main__':
     example = '''
         declare
+            v 0
             X 2
-        expression 1*(ij, ij -> )X + 1*(ij, ij -> )X
+        expression (delta + v) *(,ij->ij) X
         derivative wrt X
         '''
     d = Differentiator(example)

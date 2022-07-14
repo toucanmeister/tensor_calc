@@ -14,6 +14,7 @@ class NODETYPE(Enum):
     DIFFERENCE = 'difference'
     PRODUCT = 'product'
     POWER = 'power'
+    DELTA = 'delta'
 
 class Tree():
     node_counter = 0        # Running id for nodes, just used for the visualization
@@ -153,7 +154,7 @@ class Tree():
             self.left.set_tensorrank(variable_ranks, arg)
         if self.right:
             self.right.set_tensorrank(variable_ranks, arg)
-        if self.type == NODETYPE.CONSTANT:   # If we reach a constant, it keeps rank -1 and will get broadcasted later (unless it already has a rank)
+        if self.type == NODETYPE.CONSTANT or self.type == NODETYPE.DELTA:   # If we reach a constant, it keeps rank -1 and will get broadcasted later (unless it already has a rank)
             pass
         elif self.type == NODETYPE.VARIABLE:
             self.rank = variable_ranks[self.name]
@@ -220,7 +221,7 @@ class Tree():
             raise Exception(f'Unknown node type at node \'{self.name}\'.')
 
     def unify_axes(self):
-        if self.type == NODETYPE.CONSTANT:
+        if self.type == NODETYPE.CONSTANT or self.type == NODETYPE.DELTA:
             pass
         if self.type == NODETYPE.VARIABLE:
             pass
@@ -278,6 +279,11 @@ class Tree():
         if self.type == NODETYPE.CONSTANT:
             self.rank = desired_rank
             self.axes = desired_axes
+            return True
+        elif self.type == NODETYPE.DELTA:
+            self.rank = desired_rank
+            self.axes = desired_axes
+            self.name += f'({self.rank})'
             return True
         elif self.type == NODETYPE.ELEMENTWISE_FUNCTION:
             if self.right.try_broadcasting(desired_rank, desired_axes):

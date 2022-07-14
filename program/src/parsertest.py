@@ -123,7 +123,11 @@ class ParserTests(unittest.TestCase):
         p = Parser(test)
         p.parse()
         self.assertEqual(str(p.dag), '((A + 1_1) *(ij,j->i) 1_2)')
+    def test_delta_1(self):
+        test = 'declare A 2 expression delta *(,ij->) A  derivative wrt a'
+        p = Parser(test)
+        p.parse()
+        self.assertEqual(str(p.dag), '(_delta(0) *(,ij->) A)')
     
-
 if __name__ == '__main__':
     unittest.main()

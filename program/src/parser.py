@@ -202,7 +202,10 @@ class Parser():
             else:
                 self.error(TOKEN_ID.LRBRACKET.value)
         elif self.fits(TOKEN_ID.ALPHANUM) or self.fits(TOKEN_ID.LOWERCASE_ALPHA):
-            tree = Tree(NODETYPE.VARIABLE, self.ident)
+            if self.ident == 'delta':
+                tree = Tree(NODETYPE.DELTA, f'_delta')
+            else:
+                tree = Tree(NODETYPE.VARIABLE, self.ident)
             self.get_sym()
         elif self.fits(TOKEN_ID.LRBRACKET):
             self.get_sym()
@@ -255,7 +258,7 @@ class Parser():
         split_adj_helper(self.dag)
 
 if __name__ == '__main__':
-    example = 'declare a 0 b 0 expression a + b + a derivative wrt a'
+    example = 'declare a 0 b 0 expression delta *(,->) a derivative wrt a'
     p = Parser(example)
     p.parse()
     p.dag.dot('dags/dag')
