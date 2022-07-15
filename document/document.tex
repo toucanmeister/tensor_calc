@@ -541,7 +541,34 @@ $$
 where $s_1$ is $v$s input, representing the domain of $f$, $s_2$ is the index string of $v$, representing the range of $f$, and $s_3$ is the index string of the output node of the DAG with $f'$ still being the derivative of $f$.
 The distinction between $s_1$ and $s_2$ is neccessary because domain and range of $f$ are not be the same anymore, as they are with elementwise functions.
 
-The derivatives $f'$ of all accepted functions $f$ need to be known. [Maybe insert a list of them here?]
+The derivatives $f'$ of all accepted functions $f$ need to be known.
+They are listed in Table \ref{tab:func_diffs}
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{l | l}
+        Function & Derivative wrt. x \\\hline
+        $-(x)$ & $-(1)$ \\
+        $\text{sin}(x)$ & $\text{cos}(x)$ \\
+        $\text{cos}(x)$ & $-(\text{sin}(x))$ \\
+        $\text{tan}(x)$ & $1 ./ (\text{cos}(x) .^* \text{cos}(x))$ \\
+        $\text{arcsin}(x)$ & $1 ./ (1 + -(x .^* x))^{0.5}$ \\
+        $\text{arccos}(x)$ & $-(1 ./ (1 + -(x .^* x))^{0.5})$ \\
+        $\text{arctan}(x)$ & $1 ./ (1 + (x .^* x))$ \\
+        $\text{exp}(x)$ & $\text{exp}(x)$ \\
+        $\text{log}(x)$ & $1 ./ x$ \\
+        $\text{tanh}(x)$ & $1 + -(\text{tanh}(x) .^* \text{tanh}(x))$ \\
+        $\text{abs}(x)$ & $\text{sign}(x)$ \\
+        $\text{sign}(x)$ & $0$ \\
+        $\text{relu}(x)$ & $\text{relu}(\text{sign}(x))$ \\
+        $1 ./ x$ & $- (1 ./ (x .^* x))$ \\
+        $\text{inv}(x)$ & $-(\text{inv}(x)) *_{(ij,kl->iklj)} \text{inv}(x)$ \\
+        $\text{det}(x)$ & $\text{adj}(x) *_{(ij,->ji)} 1$ \\
+    \end{tabular}
+    \caption{Derivatives of all used functions. $.^*$ is a placeholder for elementwise multiplication with the fitting indices. The elementwise inverse $1 ./ x$ is internally handled as an elemenwise function, which is why its derivative is listed here.} %TODO: Add a source?
+    \label{tab:func_diffs}
+\end{table}
+\FloatBarrier
+
 
 \begin{figure}
     \centering
