@@ -372,8 +372,10 @@ Since summands always have the same order, \codeword{log(2)}, and by extension \
     \caption{Rules applied to determine tensor orders of a node $X$, depending on the type of node it is. Note that the $\text{output\_indices}$ of a product node are given, that the sum may also take its order from the right child, as it has the same order, and that each special function (\texttt{det}, \texttt{inv}, \texttt{adj}) needs its own rule.}
     \label{tab:order_rules}
 \end{table}
-\FloatBarrier
 
+% TODO: Write about axis propagation (why it's necessary and how it's done)
+
+\FloatBarrier
 \chapter{Differentiation}
 The last chapter was concerned with creating a suitable internal representation for tensor expressions, which turned out to be a directed acyclic graph (DAG).
 In this chapter, we use this DAG representation of the expression for the differentiation.
@@ -787,6 +789,10 @@ The left child of the product $\delta_1 *_{(ba,a \rightarrow ba)} \text{cos}(v)$
 Since there are no more unvisited children, we are done.
 The finished differentiation DAG represents the expression $(\delta_1 + (\delta_1 *_{(ba,a \rightarrow ba)} -1)) *_{(ba,a \rightarrow ba)} cos(v)$.
 The complete, simplified DAG is visible in Figure \ref{fig:alg_example_3}.
+
+\section{The Problematic Case of Disappearing Indices}
+In this section we present a problem with the differentiation of tensor products that came up during development, along with a solution.
+% TODO: Write about disappearing indices (when and why does it happen, how did we solve it)
 
 \begin{figure}
     \centering
