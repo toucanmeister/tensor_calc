@@ -142,7 +142,7 @@ function = 'sin' | 'cos' | 'tan' | 'arcsin' | 'arccos' |
     'arctan' | 'abs' | 'tanh' | 'exp' | 'log' | 'sign' | 
     'relu' | 'det' | 'inv' | 'adj'
 \end{verbatim}
-Here \texttt{\string{x\string}} describes that \texttt{x} may occur any number of times, while \texttt{(x)+} lets \texttt{x} appear at least once.
+Here \texttt{\string{x\string}} describes that \texttt{x} may occur any number of times, while \texttt{\{x\}+} lets \texttt{x} appear at least once.
 
 As can be seen in the grammar, we allow the following binary operations on tensors: products (\codeword{*(,->)}), sums (\codeword{+}), differences (\codeword{-}) and quotients (\codeword{/}).
 With the exception of tensor products, which have already been discussed, these operations are executed elementwise.
@@ -237,7 +237,7 @@ Note that, by convention, we set the argument of a unary function node to its ri
 \end{figure}
 
 \section{Preprocessing}
-Having described how a binary expression tree is created from a given tensor expression, we now describe how this tree is processed further to prepare it for differentiation.
+Having shown how a binary expression tree is created from a given tensor expression, we now describe how this tree is processed further to prepare it for differentiation.
 We employ the following three preprocessing steps.
 \begin{itemize}
     \item Some subtrees are substituted with equivalent ones which are more easily differentiated.
@@ -334,13 +334,15 @@ Nodes in the DAG still only have two child nodes, but may have many parent nodes
     \label{fig:tree_to_dag}
 \end{figure}
 \FloatBarrier
-\subsection{Tensor order Determination}
-To be able to accurately create new product nodes, which require knowledge of the tensor orders of both inputs and the output, we determine the output tensor order of all nodes in the expression DAG.
-Starting at the bottom of the DAG, tensor orders are propagated upwards towards the root.
+\subsection{Tensor Order and Axis Determination}
+During differentiation, we often create new product nodes.
+To be able to do this, we require knowledge of the tensor orders of both inputs and the output of the new node, which depend on the tensor orders of nodes in the original DAG.
+Because we may need the tensor rank of all nodes in the orignal DAG, we determine them by propagating tensor orders from the bottom of the DAG upwards toward the root.
+
 The bottom nodes contain either variables or constants.
 The tensor orders of variables need to be given, as they function as the start for the upwards propagation of tensor orders.
-Each parent node calculates its output tensor order based on its child nodes.
-For example, a sum will have its output order set equal to the output order of its children.
+Each parent node calculates its tensor order based on its child nodes.
+For example, a sum will have its order set equal to the order of its children.
 A full overview of these order determination rules can be found in table \ref{tab:order_rules}.
 
 So far we have not addressed how the tensor order of a constant is determined.
@@ -358,22 +360,30 @@ Nonetheless, we may find a fitting order using the expression in which the outpu
 This is possible since the input and output order of elementwise functions are always the same.
 As an example, the order of the tensor constant \codeword{2} in the expression \codeword{X + log(2)} may be determined by finding out what order \codeword{log(2)} needs to be to fit in the sum.
 Since summands always have the same order, \codeword{log(2)}, and by extension \codeword{2}, needs to have the same order as \codeword{X}.
+Using these rules, we may determine the tensor order of any node in an expression DAG.
 
 \begin{table}[ht]
     \centering
     \begin{tabular}{l | l}
-        Parent Node Type & Output order \\\hline
+        Node Type & Tensor order \\\hline
         \codeword{SUM} & $\text{order}(\text{left}(X))$ \\
         \codeword{PRODUCT} & $\text{output\_indices}(X)$ \\
         \codeword{ELEMENTWISE FUNCTION} & $\text{order}(\text{right}(X))$ \\
         \codeword{adj}, \codeword{inv} & $2$ \\
         \codeword{det} & $0$ \\
     \end{tabular}
-    \caption{Rules applied to determine tensor orders of a node $X$, depending on the type of node it is. Note that the $\text{output\_indices}$ of a product node are given, that the sum may also take its order from the right child, as it has the same order, and that each special function (\texttt{det}, \texttt{inv}, \texttt{adj}) needs its own rule.}
+    \caption{Rules applied to determine tensor orders of a node $X$, depending on the type of node it is. Note that the $\text{output\_indices}$ of a product node are given after the $\rightarrow$ in the product string, that the sum may also take its order from the right child which has the same order, and that each special function (\texttt{det}, \texttt{inv}, \texttt{adj}) needs its own rule.}
     \label{tab:order_rules}
 \end{table}
 
 % TODO: Write about axis propagation (why it's necessary and how it's done)
+In addition to the tensor order, we also require each node to store what its axes are.
+The general structure of tensor derivatives is invariant to the specific axis lengths of the tensors variables.
+For example, the derivative of $X *_{(ij,ij->)} X$ with respect to the order 2 tensor $X$ is always $X + X$ or $2 *_{(,ij->ij) X}$, no matter whether $X \in \R^{3 \times 5}$ or $X \in \R^{400 \times 2}$.
+This is why we do not require the length of each axis of each variable in a tensor expression to differentiate it.
+
+However, knowing how the shape of each node depends on the shape of the input variables is still useful.
+
 
 \FloatBarrier
 \chapter{Differentiation}

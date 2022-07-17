@@ -336,9 +336,8 @@ class Differentiator():
 if __name__ == '__main__':
     example = '''
         declare
-            v 0
             X 2
-        expression (delta + v) *(,ij->ij) X
+        expression X *(ij,ij->) X
         derivative wrt X
         '''
     d = Differentiator(example)
