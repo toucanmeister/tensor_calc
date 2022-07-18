@@ -6,6 +6,7 @@
 \usepackage{microtype}
 \usepackage{graphicx}
 \usepackage{amsmath}
+\usepackage{amsfonts}
 \usepackage{placeins}
 \usepackage{tikz}
 \usepackage{algorithm}
@@ -142,7 +143,7 @@ function = 'sin' | 'cos' | 'tan' | 'arcsin' | 'arccos' |
     'arctan' | 'abs' | 'tanh' | 'exp' | 'log' | 'sign' | 
     'relu' | 'det' | 'inv' | 'adj'
 \end{verbatim}
-Here \texttt{\string{x\string}} describes that \texttt{x} may occur any number of times, while \texttt{\{x\}+} lets \texttt{x} appear at least once.
+Here \texttt{\string{x\string}} describes that \texttt{x} may occur any number of times, while \texttt{\string{x\string}+} lets \texttt{x} appear at least once.
 
 As can be seen in the grammar, we allow the following binary operations on tensors: products (\codeword{*(,->)}), sums (\codeword{+}), differences (\codeword{-}) and quotients (\codeword{/}).
 With the exception of tensor products, which have already been discussed, these operations are executed elementwise.
@@ -334,7 +335,7 @@ Nodes in the DAG still only have two child nodes, but may have many parent nodes
     \label{fig:tree_to_dag}
 \end{figure}
 \FloatBarrier
-\subsection{Tensor Order and Axis Determination}
+\subsection{Tensor Order Determination}
 During differentiation, we often create new product nodes.
 To be able to do this, we require knowledge of the tensor orders of both inputs and the output of the new node, which depend on the tensor orders of nodes in the original DAG.
 Because we may need the tensor rank of all nodes in the orignal DAG, we determine them by propagating tensor orders from the bottom of the DAG upwards toward the root.
@@ -376,14 +377,101 @@ Using these rules, we may determine the tensor order of any node in an expressio
     \label{tab:order_rules}
 \end{table}
 
-% TODO: Write about axis propagation (why it's necessary and how it's done)
+\subsection{Axis Propagation}
 In addition to the tensor order, we also require each node to store what its axes are.
 The general structure of tensor derivatives is invariant to the specific axis lengths of the tensors variables.
-For example, the derivative of $X *_{(ij,ij->)} X$ with respect to the order 2 tensor $X$ is always $X + X$ or $2 *_{(,ij->ij) X}$, no matter whether $X \in \R^{3 \times 5}$ or $X \in \R^{400 \times 2}$.
+For example, the derivative of $X *_{(ij,ij \rightarrow)} X$ with respect to the order 2 tensor $X$ is always $X + X$ or $2 *_{(,ij \rightarrow ij)} X$, no matter whether $X \in \mathbb{R}^{3 \times 5}$ or $X \in \mathbb{R}^{400 \times 2}$.
 This is why we do not require the length of each axis of each variable in a tensor expression to differentiate it.
 
 However, knowing how the shape of each node depends on the shape of the input variables is still useful.
+It is necessary for generating program code to numerically compute the derivative we determine and gives us more information about the structure of the derivative.
+We also use it to solve a problem that comes up in the next chapter of this paper.
+For these reasons, we do not only propagate tensor order through the input and differentiation DAGs, but also the axes.
 
+First, we give each node a tuple of axes.
+Note that we simply use integers to refer to axes in our DAGs.
+A node $X$ with tensor order 2 may for example have the axes $(1,2)$, where $1$ and $2$ are simply names for axes, not containing any further information.
+In the same way we propagated tensor order, we start from the leaf nodes of the DAG and move toward the top.
+In the leaf nodes of the DAG are variables and constants.
+Constants start out with no axes while they still have tensor order $-1$.
+When a constant gets broadcasted, it gets assigned fitting axes depending on its surroundings in the expression, in the same way they get fitting tensor orders.
+A variable gets assigned as many axes as its tensor order is.
+Each axis is newly created and not used by any other variable at first.
+Then, these axes are propagated upwards through the DAG, using similar rules to the propagation of tensor orders, visible in table \ref{tab:axes_rules}.
+
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{l | l}
+        Node Type & Axes \\\hline
+        \codeword{SUM} & $\text{axes}(\text{left}(X))$ \\
+        \codeword{PRODUCT} & See Algorithm \\
+        \codeword{ELEMENTWISE FUNCTION} & $\text{axes}(\text{right}(X))$ \\
+        \codeword{adj}, \codeword{inv} & $\text{axes}(\text{right}(X))$ \\
+        \codeword{det} & $()$ \\
+    \end{tabular}
+    \caption{Rules applied to determine axes of a node $X$, depending on the type of node it is. Note that the rule for products is explained in the text and that $new\_axis()$ means we assign a new axis that has not been used before.}
+    \label{tab:axes_rules}
+\end{table}
+
+The rule for products is slightly more complex.
+It chooses the correct axes for the product node from the axes of its children based on the product index strings.
+See Algorithm \ref{alg:product_axes} for further details.
+
+\begin{algorithm}
+    \caption{Propagate\_Product\_Axes\_Bottom\_Up (\textit{node})}
+    \label{alg:product_axes}
+    \begin{algorithmic}
+        \For{each \textit{i} in output\_indices(\textit{node})}
+            \If{\textit{i} is in left\_indices(\textit{node})}
+                \State \textit{p} $\gets$ position of \textit{i} in left\_indices(\textit{node})
+                \State append axes(left(\textit{node}))[\textit{p}] to axes(\textit{node})
+            \ElsIf{\textit{i} is in right\_indices(\textit{node})}
+                \State \textit{p} $\gets$ position of \textit{i} in right\_indices(\textit{node})
+                \State append axes(right(\textit{node}))[\textit{p}] to axes(\textit{node})
+            \EndIf
+        \EndFor
+    \end{algorithmic}
+\end{algorithm}
+
+After this procedure, each node has a fitting tuple of axes.
+However, many of these axes with different names are actually the same.
+For example, in the expression $A + B$ for two order 2 tensors $A$ and $B$, this procedure may assign $A$ the axis tuple $(1,2)$ and $B$ the axis tuple $(3,4)$.
+$A$ and $B$ are assigned different axes even though the sum requires axis 1 to be equal to axis 3 and axis 2 to be equal to axis 4.
+
+This is why we do a second pass through the DAG, this time going from the top toward the bottom, unifying axes that are the same.
+For each node $x$, we set its childrens' axes depending on its own, with different procedures for different node types.
+If $x$ is an elementwise function node, its child's axes are set to its own.
+If $x$ is a special function node, what we do depends on the particular function.
+If $x$ represents $\text{adj}$ or $\text{inv}$, we set its child's axes to its own.
+If $x$ represents $\text{det}$, its child has no axes since it is scalar.
+If $x$ is a sum node, we set both of its childrens' axes to its own.
+If $x$ is a constant or variable node, it has no children and we do not need to do anything.
+If $x$ is a product, we need to employ a more complex procedure, setting each child's axes to the node's axes depending on the product indices.
+More details may be seen in Algorithm \ref{alg:product_axes_2}.
+
+\begin{algorithm}
+    \caption{Propagate\_Product\_Axes\_Top\_Down (\textit{node})}
+    \label{alg:product_axes_2}
+    \begin{algorithmic}
+        \For{each \textit{i} in output\_indices(\textit{node})}
+            \State \textit{p} $\gets$ position of \textit{j} in output\_indices(\textit{node})
+            \For{each \textit{j} in left\_indices(\textit{node})}
+                \State \textit{q} $\gets$ position of \textit{j} in left\_indices(\textit{node})
+                \If{i = j}
+                    \State axes(left(\textit{node}))[\textit{q}] $\gets$ axes(\textit{node})[\textit{p}]
+                \EndIf
+            \EndFor
+            \For{each \textit{j} in right\_indices(\textit{node})}
+                \State \textit{q} $\gets$ position of \textit{j} in right\_indices(\textit{node})
+                \If{i = j}
+                    \State axes(right(\textit{node}))[\textit{q}] $\gets$ axes(\textit{node})[\textit{p}]
+                \EndIf
+            \EndFor
+        \EndFor
+    \end{algorithmic}
+\end{algorithm}
+
+After this second pass through the DAG, each node now contains a fitting tuple of axes, unified as much as possible, with each axis coming from a variable in the original DAG.
 
 \FloatBarrier
 \chapter{Differentiation}
