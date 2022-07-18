@@ -123,6 +123,7 @@ class Tree():
             desired_axes = []
             for i in self.leftIndices:
                 axis = Tree.new_axis()
+                Tree.axis_to_origin[axis] = 'broadcast_axis_product' # These axes should get overriden by axes coming from variables
                 desired_axes.append(axis)
             if not self.left.try_broadcasting(len(self.leftIndices), desired_axes):
                 raise Exception(f'Rank of left input \'{self.left.name}\' ({self.left.rank}) to product node does not match product indices \'{self.leftIndices}\'.')
@@ -130,6 +131,7 @@ class Tree():
             desired_axes = []
             for i in self.rightIndices:
                 axis = Tree.new_axis()
+                Tree.axis_to_origin[axis] = 'broadcast_axis_product' # These axes should get overriden by axes coming from variables
                 desired_axes.append(axis)
             if not self.right.try_broadcasting(len(self.rightIndices), desired_axes):
                 raise Exception(f'Rank of right input \'{self.right.name}\' ({self.right.rank}) to product node does not match product indices \'{self.rightIndices}\'.')
@@ -170,6 +172,7 @@ class Tree():
             if self.name == 'inv':
                 if self.right.rank != 2:
                     axis = Tree.new_axis()
+                    Tree.axis_to_origin[axis] = 'broadcast_axis_inv' # These axes should get overriden by axes coming from variables
                     if not self.right.try_broadcasting(2, [axis, axis]):
                         raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
                 self.rank = 2
@@ -177,6 +180,7 @@ class Tree():
             elif self.name == 'det':
                 if self.right.rank != 2:
                     axis = Tree.new_axis()
+                    Tree.axis_to_origin[axis] = 'broadcast_axis_det' # These axes should get overriden by axes coming from variables
                     if not self.right.try_broadcasting(2, [axis, axis]):
                         raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
                 self.rank = 0
@@ -184,6 +188,7 @@ class Tree():
             elif self.name == 'adj':
                 if self.right.rank != 2:
                     axis = Tree.new_axis()
+                    Tree.axis_to_origin[axis] = 'broadcast_axis_adj' # These axes should get overriden by axes coming from variables
                     if not self.right.try_broadcasting(2, [axis, axis]):
                         raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
                 self.rank = 2
@@ -195,6 +200,9 @@ class Tree():
                         raise Exception(f'Ranks of operands \'{self.left.name}\' ({self.left.rank}) and \'{self.right.name}\' ({self.right.rank}) in sum node do not match.')
             self.rank = self.left.rank
             self.axes = self.left.axes
+            for i in range(len(self.axes)):
+                if Tree.axis_to_origin[self.axes[i]].startswith('broadcast_axis'): # This axis does not come from a variable, needs to be overriden
+                    self.axes[i] = self.right.axes[i]
         elif self.type == NODETYPE.POWER:
             if self.right.rank != 0:
                 if not self.right.try_broadcasting(0, []):
@@ -202,7 +210,7 @@ class Tree():
             self.rank = self.left.rank
             self.axes = self.left.axes
         elif self.type == NODETYPE.PRODUCT:
-            if self.name == '_TO_BE_SET_ELEMENTWISE':
+            if self.name == '_TO_BE_SET_ELEMENTWISE': # Turn this into an elementwise product
                 if self.left.rank == -1:
                     indices = ''.join([i for i in string.ascii_lowercase][0:self.right.rank])
                 else:
@@ -213,7 +221,14 @@ class Tree():
             self.rank = len(self.resultIndices)
             if self.axes == []:
                 for i in self.resultIndices: # Gets the correct axes from left and right child nodes
-                    if i in self.leftIndices:
+                    if i in self.leftIndices and i in self.rightIndices: # If we may take it from both left and right, choose the one with the axis coming from a variable
+                        left_axis = self.left.axes[self.leftIndices.index(i)]
+                        right_axis = self.right.axes[self.rightIndices.index(i)]
+                        if Tree.axis_to_origin[left_axis].startswith('broadcast_axis'):
+                            self.axes.append(right_axis)
+                        else:
+                            self.axes.append(left_axis)
+                    elif i in self.leftIndices:
                         self.axes.append(self.left.axes[self.leftIndices.index(i)])
                     elif i in self.rightIndices:
                         self.axes.append(self.right.axes[self.rightIndices.index(i)])
@@ -247,10 +262,6 @@ class Tree():
                 for j in range(len(self.rightIndices)):
                     if self.resultIndices[i] == self.rightIndices[j]:
                         self.right.axes[j] = self.axes[i]
-            for i in range(len(self.leftIndices)): # Unifies left and right child axes that are the same, using indices as guidance
-                indexInRight = self.rightIndices.find(self.leftIndices[i])
-                if indexInRight != -1:
-                    self.get_root().rename_axis(self.left.axes[i], self.right.axes[indexInRight])
         if self.left:
             self.left.unify_axes()
         if self.right:
@@ -281,9 +292,11 @@ class Tree():
             self.axes = desired_axes
             return True
         elif self.type == NODETYPE.DELTA:
+            if desired_rank % 2 != 0:
+                raise Exception(f'Trying to broadcast a delta with odd tensor order {desired_rank}.')
             self.rank = desired_rank
             self.axes = desired_axes
-            self.name += f'({self.rank})'
+            self.name += f'({self.rank // 2})'
             return True
         elif self.type == NODETYPE.ELEMENTWISE_FUNCTION:
             if self.right.try_broadcasting(desired_rank, desired_axes):
