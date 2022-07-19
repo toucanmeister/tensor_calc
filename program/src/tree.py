@@ -291,13 +291,6 @@ class Tree():
             self.rank = desired_rank
             self.axes = desired_axes
             return True
-        elif self.type == NODETYPE.DELTA:
-            if desired_rank % 2 != 0:
-                raise Exception(f'Trying to broadcast a delta with odd tensor order {desired_rank}.')
-            self.rank = desired_rank
-            self.axes = desired_axes
-            self.name += f'({self.rank // 2})'
-            return True
         elif self.type == NODETYPE.ELEMENTWISE_FUNCTION:
             if self.right.try_broadcasting(desired_rank, desired_axes):
                 self.rank = desired_rank
