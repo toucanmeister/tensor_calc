@@ -26,7 +26,7 @@ class Differentiator():
         if not self.arg:
             raise Exception('Argument \'{self.parser.arg_name}\' not found in expression.')
 
-    def differentiate(self):
+    def differentiate(self, print_inbetween=False):
         originalRank = self.originalDag.rank
         self.diffDag = Tree(NODETYPE.DELTA, f'_delta({originalRank})')   # Derivative of the top node y with respect to itself
         self.diffDag.rank = originalRank * 2
@@ -337,9 +337,10 @@ class Differentiator():
 if __name__ == '__main__':
     example = '''
         declare 
-            X 2 
-        expression det(3) *(,ij->ij) X
-        derivative wrt X
+            A 2
+            v 1
+        expression A *(ij,j->j) v
+        derivative wrt A
         '''
     d = Differentiator(example)
     d.originalDag.dot('dags/original')

@@ -262,6 +262,15 @@ class Tree():
                 for j in range(len(self.rightIndices)):
                     if self.resultIndices[i] == self.rightIndices[j]:
                         self.right.axes[j] = self.axes[i]
+            for i in range(len(self.leftIndices)): # Unifies left and right child axes that are the same, using indices as guidance
+                indexInRight = self.rightIndices.find(self.leftIndices[i])
+                if indexInRight != -1:
+                    left_axis = self.left.axes[i]
+                    right_axis = self.right.axes[indexInRight]
+                    if Tree.axis_to_origin[left_axis].startswith('broadcast_axis'): # Axis that does not come from a variable, we should choose the other one
+                        self.get_root().rename_axis(left_axis, right_axis)
+                    else:
+                        self.get_root().rename_axis(right_axis, left_axis)
         if self.left:
             self.left.unify_axes()
         if self.right:
@@ -374,9 +383,9 @@ class Tree():
         return new_self
 
     def fix_missing_indices(self, arg):
-        def add_blowup(missingIndices):
-            blowup = Tree(NODETYPE.PRODUCT, f'*({missingIndices},{missingIndices}->)', self, Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}'))
-            blowup.set_indices(missingIndices, missingIndices, '')
+        def add_blowup(resultIndices, missingIndices):
+            blowup = Tree(NODETYPE.PRODUCT, f'*({resultIndices+missingIndices},{missingIndices}->{resultIndices})', self, Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}'))
+            blowup.set_indices(resultIndices+missingIndices, missingIndices, resultIndices)
             self.add_incoming_edges()
             for parent in self.incoming:
                 if parent.left == self:
@@ -396,9 +405,10 @@ class Tree():
                 missingIndices = ''.join([index for index in s2 if not (index in s1 or index in s3)])
 
             if missingIndices: # Special problem case
+                oldResultIndices = self.resultIndices
                 self.resultIndices += missingIndices
                 self.name = f'*({s1},{s2}->{self.resultIndices})'
-                new_self = add_blowup(missingIndices)
+                new_self = add_blowup(oldResultIndices, missingIndices)
                 
             if self.left:
                 self.left.fix_missing_indices(arg)
