@@ -11,6 +11,8 @@
 \usepackage{tikz}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
+\usepackage{biblatex} %Imports biblatex package
+\addbibresource{bibliography.bib} %Import the bibliography file
 \usetikzlibrary{shapes.geometric}
 
 \titleformat{\chapter}[hang]{\Huge\bfseries}{\thechapter}{20pt}{\Huge\bfseries}
@@ -51,6 +53,12 @@
 \maketitle
 
 \chapter{Abstract}
+In optimization problems, derivatives play a crucial role in finding an optimal solution.
+While automatic symbolic differntiation of matrix expressions and numerical differentiation of tensor expressions are well researched, automatic symbolic differentiation of tensor expressions is less so.
+In this thesis, we design and implement a tensor calculus that allows for automatic symbolic differentiation of tensor expressions of any order.
+This calculus uses an Einstein-like notation that is more general than the notation used in Ricci calculus.
+[Was sollte hier noch hin?]
+
 \pagenumbering{gobble}
 
 \chapter{Table of contents}
@@ -80,7 +88,7 @@ The prevalent machine learning frameworks have no way to directly compute these 
 To bridge this gap, we design and implement a tensor calculus that allows for automatic symbolic differentiation of tensor expressions of any order.
 Additionally, this calculus will use an Einstein-like notation to represent tensor products, rather than the more complex notation used in Ricci calculus.
 
-This thesis builds on the work by Laue, Mitterreiter and Giesen, who have built a similar calculus for matrix derivatives [Matrix Calculus] and developed the theoretical foundation for an Einstein notation based tensor calculus [Tensor Paper].
+This thesis builds on the work by Laue, Mitterreiter and Giesen, who have built a similar calculus for matrix derivatives \cite{matrixpaper} and developed the theoretical foundation for an Einstein notation based tensor calculus \cite{tensorpaper}.
 
 The structure of the thesis is as follows.
 First, the syntax of the calculus is developed in form of a grammar.
@@ -393,7 +401,7 @@ Note that we simply use integers to refer to axes in our DAGs.
 A node $X$ with tensor order 2 may for example have the axes $(1,2)$, where $1$ and $2$ are simply names for axes, not containing any further information.
 In the same way we propagated tensor order, we start from the leaf nodes of the DAG and move toward the top.
 In the leaf nodes of the DAG are variables and constants.
-Constants start out with no axes while they still have tensor order $-1$.
+Constants start out with no axes while they still have the initial tensor order $-1$.
 When a constant gets broadcasted, it gets assigned fitting axes depending on its surroundings in the expression, in the same way they get fitting tensor orders.
 A variable gets assigned as many axes as its tensor order is.
 Each axis is newly created and not used by any other variable at first.
@@ -404,12 +412,12 @@ Then, these axes are propagated upwards through the DAG, using similar rules to 
     \begin{tabular}{l | l}
         Node Type & Axes \\\hline
         \codeword{SUM} & $\text{axes}(\text{left}(X))$ \\
-        \codeword{PRODUCT} & See Algorithm \\
+        \codeword{PRODUCT} & See Algorithm \ref{alg:product_axes}\\
         \codeword{ELEMENTWISE FUNCTION} & $\text{axes}(\text{right}(X))$ \\
         \codeword{adj}, \codeword{inv} & $\text{axes}(\text{right}(X))$ \\
         \codeword{det} & $()$ \\
     \end{tabular}
-    \caption{Rules applied to determine axes of a node $X$, depending on the type of node it is. Note that the rule for products is explained in the text and that $new\_axis()$ means we assign a new axis that has not been used before.}
+    \caption{Rules applied to determine axes of a node $X$, depending on the type of node it is.}
     \label{tab:axes_rules}
 \end{table}
 
@@ -454,16 +462,16 @@ More details may be seen in Algorithm \ref{alg:product_axes_2}.
     \label{alg:product_axes_2}
     \begin{algorithmic}
         \For{each \textit{i} in output\_indices(\textit{node})}
-            \State \textit{p} $\gets$ position of \textit{j} in output\_indices(\textit{node})
+            \State \textit{p} $\gets$ position of \textit{i} in output\_indices(\textit{node})
             \For{each \textit{j} in left\_indices(\textit{node})}
                 \State \textit{q} $\gets$ position of \textit{j} in left\_indices(\textit{node})
-                \If{i = j}
+                \If{\textit{i} = \textit{j}}
                     \State axes(left(\textit{node}))[\textit{q}] $\gets$ axes(\textit{node})[\textit{p}]
                 \EndIf
             \EndFor
             \For{each \textit{j} in right\_indices(\textit{node})}
                 \State \textit{q} $\gets$ position of \textit{j} in right\_indices(\textit{node})
-                \If{i = j}
+                \If{\textit{i} = \textit{j}}
                     \State axes(right(\textit{node}))[\textit{q}] $\gets$ axes(\textit{node})[\textit{p}]
                 \EndIf
             \EndFor
@@ -546,7 +554,7 @@ The first node created in the differentiation procedure is always a delta tensor
 
 \section{Differentiation Rules}
 Having established the basic derivation procedure, we will now describe the rules used to compute the derivative $\frac{du}{dv}$ for a node $v$ and its parent $u$.
-Proofs for the correctness of these rules can be found in the paper by Laue, Mitterreiter and Giesen %TODO: REFERENCE HERE.
+Proofs for the correctness of these rules can be found in the paper by Laue, Mitterreiter and Giesen. \cite{tensorpaper}
 Since we are computing $\frac{du}{dv}$, the applied rule depends on the type of node $u$ is.
 
 \subsection{Sum Rule}
@@ -803,7 +811,6 @@ The final DAG, simplified using common subtree elimination, can be seen in Figur
     \label{fig:diff_example_final}
 \end{figure}
 
-\FloatBarrier
 \section{Implementation}
 In this chapter we describe how the reverse mode differentiation procedure is implemented using the DAG representation of tensor expressions and the differentiation rules introduced in the previous sections.
 
@@ -887,10 +894,6 @@ The left child of the product $\delta_1 *_{(ba,a \rightarrow ba)} \text{cos}(v)$
 Since there are no more unvisited children, we are done.
 The finished differentiation DAG represents the expression $(\delta_1 + (\delta_1 *_{(ba,a \rightarrow ba)} -1)) *_{(ba,a \rightarrow ba)} cos(v)$.
 The complete, simplified DAG is visible in Figure \ref{fig:alg_example_3}.
-
-\section{The Problematic Case of Disappearing Indices}
-In this section we present a problem with the differentiation of tensor products that came up during development, along with a solution.
-% TODO: Write about disappearing indices (when and why does it happen, how did we solve it)
 
 \begin{figure}
     \centering
@@ -981,11 +984,98 @@ In this section we present a problem with the differentiation of tensor products
             \draw [->, n] (delta) to[out=90, in=220] (+);
         \end{tikzpicture}
     }
-    \caption{}
+    \caption{Full simplified differentiation DAG of the original DAG in Figure \ref{fig:alg_example_1}.}
     \label{fig:alg_example_3}
 \end{figure}
 
+\FloatBarrier
+\section{The Problematic Case of Disappearing Indices}
+In this section we present a problem with the differentiation of tensor products that was discovered during development, along with a solution.
+
+In the proof of the reverse mode differentiation product rule in the paper by Laue, Mitterreiter and Giesen \cite{tensorpaper} (Theorem 8) in the fourth equality, the associative property for tensor products is used to transform $\bar{C} *_{(s_4s_3,s_3 \rightarrow s_4)} (A *_{(s_1,s_2 \rightarrow s_3)} h)$ into $(\bar{C} *_{(s_4s_3,s_1 \rightarrow s_4s_2)} A) *_{(s_4s_2,s_2 \rightarrow s_4)} h$. 
+However, as can be seen in the corresponding Lemma 1 on the previous page of the paper, %Todo: Explain why the problem occurs.
+
+For some DAGs, this causes invalid product nodes to be created during differentiation.
+Consider the case where an index appears only in the index string of one input of a product node, but not in the output index string.
+An example of this would be the DAG on the left in Figure \ref{fig:missing_indices_example}, containing a node representing the product $A *_{(ij,j \rightarrow )} v$, where the index $i$ only appears in the left index string.
+When differentiating this DAG with respect to $A$, we compute the contribution of the product node to the pullback of $A$ and receive $\delta_0 *_{(,j \rightarrow ij)} v$ using the product rule.
+The resulting product node is not valid, because the index $i$ appears in the result index string, but not in either input index string.
+
+Even though these cases create invalid products, they can still be interpreted in an intuitive way.
+In our example, one of $A$'s axes is summed over in the original product.
+Because of this, the derivative over this axis will be the same for all entries.
+If we removed this redundancy, we would obtain $\delta_0 *_{(,j \rightarrow j)} v$ as the result.
+The extra index $i$ in the result indices of the product in the differentiation DAG can be interpreted as duplicating the result over another axis, which would be the correct derivative.
+
+To implement this idea and prevent invalid product nodes from appearing, we modify the original DAG before it is differentiated by making the sum over the disappearing axis explicit.
+In nodes where the problem would occur, that is to say nodes where at least one index appears only in the index string of one of the input nodes, not in the output index string and where this input node contains the differentiation argument, we do the following.
+We identify the missing indices and append them to the output index string of the product node.
+This prevents an invalid product node from being created, but it also changes the node, since it now has more axes than before.
+To remedy this, we add another product node where we explicitly sum over these axes while multiplying with a vector of ones.
+This achieves the same result as the original DAG, but by making the sum over the axes explicit in another product node, we prevent the problematic case.
+
+In our example, we would transform the original expression from $A *_{(ij,j \rightarrow )} v$ to $(A *_{(ij,j \rightarrow i)} v) *_{(i,i \rightarrow)} 1$.
+Both the modified DAG and the derivative are visible in Figure \ref{fig:missing_indices_example}.
+
+
+\begin{figure}
+    \begin{minipage}{4cm}
+        \centering
+        \scalebox{0.8}{
+            \begin{tikzpicture}[main/.style={draw, circle, minimum size=30pt, line width=2pt}, info/.style={rectangle, rounded corners=5, draw}, n/.style={-latex, line width=0.75pt}, d/.style={-latex, line width=0.75pt, dashed}]
+                % nodes
+                \node[main] (A) at (0,0) {$A$};
+                \node[main] (v) at (2,0) {$v$};
+                \node[main, ellipse] (*) at (1,2) {$*_{(ij,j \rightarrow )}$};
+                % edges
+                \draw [->, n] (A) -- (*);
+                \draw [->, n] (v) -- (*);
+            \end{tikzpicture}
+        }
+    \end{minipage}
+    \begin{minipage}{5cm}
+        \centering
+        \scalebox{0.8}{
+            \begin{tikzpicture}[main/.style={draw, circle, minimum size=30pt, line width=2pt}, info/.style={rectangle, rounded corners=5, draw}, n/.style={-latex, line width=0.75pt}, d/.style={-latex, line width=0.75pt, dashed}]
+                % nodes
+                \node[main] (A) at (0,0) {$A$};
+                \node[main] (v) at (2,0) {$v$};
+                \node[main, ellipse] (*) at (1,2) {$*_{(ij,j \rightarrow i)}$};
+                \node[main] (1) at (3,2) {$1$};
+                \node[main, ellipse] (*2) at (2,4) {$*_{(i,i \rightarrow )}$};
+                % edges
+                \draw [->, n] (A) -- (*);
+                \draw [->, n] (v) -- (*);
+                \draw [->, n] (*) -- (*2);
+                \draw [->, n] (1) -- (*2);
+            \end{tikzpicture}
+        }
+    \end{minipage}
+    \begin{minipage}{5cm}
+        \centering
+        \scalebox{0.8}{
+            \begin{tikzpicture}[main/.style={draw, circle, minimum size=30pt, line width=2pt}, info/.style={rectangle, rounded corners=5, draw}, n/.style={-latex, line width=0.75pt}, d/.style={-latex, line width=0.75pt, dashed}]
+                % nodes
+                \node[main] (delta) at (0,0) {$\delta_0$};
+                \node[main] (1) at (2,0) {$1$};
+                \node[main, ellipse] (*) at (1,2) {$*_{(,i \rightarrow i)}$};
+                \node[main] (v) at (3,2) {$1$};
+                \node[main, ellipse] (*2) at (2,4) {$*_{(i,j \rightarrow ij)}$};
+                % edges
+                \draw [->, n] (delta) -- (*);
+                \draw [->, n] (1) -- (*);
+                \draw [->, n] (*) -- (*2);
+                \draw [->, n] (v) -- (*2);
+            \end{tikzpicture}
+        }
+    \end{minipage}
+    \caption{Left: DAG with a disappearing index $i$. Middle: Modified DAG where the sum over index $i$ is made explicit. Right: Derivative of the middle DAG with respect to $A$.}
+    \label{fig:missing_indices_example}
+\end{figure}
+
+
 \chapter{Literature}
+\printbibliography
 \chapter{Appendices}
 \chapter{Declaration of autonomy}
 
