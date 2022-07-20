@@ -58,10 +58,11 @@ While automatic symbolic differntiation of matrix expressions and numerical diff
 In this thesis, we design and implement a tensor calculus that allows for automatic symbolic differentiation of tensor expressions of any order.
 This calculus uses an Einstein-like notation that is more general than the notation used in Ricci calculus.
 [Was sollte hier noch hin?]
-
 \pagenumbering{gobble}
 
-\chapter{Table of contents}
+\addtocounter{chapter}{1}
+\addcontentsline{toc}{chapter}{\protect\numberline{\thechapter} Table of Contents}
+\tableofcontents
 \pagenumbering{arabic}
 \setcounter{page}{3}
 
@@ -631,7 +632,7 @@ This detail will be discussed further in the section on implementation details.
     \label{fig:prod_rule}
 \end{figure}
 
-\subsection{Function Rule}
+\subsection{Function Rules}
 If $u$ is a function node, we distinguish between two cases.
 The node $u$ either represents an elementwise function or a special function.
 The elementwise case allows for a slight simplification over the special function case.
