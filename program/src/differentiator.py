@@ -26,13 +26,12 @@ class Differentiator():
         if not self.arg:
             raise Exception('Argument \'{self.parser.arg_name}\' not found in expression.')
 
-    def differentiate(self, print_inbetween=False):
+    def differentiate(self):
         originalRank = self.originalDag.rank
-        self.diffDag = Tree(NODETYPE.DELTA, f'_delta({originalRank})')   # Derivative of the top node y with respect to itself
+        self.diffDag = Tree(NODETYPE.DELTA, f'delta({originalRank})')   # Derivative of the top node y with respect to itself
         self.diffDag.rank = originalRank * 2
         self.diffDag.axes = self.originalDag.axes + self.originalDag.axes
         self.diffDag = self.reverse_mode_diff(self.originalDag, self.diffDag)
-        self.diffDag.dot('dags/inbetween')
         self.diffDag.set_tensorrank(self.variable_ranks, self.arg)
         self.diffDag.unify_axes()
         self.diffDag.rename_equivalent_constants()
@@ -339,7 +338,7 @@ if __name__ == '__main__':
         declare 
             A 2
             v 1
-        expression A *(ij,j->j) v
+        expression A *(ij,ij->) delta(1)
         derivative wrt A
         '''
     d = Differentiator(example)

@@ -39,7 +39,7 @@ x Vereinfachung
 	x Konstanten zusammenfassen
 	x elementwise_inverse in 1/x verwandeln
 	x Unnütze deltas entfernen
-  x Äquivalente Konstanten gleich benennen 
+x Äquivalente Konstanten gleich benennen 
 
 x delta(K) als Ersatz für Identity
 x Tensorrang in abgeleitetem Ausdruck richtig angeben
@@ -59,8 +59,12 @@ x Achsennamen speichern und propagieren
 x Spezialfall verschwindende Achsen handlen (Delta aufpusten)
   x Mehr Tests
 - Numerischer Check für die Ableitungen
+  x deltas keinen Unterstrich
 - Schöneres Print
 - Codeerzeugung
+
+- Schreiben:
+	- Beweis, dass unsere Transformation funktioniert
 
 ----------------------------------
 Use Cases:

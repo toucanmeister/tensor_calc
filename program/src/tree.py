@@ -156,7 +156,7 @@ class Tree():
             self.left.set_tensorrank(variable_ranks, arg)
         if self.right:
             self.right.set_tensorrank(variable_ranks, arg)
-        if self.type == NODETYPE.CONSTANT or self.type == NODETYPE.DELTA:   # If we reach a constant, it keeps rank -1 and will get broadcasted later (unless it already has a rank)
+        if self.type == NODETYPE.CONSTANT:   # If we reach a constant, it keeps rank -1 and will get broadcasted later (unless it already has a rank)
             pass
         elif self.type == NODETYPE.VARIABLE:
             self.rank = variable_ranks[self.name]
@@ -164,7 +164,13 @@ class Tree():
                 for i in range(self.rank):
                     axis = Tree.new_axis()
                     self.axes.append(axis)
-                    Tree.axis_to_origin[axis] = f'{self.name}[{i}]'  # All axes should originally come from a variable
+                    Tree.axis_to_origin[axis] = f'{self.name}[{i}]'
+        elif self.type == NODETYPE.DELTA:
+            if self.axes == []:
+                for i in range(self.rank):
+                    axis = Tree.new_axis()
+                    self.axes.append(axis)
+                    Tree.axis_to_origin[axis] = f'{self.name}[{i}]'
         elif self.type == NODETYPE.ELEMENTWISE_FUNCTION:
             self.rank = self.right.rank
             self.axes = self.right.axes
@@ -360,7 +366,7 @@ class Tree():
             return is_delta_zero or fits_one_way or fits_the_other_way
         new_self = self
         if self.type == NODETYPE.PRODUCT:
-            if self.left.name.startswith('_delta') and left_indices_fit():
+            if self.left.name.startswith('delta') and left_indices_fit():
                 new_self = self.right
                 self.add_incoming_edges()
                 for parent in self.incoming:
@@ -368,7 +374,7 @@ class Tree():
                         parent.left = new_self
                     if parent.right == self:
                         parent.right = new_self
-            if self.right.name.startswith('_delta') and right_indices_fit():
+            if self.right.name.startswith('delta') and right_indices_fit():
                 new_self = self.left
                 self.add_incoming_edges()
                 for parent in self.incoming:
