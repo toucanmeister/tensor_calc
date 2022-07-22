@@ -35,7 +35,7 @@ class ParserTests(unittest.TestCase):
         test = 'declare a 0 b 0 expression 2 + a^(-1)+b derivative wrt a'
         p = Parser(test)
         p.parse()
-        self.assertEqual(str(p.dag), '((2_3 + (a ^ (-(1_4)))) + b)')
+        self.assertEqual(str(p.dag), '((2 + (a ^ (-(1)))) + b)')
     def test_goodexpression_2(self):
         test = 'declare a 1 b 1 expression a*(i,j->ij)b derivative wrt a'
         p = Parser(test)
@@ -45,7 +45,7 @@ class ParserTests(unittest.TestCase):
         test = 'declare a 3 b 3 c 0 expression ((a / b) *(ijk,ijk->) a) + (-(c)) derivative wrt a'
         p = Parser(test)
         p.parse()
-        self.assertEqual(str(p.dag), '(((a *(abc,abc->abc) (1_5 / (b))) *(ijk,ijk->) a) + (-(c)))')
+        self.assertEqual(str(p.dag), '(((a *(abc,abc->abc) (1 / (b))) *(ijk,ijk->) a) + (-(c)))')
     def test_goodexpression_4(self):
         test = 'declare x 1 a 0 expression x^(x *(i,i->) x + a) derivative wrt x'
         p = Parser(test)
@@ -95,7 +95,7 @@ class ParserTests(unittest.TestCase):
         test = 'declare a 3 b 3 expression a / b derivative wrt a'
         p = Parser(test)
         p.parse()
-        self.assertEqual(str(p.dag), '(a *(abc,abc->abc) (1_6 / (b)))')
+        self.assertEqual(str(p.dag), '(a *(abc,abc->abc) (1 / (b)))')
     def test_special_function(self):
         test = 'declare a 2 expression inv(a) derivative wrt a'
         p = Parser(test)
@@ -117,12 +117,12 @@ class ParserTests(unittest.TestCase):
         test = 'declare a 2 expression a + 2 derivative wrt a'
         p = Parser(test)
         p.parse()
-        self.assertEqual(str(p.dag), '(a + 2_0)')
+        self.assertEqual(str(p.dag), '(a + 2)')
     def test_broadcasting_2(self):
         test = 'declare A 2 x 1 expression (A + 1) *(ij,j->i) 1  derivative wrt a'
         p = Parser(test)
         p.parse()
-        self.assertEqual(str(p.dag), '((A + 1_1) *(ij,j->i) 1_2)')
+        self.assertEqual(str(p.dag), '((A + 1) *(ij,j->i) 1)')
     def test_delta_1(self):
         test = 'declare A 2 expression delta(0) *(,ij->) A  derivative wrt a'
         p = Parser(test)

@@ -54,6 +54,22 @@ class Tree():
         self.resultIndices = result
 
     def __repr__(self):
+        to_print = self.name
+        if self.type == NODETYPE.CONSTANT:
+            to_print = to_print.split('_')[0] # Removes the running constant number 
+        if self.right:
+            if self.left:
+                return f'({self.left} {to_print} {self.right})'
+            else:
+                if self.name == 'elementwise_inverse':
+                    const = f'1_{Tree.new_constant()}'
+                    Tree.printing_constants[const] = self.right.axes
+                    return f'({1} / ({self.right}))'
+                return f'({to_print}({self.right}))'
+        else:
+            return f'{to_print}'
+    
+    def repr_with_constant_numbers(self):
         if self.right:
             if self.left:
                 return f'({self.left} {self.name} {self.right})'

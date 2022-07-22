@@ -345,5 +345,5 @@ if __name__ == '__main__':
     d.originalDag.dot('dags/original')
     d.differentiate()
     d.render()
-    print(d.diffDag)
+    print(d.diffDag.repr_with_constant_numbers())
     d.print_axes_help()
