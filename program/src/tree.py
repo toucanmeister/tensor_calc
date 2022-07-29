@@ -431,11 +431,10 @@ class Tree():
                 self.resultIndices += missingIndices
                 self.name = f'*({s1},{s2}->{self.resultIndices})'
                 new_self = add_blowup(oldResultIndices, missingIndices)
-                
         if self.left:
-            self.left.fix_missing_indices(arg)
+            self.left = self.left.fix_missing_indices(arg)
         if self.right:
-            self.right.fix_missing_indices(arg)
+            self.right = self.right.fix_missing_indices(arg)
         return new_self
     
     def rename_equivalent_constants(self):

@@ -335,8 +335,11 @@ class Differentiator():
 
 if __name__ == '__main__':
     example = '''
-        declare W 2
-        expression -(1 *(,ij->) W)
+        declare 
+            W 2
+            a 0
+            X 2
+        expression (a *(,->) (W *(ij,ij->) W)) + (-1 *(,ik->) (X *(ij,jk->ik) W))
         derivative wrt W
         '''
     d = Differentiator(example)
