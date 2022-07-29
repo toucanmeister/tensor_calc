@@ -33,6 +33,7 @@ class Differentiator():
         self.diffDag.axes = self.originalDag.axes + self.originalDag.axes
         self.diffDag = self.reverse_mode_diff(self.originalDag, self.diffDag)
         self.diffDag.set_tensorrank(self.variable_ranks, self.arg)
+        self.diffDag.add_incoming_edges()
         self.diffDag.unify_axes()
         self.diffDag.rename_equivalent_constants()
         self.simplify(self.diffDag)
@@ -334,17 +335,36 @@ class Differentiator():
             print(f'{constant} {Tree.printing_constants[constant]}')
 
 if __name__ == '__main__':
-    example = '''
-        declare 
-            W 2
+    example= '''
+        declare
             a 0
             X 2
-        expression (a *(,->) (W *(ij,ij->) W)) + (-1 *(,ik->) (X *(ij,jk->ik) W))
+            Y 2
+            W 2
+        expression (a *(,->) (W *(ij,ij->) W)) + (-1 *(,ik->) (log(exp(X *(ij,jk->ik) W) / ((exp(X *(ij,jk->ik) W) * (ik,k->i) 1) * (i,k->ik) 1) + 1e-08) * (ik,ik->ik) Y))    
         derivative wrt W
-        '''
+    '''
     d = Differentiator(example)
-    d.originalDag.dot('dags/original')
+    #d.originalDag.dot('dags/original')
     d.differentiate()
-    d.render()
+    #d.render()
     print(d.diffDag.repr_with_constant_numbers())
-    d.print_axes_help()
+    d.differentiate()
+    print('Second time calling differentiate:')
+    print(d.diffDag.repr_with_constant_numbers())
+
+    example2 = '''
+        declare
+            a 0
+            X 2
+            Y 2
+            W 2
+        expression (((a *(,ij->ij) W) + (a *(,ij->ij) W)) + (((((((1 *(ik,->ik) -1) *(ik,ik->ik) Y) *(ab,ab->ab) (1 / ((((exp((X *(ij,jk->ik) W))) *(ab,ab->ab) (1 / ((((exp((X *(ij,jk->ik) W))) *(ik,k->i) 1) *(i,k->ik) 1)))) + 1e-08)))) *(ab,ab->ab) (1 / ((((exp((X *(ij,jk->ik) W))) *(ik,k->i) 1) *(i,k->ik) 1)))) + (((((((1 *(ik,->ik) -1) *(ik,ik->ik) Y) *(ab,ab->ab) (1 / ((((exp((X *(ij,jk->ik) W))) *(ab,ab->ab) (1 / ((((exp((X *(ij,jk->ik) W))) *(ik,k->i) 1) *(i,k->ik) 1)))) + 1e-08)))) *(ab,ab->ab) (exp((X *(ij,jk->ik) W)))) *(ab,ab->ab) (-((1 / (((((exp((X *(ij,jk->ik) W))) *(ik,k->i) 1) *(i,k->ik) 1) *(ab,ab->ab) (((exp((X *(ij,jk->ik) W))) *(ik,k->i) 1) *(i,k->ik) 1))))))) *(ik,k->i) 1) *(i,k->ik) 1)) *(ab,ab->ab) (exp((X *(ij,jk->ik) W)))) *(ik,ij->jk) X)) 
+        derivative wrt W
+    '''
+    d = Differentiator(example2)
+    d.differentiate()
+    print()
+    print('Explicitly differentiating the first diff:')
+    print(d.diffDag.repr_with_constant_numbers())
+

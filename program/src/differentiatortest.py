@@ -4,11 +4,7 @@ from tree import NODETYPE, Tree
 
 class DifferentiatorTests(unittest.TestCase):
     def reset_tree_attributes(self):
-        Tree.node_counter = 0
-        Tree.axes_counter = 1
-        Tree.axis_to_origin = {}
-        Tree.constant_counter = 0
-        Tree.printing_constants = {}
+        Tree.reset_tree_attributes()
 
     def test_base(self):
         self.reset_tree_attributes()

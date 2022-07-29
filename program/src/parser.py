@@ -29,6 +29,7 @@ class Parser():
             self.dag.eliminate_common_subtrees()
         self.arg = self.dag.find(self.arg_name)
         self.dag = self.dag.fix_missing_indices(self.arg)
+        self.dag.dot('dags/blubs')
         self.dag.add_incoming_edges()
         self.dag.set_tensorrank(self.variable_ranks, self.arg)
         self.arg = self.dag.find(self.arg_name)

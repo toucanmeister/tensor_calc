@@ -167,6 +167,14 @@ class Tree():
         Tree.constant_counter += 1
         return constant
 
+    @classmethod
+    def reset_tree_attributes(cls):
+        Tree.node_counter = 0
+        Tree.axes_counter = 1
+        Tree.axis_to_origin = {}
+        Tree.constant_counter = 0
+        Tree.printing_constants = {}
+
     def set_tensorrank(self, variable_ranks, arg):
         if self.left:
             self.left.set_tensorrank(variable_ranks, arg)
@@ -299,16 +307,13 @@ class Tree():
             self.right.unify_axes()
     
     def rename_axis(self, axis_to_rename, new_name):
-        if axis_to_rename in Tree.axis_to_origin.keys() and new_name in Tree.axis_to_origin.keys() and axis_to_rename != new_name:
-            Tree.axis_to_origin.pop(axis_to_rename)
-        elif axis_to_rename in Tree.axis_to_origin.keys() and new_name not in Tree.axis_to_origin.keys():
-            Tree.axis_to_origin[new_name] = Tree.axis_to_origin[axis_to_rename]
-            Tree.axis_to_origin.pop(axis_to_rename)
-        self.axes = [new_name if axis == axis_to_rename else axis for axis in self.axes]
-        if self.left:
-            self.left.rename_axis(axis_to_rename, new_name)
-        if self.right:
-            self.right.rename_axis(axis_to_rename, new_name)
+        def helper(node):
+            node.axes = [new_name if (axis == axis_to_rename) else axis for axis in node.axes]
+            if node.left:
+                helper(node.left)
+            if node.right:
+                helper(node.right)
+        helper(self)
     
     def get_root(self): # Requires incoming edges which are added during CSE
         if not self.incoming:
@@ -349,10 +354,10 @@ class Tree():
             helper(subtree)
     
     def add_incoming_edges(self):
-        if self and self.left:
+        if self.left:
             self.left.incoming.append(self)
             self.left.add_incoming_edges()
-        if self and self.right:
+        if self.right:
             self.right.incoming.append(self)
             self.right.add_incoming_edges()
         
