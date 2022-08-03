@@ -1,8 +1,4 @@
-from ast import Constant
-from http.client import CONFLICT
 from parser import Parser
-
-from pyrsistent import s
 from scanner import ELEMENTWISE_FUNCTIONS, TOKEN_ID
 from tree import Tree, NODETYPE
 import string
@@ -196,8 +192,8 @@ class Differentiator():
     
     def diff_special_function(self, node, diff):
         if node.name == 'inv':
-            funcDiff = Tree(NODETYPE.PRODUCT, f'*(ij,kl->iklj)', Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, node), node)
-            funcDiff.set_indices('ij', 'kl', 'iklj')
+            funcDiff = Tree(NODETYPE.PRODUCT, f'*(ij,kl->kjli)', Tree(NODETYPE.ELEMENTWISE_FUNCTION, '-', None, node), node)
+            funcDiff.set_indices('ij', 'kl', 'kjli')
         if node.name == 'det':
             funcDiff = Tree(NODETYPE.PRODUCT, '*(ij,->ji)', Tree(NODETYPE.SPECIAL_FUNCTION, 'adj', None, node.right), Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}'))
             funcDiff.set_indices('ij', '', 'ji')

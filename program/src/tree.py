@@ -231,7 +231,7 @@ class Tree():
             self.rank = self.left.rank
             self.axes = self.left.axes
             for i in range(len(self.axes)):
-                if Tree.axis_to_origin[self.axes[i]].startswith('broadcast_axis'): # This axis does not come from a variable, needs to be overriden
+                if Tree.axis_to_origin[self.axes[i]].startswith('broadcast_axis') or Tree.axis_to_origin[self.axes[i]].startswith('delta'): # This axis does not come from a variable, needs to be overriden
                     self.axes[i] = self.right.axes[i]
         elif self.type == NODETYPE.POWER:
             if self.right.rank != 0:
@@ -254,7 +254,7 @@ class Tree():
                     if i in self.leftIndices and i in self.rightIndices: # If we may take it from both left and right, choose the one with the axis coming from a variable
                         left_axis = self.left.axes[self.leftIndices.index(i)]
                         right_axis = self.right.axes[self.rightIndices.index(i)]
-                        if Tree.axis_to_origin[left_axis].startswith('broadcast_axis'):
+                        if Tree.axis_to_origin[left_axis].startswith('broadcast_axis') or Tree.axis_to_origin[left_axis].startswith('delta'):
                             self.axes.append(right_axis)
                         else:
                             self.axes.append(left_axis)
@@ -297,7 +297,7 @@ class Tree():
                 if indexInRight != -1:
                     left_axis = self.left.axes[i]
                     right_axis = self.right.axes[indexInRight]
-                    if Tree.axis_to_origin[left_axis].startswith('broadcast_axis'): # Axis that does not come from a variable, we should choose the other one
+                    if Tree.axis_to_origin[left_axis].startswith('broadcast_axis') or Tree.axis_to_origin[left_axis].startswith('delta'): # Axis that does not come from a variable, we should choose the other one
                         self.get_root().rename_axis(left_axis, right_axis)
                     else:
                         self.get_root().rename_axis(right_axis, left_axis)
