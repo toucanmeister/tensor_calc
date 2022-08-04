@@ -57,9 +57,7 @@
 \chapter*{Abstract}
 In optimization problems, derivatives play a crucial role in finding an optimal solution.
 While automatic symbolic differentiation of matrix expressions and numerical differentiation of tensor expressions are well researched, automatic symbolic differentiation of tensor expressions is less so.
-In this thesis, we design and implement a tensor calculus that allows for automatic symbolic differentiation of tensor expressions of any order.
-This calculus uses an Einstein-like product notation that is more general than the notation used in Ricci calculus.
-[Was sollte hier noch hin?]
+In this thesis, we design and implement a tensor calculus that allows for automatic symbolic differentiation of tensor expressions of any order while using an Einstein-like product notation that is more general than the notation used in the popular Ricci calculus.
 \pagenumbering{gobble}
 
 \addcontentsline{toc}{chapter}{Table of Contents}
@@ -693,7 +691,7 @@ The derivatives $f'$ of all accepted functions $f$ need to be known.
 They are listed in Table \ref{tab:func_diffs}
 \begin{table}[ht]
     \centering
-    \begin{tabular}{l | l} %TODO: Add source for this?
+    \begin{tabular}{l | l}
         Function & Derivative wrt. x \\\hline
         $-(x)$ & $-(1)$ \\
         $\text{sin}(x)$ & $\text{cos}(x)$ \\
@@ -753,6 +751,13 @@ They are listed in Table \ref{tab:func_diffs}
     \caption{\textbf{Left}: Part of a DAG that contains the subexpression $\text{sin(X)}$. $X$ is an order 2 tensor (matrix) and "..." represents the rest of the DAG. \textbf{Right}: Derivative of the left DAG with respect to $X$ computed using the rule for elementwise functions. "..." represents the pullback of the function node. Note that the topmost output node of the left DAG is assumed to be scalar here, which has an impact on the indices in the product node in the right DAG.}
     \label{fig:func_rule}
 \end{figure}
+
+%\FloatBarrier
+%\section{DAG Growth}
+%Each differentiation rule only adds a constant number of nodes.
+%The only other added nodes during differentiation are when multiple paths to the same node are found.
+%Each parent edge after the first one adds a sum node.
+%Maximal so viele Knoten wie im nicht-vereinfachten binären Baum waren?
 
 \FloatBarrier
 \section{First Example}
@@ -1116,10 +1121,21 @@ Both the modified DAG and the derivative are visible in Figure \ref{fig:missing_
     \label{fig:missing_indices_example}
 \end{figure}
 
+\chapter{Summary}
+In this thesis, we covered the design and implementation of a calculus for automtatic symbolic differentiation of tensor expressions.
+We created a language for general tensor expressions using an Einstein-like notation for tensor products and discussed how expressions formulated in this language may be parsed into a suitable representation, a directed acyclic graph (DAG).
+We also demonstrated multiple preprocessing steps, substituting some subexpressions for more easily differentiable ones, eliminating multiple occurences of the same subexpression and storing both tensor order and an axis tuple for each node in the DAG.
+We gave a review of the theory behind the differentiation of tensor expressions using our notation and demonstrated our implementation, which is able to differentiate the preprocessed expression DAGs.
+Possible further developments could address the flexibility and readablity of the input language, for example by adding a generalized transpose operation that allows axis permutations, which have to be embedded in tensor products in the current language.
+The tensor products could also be generalized even further, possibly by adding a unary version that allows one to sum over a single tensor's axes.
+Furthermore, the our algorithms could be analyzed and optimized in regards to efficiency and performance for different inputs.
+Lastly, one possible use of this thesis' results are convexity checks for arbitrary functions.
+How our representation of tensor function derivatives can be used to detect convexity and concavity is worth investigating.
 
-\chapter{Literature}
+\addcontentsline{toc}{chapter}{Bibliography}
 \printbibliography
-\chapter{Appendices}
-\chapter{Declaration of autonomy}
+
+\addcontentsline{toc}{chapter}{Statement of Autonomy}
+\chapter*{Statement of Autonomy}
 
 \end{document}
