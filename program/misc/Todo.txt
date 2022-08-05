@@ -58,16 +58,10 @@ x Achsennamen speichern und propagieren
   x Achsenvertauschungen bei Multiplikationen fixen
 x Spezialfall verschwindende Achsen handlen (Delta aufpusten)
   x Mehr Tests
-- Numerischer Check für die Ableitungen
+x Numerischer Check für die Ableitungen
   x deltas keinen Unterstrich
 - Schöneres Print
-- Codeerzeugung
+x Codeerzeugung
 
 - Schreiben:
 	- Beweis, dass unsere Transformation funktioniert
-
-----------------------------------
-Use Cases:
-- Codeerzeugung
-- Konvexitätstests über Graphendarstellung
-- Stringausgabe

@@ -24,6 +24,11 @@ class Differentiator():
 
     def differentiate(self):
         originalRank = self.originalDag.rank
+        if self.arg == None: # Argument is not in expression
+            self.diffDag = Tree(NODETYPE.CONSTANT, f'0_{Tree.new_constant()}')
+            self.diffDag.rank = originalRank * 2
+            self.diffDag.axes = self.originalDag.axes + self.originalDag.axes
+            return
         self.diffDag = Tree(NODETYPE.DELTA, f'delta({originalRank})')   # Derivative of the top node y with respect to itself
         self.diffDag.rank = originalRank * 2
         self.diffDag.axes = self.originalDag.axes + self.originalDag.axes

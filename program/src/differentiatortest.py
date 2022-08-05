@@ -5,7 +5,7 @@ from numcheck import numcheck
 
 class DifferentiatorTests(unittest.TestCase):
     numcheck_h = 1e-8
-    numcheck_err_limit = 0.01
+    numcheck_err_limit = 1e-6
 
     def reset_tree_attributes(self):
         Tree.reset_tree_attributes()
@@ -458,6 +458,12 @@ class DifferentiatorTests(unittest.TestCase):
         self.assertEqual(str(d.diffDag), '((delta(4) *(abcdijkl,ij->abcdijkl) a) + (delta(4) *(efghabcd,abcd->efghabcd) (-((sin(X))))))')
         self.assertTrue(numcheck(d, h=self.numcheck_h, err_limit=self.numcheck_err_limit))
 
+    def test_arg_missing(self):
+        self.reset_tree_attributes()
+        test = 'declare X 2 expression sin(delta(1)) *(ij,ij->) X derivative wrt a'
+        d = Differentiator(test)
+        d.differentiate()
+        self.assertEqual(str(d.diffDag), '0')
 
 if __name__ == '__main__':
     unittest.main()
