@@ -1044,8 +1044,9 @@ The complete, simplified DAG is visible in Figure \ref{fig:alg_example_3}.
 \section{The Problematic Case of Disappearing Indices}
 In this section we present a problem with the differentiation of tensor products that was discovered during development, along with a solution.
 
-In the proof of the reverse mode differentiation product rule in the paper by Laue, Mitterreiter and Giesen \cite{tensorpaper} (Theorem 8) in the fourth equality, the associative property for tensor products is used to transform $\bar{C} *_{(s_4s_3,s_3 \rightarrow s_4)} (A *_{(s_1,s_2 \rightarrow s_3)} h)$ into $(\bar{C} *_{(s_4s_3,s_1 \rightarrow s_4s_2)} A) *_{(s_4s_2,s_2 \rightarrow s_4)} h$. 
-However, as can be seen in the corresponding Lemma 1 on the previous page of the paper, %Todo: Explain why the problem occurs.
+\subsection{Problem and Programmatic Solution}
+In the proof of the reverse mode differentiation product rule in the paper \cite{tensorpaper} by Laue, Mitterreiter and Giesen (Theorem 8) in the fourth equality, the associative property for tensor products is used to transform $\bar{C} *_{(s_4s_3,s_3 \rightarrow s_4)} (A *_{(s_1,s_2 \rightarrow s_3)} h)$ into $(\bar{C} *_{(s_4s_3,s_1 \rightarrow s_4s_2)} A) *_{(s_4s_2,s_2 \rightarrow s_4)} h$. 
+However, as can be seen by comparing the equality with the corresponding Lemma 1 on the previous page of the paper, the associative property would require that $s_1 = s_3 s_2$, which is not always the case.
 
 For some DAGs, this causes invalid product nodes to be created during differentiation.
 Consider the case where an index appears only in the index string of one input of a product node, but not in the output index string.
@@ -1069,6 +1070,39 @@ This achieves the same result as the original DAG, but by making the sum over th
 In our example, we would transform the original expression from $A *_{(ij,j \rightarrow )} v$ to $(A *_{(ij,j \rightarrow i)} v) *_{(i,i \rightarrow)} 1$.
 Both the modified DAG and the derivative are visible in Figure \ref{fig:missing_indices_example}.
 
+\subsection{Proof of Correctness}
+In this section, we prove that the way we addressed the problem in the previous chapter, making the sum over the missing axes explicit, actually solves the problem.
+Consider the left side of the fourth equality in the paper \cite{tensorpaper} by Laue, Mitterreiter and Giesen.
+$$
+\bar{C} *_{(s_4s_3,s_3 \rightarrow s_4)} (A *_{(s_1,s_2 \rightarrow s_3)} h)
+$$
+We start by explicitly writing the Einstein-like tensor products as sums.
+Note that we obtain the indices of the outer sum from $s_3 s_4 \setminus s_4 = s_3$
+$$
+\sum_{s_3} \bar{C}[s_4 s_3] (\sum_{s_1 s_2 \setminus s_3} A[s_1] h[s_2]) 
+$$
+As both sums go over separate, non-overlapping index sets, we may collapse them into a single sum.
+$$
+\sum_{s_1 s_2 s_3} \bar{c}[s_4 s_3] A[s_1] h[s_2]
+$$
+In the end, we wish to have an expression that ends with a form of $x \circ h$, because that makes $x$ the derivative we are looking for.
+To accomplish this, we split off part of the large sum to create two smaller sums over different indices.
+$$
+\sum_{s_2} (\sum_{s_1 s_3 \setminus s_2} \bar{c}[s_4 s_3] A[s_1]) h[s_2]
+$$
+Next, we write the inner sum as in our Einstein-like tensor product notation.
+This requires us to determine the output indices of the tensor product by adding the input indices, $s_4 s_3$ and $s_1$, and removing the indices that are summed over, $s_1 s_3 \setminus s_2$.
+This leads to $s_1 s_3 s_4 \setminus (s_1 s_3 \setminus s_2)$, which we may simplify in the following way:
+$$
+s_1 s_3 s_4 \setminus (s_1 s_3 \setminus s_2)
+= s_1 s_3 s_4 \setminus (s_1 s_3 \cap \bar{s_2})
+= s_1 s_3 s_4 \cap \bar{(s_1 s_3 \cap \bar{s_2})}
+= s_1 s_3 s_4 \cap (\bar{s_1 s_3} \cup s_2)
+= (s_1 s_3 s_4 \cap \bar{s_1 s_3}) \cup (s_1 s_3 s_4 \cap s_2)
+= (s_1 s_3 s_4 \setminus s_1 s_3) \cup (s_1 s_3 s_4 \cap s_2)
+= (s_4 \setminus s_1 s_3) \cup (s_1 s_3 s_4 \cap s_2) %TODO: FINISH THIS UND FÜGE IMPLIZITE ANNAHMEN HINZU
+$$
+where $\bar{x}$ is the set complement of $x$.
 
 \begin{figure}
     \begin{minipage}{4cm}
