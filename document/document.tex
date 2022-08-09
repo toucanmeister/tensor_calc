@@ -131,10 +131,11 @@ This simple set of rules provides an elegant way to express the main tensor oper
 
 We take a large part of the syntax for tensor multiplication from the established Python software package \textit{Numpy}, specifically its \codeword{einsum} procedure.
 A product of two tensors $x$ and $y$ has the form $x*_{(a,b \rightarrow c)}y$, where $a$,$b$ and $c$ are strings of indices.
-A formal characterization of the product $C = A *_{(s_1,s_2 \rightarrow s_3)} B$ is given in Equation \ref{eq:product}.
+A formal characterization of the product $C = A *_{(s_1,s_2 \rightarrow s_3)} B$ is given in Equation \ref{eq:product}, where $s_1$, $s_2$ and $s_3$ represent index sets.
+Note that for two index sets $s_1$ and $s_2$, we write $s_1 s_2$ as shorthand for $s_1 \cup s_2$.
 
 \begin{equation}
-    C[s_3] = \sum_{(s_1 \cup s_2)  \backslash s_3} A[s_1] \cdot B[s_2]
+    C[s_3] = \sum_{(s_1 s_2)  \backslash s_3} A[s_1] \cdot B[s_2]
     \label{eq:product}
 \end{equation}
 
@@ -913,6 +914,7 @@ We also need to move all nodes in the differentiation DAG that rely on the pullb
 Thus, we set all parents of the old pullback to have the updated pullback as their child.
 This way, we build up the correct pullback over time, adding contributions as we find new ways to reach each node.
 
+
 \section{Second Example}
 To better illustrate the process of building a pullback piece by piece, we showcase an example.
 Consider the DAG in Figure \ref{fig:alg_example_1} representing the expression $\text{sin}(v) + \text{cos}((\text{sin}(v)))$ for an order 1 tensor $v$.
@@ -964,6 +966,7 @@ The complete, simplified DAG is visible in Figure \ref{fig:alg_example_3}.
     \label{fig:alg_example_1}
 \end{figure}
 
+
 \begin{figure}
     \centering
     \scalebox{0.8}{
@@ -988,7 +991,7 @@ The complete, simplified DAG is visible in Figure \ref{fig:alg_example_3}.
             \node[main] (3+) at (12,2) {$+$};
             \node[main, ellipse] (3*2) at (12,0) {$*_{(ba,a \rightarrow ba)}$};
             \node[main] (3sin) at (13,-2) {$\text{sin}$};
-            \node[main] (3v2) at (13,-4) {$v$}
+            \node[main] (3v2) at (13,-4) {$v$};
             \node[main] (3delta1) at (11,-2) {$\delta_1$};
             \node[main] (3delta2) at (9.8,0) {$\delta_1$};
             % edges
@@ -1041,68 +1044,91 @@ The complete, simplified DAG is visible in Figure \ref{fig:alg_example_3}.
 \end{figure}
 
 \FloatBarrier
-\section{The Problematic Case of Disappearing Indices}
+\section{Invalid Nodes Created by the Product Rule}
 In this section we present a problem with the differentiation of tensor products that was discovered during development, along with a solution.
 
-\subsection{Problem and Programmatic Solution}
-In the proof of the reverse mode differentiation product rule in the paper \cite{tensorpaper} by Laue, Mitterreiter and Giesen (Theorem 8) in the fourth equality, the associative property for tensor products is used to transform $\bar{C} *_{(s_4s_3,s_3 \rightarrow s_4)} (A *_{(s_1,s_2 \rightarrow s_3)} h)$ into $(\bar{C} *_{(s_4s_3,s_1 \rightarrow s_4s_2)} A) *_{(s_4s_2,s_2 \rightarrow s_4)} h$. 
-However, as can be seen by comparing the equality with the corresponding Lemma 1 on the previous page of the paper, the associative property would require that $s_1 = s_3 s_2$, which is not always the case.
-
-For some DAGs, this causes invalid product nodes to be created during differentiation.
-Consider the case where an index appears only in the index string of one input of a product node, but not in the output index string.
+\subsection{Problem}
+We discovered that the differentiation rule for product nodes sometimes creates invalid product nodes.
+Specifically in the case where an index appears only in the index string of one input of a product node, but not in the output index string.
 An example of this would be the DAG on the left in Figure \ref{fig:missing_indices_example}, containing a node representing the product $A *_{(ij,j \rightarrow )} v$, where the index $i$ only appears in the left index string.
 When differentiating this DAG with respect to $A$, we compute the contribution of the product node to the pullback of $A$ and receive $\delta_0 *_{(,j \rightarrow ij)} v$ using the product rule.
 The resulting product node is not valid, because the index $i$ appears in the result index string, but not in either input index string.
 
-Even though these cases create invalid products, they can still be interpreted in an intuitive way.
-In our example, one of $A$'s axes is summed over in the original product.
-Because of this, the derivative over this axis will be the same for all entries.
-If we removed this redundancy, we would obtain $\delta_0 *_{(,j \rightarrow j)} v$ as the result.
-The extra index $i$ in the result indices of the product in the differentiation DAG can be interpreted as duplicating the result over another axis, which would be the correct derivative.
-
-To implement this idea and prevent invalid product nodes from appearing, we modify the original DAG before it is differentiated by making the sum over the disappearing axis explicit.
-In nodes where the problem would occur, that is to say nodes where at least one index appears only in the index string of one of the input nodes, not in the output index string and where this input node contains the differentiation argument, we do the following.
-We identify the missing indices and append them to the output index string of the product node.
-This prevents an invalid product node from being created, but it also changes the node, since it now has more axes than before.
-To remedy this, we add another product node where we explicitly sum over these axes while multiplying with a vector of ones.
-This achieves the same result as the original DAG, but by making the sum over the axes explicit in another product node, we prevent the problematic case.
-
-In our example, we would transform the original expression from $A *_{(ij,j \rightarrow )} v$ to $(A *_{(ij,j \rightarrow i)} v) *_{(i,i \rightarrow)} 1$.
-Both the modified DAG and the derivative are visible in Figure \ref{fig:missing_indices_example}.
-
-\subsection{Proof of Correctness}
-In this section, we prove that the way we addressed the problem in the previous chapter, making the sum over the missing axes explicit, actually solves the problem.
-Consider the left side of the fourth equality in the paper \cite{tensorpaper} by Laue, Mitterreiter and Giesen.
+The root of this problem can be found in the proof of the reverse mode differentiation product rule in the paper \cite{tensorpaper} by Laue, Mitterreiter and Giesen (Theorem 8).
+In this proof, Laue, Mitterreiter and Giesen find the derivative of a product node $A *_{(s_1, s_2 \rightarrow s_3)} B$ with respect to $B$, although all statements we make are analogously applicable to the differentiation with respect to $A$.
+To find the derivative, the authors of the paper start from the definition of the Fr\'{e}chet Derivative applied to the product node and transform it to describe the pullback of $B$.
+In the end, we wish to have an expression that ends with a form of $x \circ h$, because that makes $x$ the Fr\'{e}chet Derivative we are looking for.
+Here, $\circ$ describes an inner product.
+In our notation, an inner product has the form $x *_{(s_1 s_2, s_2 \rightarrow s_1)} h$ for two index strings $s_1$ and $s_2$.
+Important to us is the fourth equality of the proof, where the associative property for tensor products is used to transform $\bar{C} *_{(s_4s_3,s_3 \rightarrow s_4)} (A *_{(s_1,s_2 \rightarrow s_3)} h)$ into $(\bar{C} *_{(s_4s_3,s_1 \rightarrow s_4s_2)} A) *_{(s_4s_2,s_2 \rightarrow s_4)} h$.
+Consider the paper's definition of the associative property for tensor products.
 $$
-\bar{C} *_{(s_4s_3,s_3 \rightarrow s_4)} (A *_{(s_1,s_2 \rightarrow s_3)} h)
+(A *_{(s_1, s_2 s_4 \rightarrow s_3 s_4)} B) *_{(s_3 s_4, s_4 \rightarrow s_3)} C = A *_{(s_1, s_2 \rightarrow s_3)} (B *_{(s_2 s_4, s_4 \rightarrow s_2)})
 $$
+where $s_3 \subseteq s_1 \cup s_2$ and $s_4 \cap (s_1 \cup s_2) = \emptyset$. 
+Applying the associative property to our expression would require that $s_1 = s_3 s_2$, which is not the case for all product nodes.
+Thus, we cannot always apply the associative property here.
+
+\subsection{Solution}
+To solve this problem, we forego the paper's version of the associative property and find another way to transform $\bar{C} *_{(s_4s_3,s_3 \rightarrow s_4)} (A *_{(s_1,s_2 \rightarrow s_3)} h)$ into an inner product.
+
 We start by explicitly writing the Einstein-like tensor products as sums.
-Note that we obtain the indices of the outer sum from $s_3 s_4 \setminus s_4 = s_3$
+The indices we sum over are the indices of the inputs with the result indices removed.
+Note that we obtain the indices of the outer sum from $s_3 s_4 \setminus s_4 = s_3$.
 $$
-\sum_{s_3} \bar{C}[s_4 s_3] (\sum_{s_1 s_2 \setminus s_3} A[s_1] h[s_2]) 
+\sum_{s_3} \bar{C}[s_4 s_3] \; (\sum_{s_1 s_2 \setminus s_3} A[s_1] \; h[s_2]) 
 $$
 As both sums go over separate, non-overlapping index sets, we may collapse them into a single sum.
 $$
-\sum_{s_1 s_2 s_3} \bar{c}[s_4 s_3] A[s_1] h[s_2]
+\sum_{s_1 s_2 s_3} \bar{C}[s_4 s_3] \; A[s_1] \; h[s_2]
 $$
-In the end, we wish to have an expression that ends with a form of $x \circ h$, because that makes $x$ the derivative we are looking for.
-To accomplish this, we split off part of the large sum to create two smaller sums over different indices.
+As the first step towards writing our expression as an inner product, we split off part of the large sum to create two smaller sums over different indices.
 $$
-\sum_{s_2} (\sum_{s_1 s_3 \setminus s_2} \bar{c}[s_4 s_3] A[s_1]) h[s_2]
+\sum_{s_2} (\sum_{s_1 s_3 \setminus s_2} \bar{C}[s_4 s_3] \; A[s_1]) \; h[s_2]
 $$
 Next, we write the inner sum as in our Einstein-like tensor product notation.
 This requires us to determine the output indices of the tensor product by adding the input indices, $s_4 s_3$ and $s_1$, and removing the indices that are summed over, $s_1 s_3 \setminus s_2$.
 This leads to $s_1 s_3 s_4 \setminus (s_1 s_3 \setminus s_2)$, which we may simplify in the following way:
-$$
-s_1 s_3 s_4 \setminus (s_1 s_3 \setminus s_2)
-= s_1 s_3 s_4 \setminus (s_1 s_3 \cap \bar{s_2})
-= s_1 s_3 s_4 \cap \bar{(s_1 s_3 \cap \bar{s_2})}
-= s_1 s_3 s_4 \cap (\bar{s_1 s_3} \cup s_2)
-= (s_1 s_3 s_4 \cap \bar{s_1 s_3}) \cup (s_1 s_3 s_4 \cap s_2)
-= (s_1 s_3 s_4 \setminus s_1 s_3) \cup (s_1 s_3 s_4 \cap s_2)
-= (s_4 \setminus s_1 s_3) \cup (s_1 s_3 s_4 \cap s_2) %TODO: FINISH THIS UND FÜGE IMPLIZITE ANNAHMEN HINZU
-$$
+\begin{align*}
+&s_1 s_3 s_4 \setminus (s_1 s_3 \setminus s_2) \\
+&= s_1 s_3 s_4 \setminus (s_1 s_3 \cap \overline{s_2}) \\
+&= s_1 s_3 s_4 \cap \overline{(s_1 s_3 \cap \overline{s_2})} \\
+&= s_1 s_3 s_4 \cap (\overline{s_1 s_3} \cup s_2) \\
+&= (s_1 s_3 s_4 \cap \overline{s_1 s_3}) \cup (s_1 s_3 s_4 \cap s_2) \\
+&= (s_1 s_3 s_4 \setminus s_1 s_3) \cup (s_1 s_3 s_4 \cap s_2) \\
+&= (s_4 \setminus s_1 s_3) \cup (s_1 s_3 s_4 \cap s_2) \\
+&= s_4 \cup (s_1 s_3 s_4 \cap s_2) \\
+&= s_4 \cup (s_1 s_3 \cap s_2) \\
+\end{align*}
 where $\bar{x}$ is the set complement of $x$.
+The last two simplification steps are possible because the output indices $s_4$ is always be chosen to be disjoint to $s_1$, $s_2$ and $s_3$.
+
+With these output indices, we may rewrite our expression.
+$$
+\sum_{s_2} (C *_{(s_4 s_3, s_1 \rightarrow s_4 \cup (s_1 s_3 \cap s_2))} A) \; h[s_2]
+$$
+We know that the output indices of this expression need to be $s_4$.
+Using this, we can rewrite the outer sum as in our tensor product notation as well.
+$$
+(C *_{(s_4 s_3, s_1 \rightarrow s_4 \cup (s_1 s_3 \cap s_2))} A) *_{((s_4 \cup (s_1 s_3 \cap s_2)), s_2 \rightarrow s_4)} h
+$$
+At this point, if we had $s_4 s_2$ instead of $s_4 \cup (s_1 s_3 \cap s_2)$ in the left and right products, the right product would have the form $*_{(s_4 s_2, s_2 \rightarrow s_4)}$ and would be an inner product.
+We can see that $s_4 s_2 \neq s_4 \cup (s_1 s_3 \cap s_2)$ when there are indices in $s_2$ that are not present in either $s_1$ or $s_3$.
+If we could remove this case, we would be successful in creating an inner product and thus in computing the derivative.
+
+To implement this idea and prevent invalid product nodes from appearing, we modify the original DAG before it is differentiated.
+For any product node of the form $A *_{s_1, s_{21} s_{22} \rightarrow s_3} B$ where $s_{21} \cap (s_1 s_3) = s_{21}$ and $s_{22} \cap (s_1 s_3) = \emptyset$, we call $s_{22}$ the missing indices of this node and transform by making the sum over the missing indices explicit.
+
+
+We append the missing indices to the output index string of the product node, leading to $A *_{s_1, s_{21} s_{22} \rightarrow s_3 s_{22}} B$.
+This prevents an invalid product node from being created, because the indices in $s_{22}$ are now also present in the output indices.
+However, this also changes the node, since it now has more output axes than before.
+To remedy this, we add another product node where we explicitly sum over these axes while multiplying with a tensor full of ones, leasing to $(A *_{s_1, s_{21} s_{22} \rightarrow s_3 s_{22}} B) *_{s_3 s_{22}, s_{22} \rightarrow s_3} 1$.
+Since $s_3$ appears in both the left input and the output, and $s_{22}$ appears in both inputs, this new product never has any missing indices.
+This transformation achieves the same result as the original DAG, but by making the sum over the axes explicit in another product node, we prevent the problematic case.
+
+In our example from the start, we would transform the original expression from $A *_{(ij,j \rightarrow )} v$ to $(A *_{(ij,j \rightarrow i)} v) *_{(i,i \rightarrow)} 1$.
+Both the modified DAG and the derivative are visible in Figure \ref{fig:missing_indices_example}.
 
 \begin{figure}
     \begin{minipage}{4cm}
