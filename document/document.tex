@@ -12,6 +12,7 @@
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{setspace}
+\usepackage{parskip}
 \usepackage{biblatex} %Imports biblatex package
 \addbibresource{bibliography.bib} %Import the bibliography file
 \usetikzlibrary{shapes.geometric}
@@ -26,9 +27,30 @@
 
 \renewcommand{\contentsname}{Table of Contents}
 
-\title{Designing and implementing a tensor calculus}
-\author{Farin Lippmann}
-\date{August 2022}
+\setlength{\parindent}{10pt}
+\title{
+Designing and Implementing a Tensor Calculus \vspace{50pt}
+
+\normalsize B A C H E L O R ' S $\;$ T H E S I S \vspace{10pt}
+
+In Fulfillment of the Requirements for the Academic Degree of \vspace{10pt}
+
+Bachelor of Science (B.Sc.) \vspace{10pt}
+
+In the Study Program 'Computer Science' \vspace{30pt}
+
+FRIEDRICH SCHILLER UNIVERSITY JENA \vspace{10pt}
+
+Faculty of Mathematics and Computer Science \vspace{60pt}
+
+submitted by Farin Lippmann \vspace{10pt}
+
+born on the 02.02.2000 in Gera \vspace{10pt}
+
+Supervisor: Prof. Dr. Joachim Giesen \vspace{10pt}
+
+}
+\date{\normalsize Jena, 25.08.2022}
 
 % Area: Generic optimization
 % Topic: Derivatives of higher-order tensor expressions
@@ -1186,17 +1208,25 @@ In this thesis, we covered the design and implementation of a calculus for autom
 We created a language for general tensor expressions using an Einstein-like notation for tensor products and discussed how expressions formulated in this language may be parsed into a suitable representation, a directed acyclic graph (DAG).
 We also demonstrated multiple preprocessing steps, substituting some subexpressions for more easily differentiable ones, eliminating multiple occurences of the same subexpression and storing both tensor order and an axis tuple for each node in the DAG.
 We gave a review of the theory behind the differentiation of tensor expressions using our notation and demonstrated our implementation, which is able to differentiate the preprocessed expression DAGs.
+The correctness of our implementation was verified by numerical checks, where the computed derivatives of a number of example inputs were compared with numerical approximation for random inputs. %TODO: IS THIS OUT-OF-PLACE?
 Possible further developments could address the flexibility and readablity of the input language, for example by adding a generalized transpose operation that allows axis permutations, which have to be embedded in tensor products in the current language.
 The tensor products could also be generalized even further, possibly by adding a unary version that allows one to sum over a single tensor's axes.
 Furthermore, our algorithms could be analyzed and optimized in regards to efficiency and performance for different inputs.
 Lastly, one possible use of this thesis' results are convexity checks for arbitrary functions.
 How our representation of tensor function derivatives can be used to detect convexity and concavity is worth investigating.
-%TODO: Numerical Checks?
 \addcontentsline{toc}{chapter}{Bibliography}
 \printbibliography
 
 \addcontentsline{toc}{chapter}{Statement of Autonomy}
-\chapter*{Statement of Autonomy}
-%TODO: Schreiben
+\chapter*{Declaration of Authorship}
+I hereby declare that I have created this thesis autonomously, using only the stated assistance and sources.
+The thesis has not been used for other courses or within other exam processes as exam work, nor has it been published in any language.
+
+\setlength{\parindent}{0pt}
+\vspace{10pt}
+The author does not object to this thesis being made available for public use. \vspace{50pt}
+
+Jena, 25.08.2022
+
 
 \end{document}
