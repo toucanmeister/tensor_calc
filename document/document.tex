@@ -29,25 +29,27 @@
 
 \setlength{\parindent}{10pt}
 \title{
-Designing and Implementing a Tensor Calculus \vspace{50pt}
+\includegraphics[scale=0.7]{logo.png} \vspace{60pt}
 
-\normalsize B A C H E L O R ' S $\;$ T H E S I S \vspace{10pt}
+Designing and Implementing a Tensor Calculus \vspace{30pt}
 
-In Fulfillment of the Requirements for the Academic Degree of \vspace{10pt}
+\normalsize B A C H E L O R ' S $\;$ T H E S I S 
 
-Bachelor of Science (B.Sc.) \vspace{10pt}
+In Fulfillment of the Requirements for the Academic Degree of 
 
-In the Study Program 'Computer Science' \vspace{30pt}
+Bachelor of Science (B.Sc.)
 
-FRIEDRICH SCHILLER UNIVERSITY JENA \vspace{10pt}
+In the Study Program 'Computer Science' \vspace{20pt}
 
-Faculty of Mathematics and Computer Science \vspace{60pt}
+FRIEDRICH SCHILLER UNIVERSITY JENA 
 
-submitted by Farin Lippmann \vspace{10pt}
+Faculty of Mathematics and Computer Science \vspace{40pt}
 
-born on the 02.02.2000 in Gera \vspace{10pt}
+submitted by Farin Lippmann 
 
-Supervisor: Prof. Dr. Joachim Giesen \vspace{10pt}
+born on the 02.02.2000 in Gera
+
+Supervisor: Prof. Dr. Joachim Giesen
 
 }
 \date{\normalsize Jena, 25.08.2022}
@@ -75,11 +77,19 @@ Supervisor: Prof. Dr. Joachim Giesen \vspace{10pt}
 \begin{document}
 \maketitle
 
-\addcontentsline{toc}{chapter}{Abstract}
+\chapter*{Zusammenfassung}
+Für Optimierungsprobleme spielen Ableitungen eine zentrale Rolle bei der Findung einer optimalen Lösung.
+Das automatische symbolische Ableiten von Matrixausdrücken und das numerische Ableiten von Tensorausdrücken sind gut erforscht und werden in der Industrie intensiv genutzt.
+Das Feld der automatischen symbolischen Ableitung von Tensorausdrücken ist hingegen weniger gut untersucht.
+In dieser Arbeit wird ein Tensorkalkül für die automatische symbolische Ableitung von Tensorausdrücken jeglichen Ranges erstellt und implementiert.
+Zur Darstellung von Tensorprodukten nutzt das Kalkül ein Derivat der Einsteinnotation.
+Die verwendete Version ist generischer als die im populären Riccikalkül genutzte Notation.
+\pagenumbering{gobble}
+
 \chapter*{Abstract}
 In optimization problems, derivatives play a crucial role in finding an optimal solution.
 Automatic symbolic differentiation of matrix expressions and numerical differentiation of tensor expressions are well researched and used intensively in the industry.
-The field of automatic symbolic differentiation of tensor expressions however is not as well explored.
+The field of automatic symbolic differentiation of tensor expressions, however, is not explored as thoroughly.
 In this thesis, we design and implement a tensor calculus for automatic symbolic differentiation of tensor expressions of any order.
 It uses an Einstein-like product notation that is more general than the notation used in the popular Ricci calculus.
 \pagenumbering{gobble}
@@ -87,7 +97,7 @@ It uses an Einstein-like product notation that is more general than the notation
 \addcontentsline{toc}{chapter}{Table of Contents}
 \tableofcontents
 \pagenumbering{arabic}
-\setcounter{page}{3}
+\setcounter{page}{4}
 
 \chapter{Introduction}
 
@@ -135,14 +145,14 @@ The main point of interest for this syntax is how to represent tensors and their
 We start with an established tensor calculus and its notation, and generalize it to fit our problem domain.
 
 \section{Representing Tensor Products}
-There exists a calculus for tensor expressions, called Ricci calculus, that is heavily used in physics. %TODO: RICCI REF
+There exists a calculus for tensor expressions, called Ricci calculus, that is heavily used in physics. \cite{ricci}
 The notation it uses allows for tensors to represent both $n$-dimensional arrays and multilinear functions.
 The distinction between the two forms occurs by the location of their indices, either in sub- or superscript.
 For example, the inner product of two vectors, $y^Tx$, would be written as $y_ix^i$. And the Matrix-vector product $Ax$ would be $A^i_jx^j$.
 While Ricci calculus can be useful, for example to physicists, the many indices on each tensor make it less readable.
 
 Since, for our purposes, tensors are simply containers for variables, we have no need to expressly define some tensors as multilinear functions.
-A part of Ricci calculus that we bring over into our notation is a derived version of the Einstein summation convention. %TODO: EINSTEIN REF
+A part of Ricci calculus that we bring over into our notation is a derived version of the Einstein summation convention \cite{einstein}.
 This is a notational convention that allows elegant representation of tensor products.
 Since tensors, depending on their order, may be multiplied in many ways, we need a way to describe which tensor axes should be multiplied in what way.
 For example, two vectors could be multiplied by taking their inner product, their outer product, or even their elementwise product.
@@ -153,7 +163,7 @@ In true Einstein-notation, output indices are omitted, so indices that appear in
 For more generality, we include output indices.
 This simple set of rules provides an elegant way to express the main tensor operations.
 
-We take a large part of the syntax for tensor multiplication from the established Python software package \textit{Numpy}, specifically its \codeword{einsum} procedure. %TODO: NUMPY REF
+We take a large part of the syntax for tensor multiplication from the established Python software package \textit{NumPy} \cite{numpy}, specifically its \codeword{einsum} procedure.
 A product of two tensors $x$ and $y$ has the form $x*_{(a,b \rightarrow c)}y$, where $a$,$b$ and $c$ are strings of indices.
 A formal characterization of the product $C = A *_{(s_1,s_2 \rightarrow s_3)} B$ is given in Equation \ref{eq:product}, where $s_1$, $s_2$ and $s_3$ represent index sets.
 Note that for two index sets $s_1$ and $s_2$, we write $s_1 s_2$ as shorthand for $s_1 \cup s_2$.
@@ -172,7 +182,7 @@ One may even take diagonals of tensors using this notation, the inner product of
 
 \section{Grammar}
 With the representation of tensor products handled, we can now define the full syntax grammar.
-The grammar, presented here in extended backus-naur form, is based on a standard grammar for mathematical expressions by Julien Klaus. %Todo: Source here?
+The grammar, presented here in extended backus-naur form, is based on a standard grammar for mathematical expressions by Julien Klaus. %Todo: Source here? NO
 It was adapted to tensor expressions by generalizing multiplication to tensor products using the einstein summation convention.
 \begin{verbatim}
 expr = term {( '+' | '-' ) term}+
@@ -189,7 +199,7 @@ function = 'sin' | 'cos' | 'tan' | 'arcsin' | 'arccos' | 'arctan' |
            'inv' | 'adj'    
 delta = 'delta(' {digit}+ ')' 
 \end{verbatim}
-Here \texttt{\string{x\string}} describes that \texttt{x} may occur any number of times, while \texttt{\string{x\string}+} lets \texttt{x} appear at least once.
+Here, \texttt{\string{x\string}} describes that \texttt{x} may occur any number of times, while \texttt{\string{x\string}+} lets \texttt{x} appear at least once.
 
 As can be seen in the grammar, we allow the following binary operations on tensors: products (\codeword{*(,->)}), sums (\codeword{+}), differences (\codeword{-}) and quotients (\codeword{/}).
 With the exception of tensor products, which have already been discussed, these operations are executed elementwise.
@@ -204,11 +214,11 @@ The inclusion of these functions takes away from the generality of our grammar, 
 Having defined the syntax, we now discuss how a given tensor expression is parsed and represented internally.
 In our application, tensor expressions are represented using directed acyclic graphs derived from binary trees.
 This data structure was chosen because graphical representations are well tested for expressions and because the foundational work by Laue, Mitterreiter and Giesen also assumes such a representation.
-This allows the differentiation rules stated in their work to be easily implemented.
+This allows the differentiation rules presented in their work to be easily implemented.
 Furthermore, many of the algorithms described in this chapter and the next are most naturally written recursively.
 A recursive data structure like a tree lends itself to these algorithms.
 In this chapter we first describe how a tensor expression is parsed into a binary expression tree and explain the processing steps taken to transform the binary tree into a directed acyclic graph without duplicate subexpressions.
-We also describe how we assign a tensor order and an axis tuple to each node in the graph, which are required for differentiation and for possible numerical evaluation of the derivative expression.
+We also describe how we assign a tensor order and an axis tuple to each node in the graph, which is required for differentiation and for possible numerical evaluation of the derivative expression.
 
 \section{Parsing}
 The process of turning a string into a different data structure that allows for further processing is called parsing.
@@ -229,7 +239,6 @@ Special functions are the matrix determinant \codeword{det}, the matrix inverse 
 
 \subsection{Tree Building}
 The output of the tokenizer is used to build a binary tree representing the expression.
-
 A binary tree is a type of tree where each node has at most two child nodes.
 Like in other trees, each node has exactly one parent node.
 The exception to this is the root, which has no parent.
@@ -297,7 +306,7 @@ We employ the following three preprocessing steps.
 \end{itemize}
 
 \subsection{Equivalent Subtree Substitution}
-Some operations or functions may be viewed as equivalent to, or as a special case of another, more easily differentiable operation or function.
+Some operations or functions may be viewed as equivalent to, or as special cases of other, more easily differentiable operations or functions.
 In these cases, we substitute the more general case to reduce the number of differentiation rules that need to be implemented.
 For example, when encountering the expression $A - B$, we substitute $A + -(B)$, viewing $(-)$ as an elementwise function.
 This allows us to use the differentiation rules for sums and elementwise functions, not having to implement a new rule for differences.
@@ -396,7 +405,7 @@ Each parent node calculates its tensor order based on its child nodes.
 For example, a sum will have its order set equal to the order of its children.
 A full overview of these order determination rules can be found in table \ref{tab:order_rules}.
 
-So far we have not addressed how the tensor order of a constant is determined.
+So far, we have not addressed how the tensor order of a constant is determined.
 Constants may need to be broadcast to fit into the expression.
 For example, in the expression $1 + \text{det}(X)$ with an order 2 tensor $X$, $1$ would be a scalar (order 0 tensor) since it needs to be summed with another scalar.
 But in the expression $\text{det}(X + 1)$, $1$ would need to be an order 2 tensor filled with ones, because it is summed with another order 2 tensor.
@@ -626,7 +635,7 @@ Since we are computing $\frac{du}{dv}$, the applied rule depends on the type of 
 \subsection{Sum Rule}
 If $u$ is a sum node, the differentiation is very simple.
 In this case, $u$ adds nothing of its own to the pullback of $v$, so the contribution of $u$ to the pullback of $v$ is only $\frac{dy}{du}$.
-Thus, when differentiating a sum node that is their childrens only parent, like the one seen in Figure \ref{fig:sum_rule}, the pullback of the children is simply the pullback of the sum node.
+Thus, when differentiating a sum node that is their childrens' only parent, like the one seen in Figure \ref{fig:sum_rule}, the pullback of the children is simply the pullback of the sum node.
 
 \begin{figure}
     \centering
@@ -790,15 +799,15 @@ We will be differentiating this DAG with respect to $X$.
 Each step of the process is visualized in Figure \ref{fig:diff_example_steps}.
 
 Following the differentiation procedure, we start by differentiating the root node with respect to itself.
-Since the expression is an order-2 tensor, this creates a delta tensor $\delta_2$ of order 4. (Step 1 in Figure \ref{fig:diff_example_steps})
+Since the expression is an order-2 tensor, this creates a delta tensor $\delta_2$ of order 4 (Step 1 in Figure \ref{fig:diff_example_steps}).
 
 Continuing from the root node, we compute its contribution to the pullback of the left child first.
 In this case, the left child and the right child are the same, but are still handled separately.
-Using the product rule, we can see that the contribution of the top node $y$ to the left child is $\frac{dy}{dy} *_{(abij,ij \rightarrow abij)} X$, with $\frac{dy}{dy}$ being $\delta_2$. (Step 2 in Figure \ref{fig:diff_example_steps})
+Using the product rule, we can see that the contribution of the top node $y$ to the left child is $\frac{dy}{dy} *_{(abij,ij \rightarrow abij)} X$, with $\frac{dy}{dy}$ being $\delta_2$ (Step 2 in Figure \ref{fig:diff_example_steps}).
 
 Since $X$ has no children, we continue with the right child of $y$.
 Here, we apply the product rule and obtain the same $\delta_2 *_{(abij,ij \rightarrow abij)} X$ as the contribution to the pullback of $X$.
-As contributions to the pullbacks of the same node need to be added (see Equation \ref{eq:diff}), we add a sum node as the root of our differentiation DAG. (Step 3 in Figure \ref{fig:diff_example_steps})
+As contributions to the pullbacks of the same node need to be added (see Equation \ref{eq:diff}), we add a sum node as the root of our differentiation DAG (Step 3 in Figure \ref{fig:diff_example_steps}).
 Because all ways from the root node to the argument have been processed, we are finished.
 
 \begin{figure}
@@ -916,15 +925,15 @@ Consider the DAG in Figure \ref{fig:alg_example_1} representing the expression $
 We differentiate this expression with respect to $v$.
 
 Starting out, we compute the pullback of the root node.
-Since the output of the root node is an order 1 tensor, its pullback, the derivative with respect to itself, is an order 2 delta tensor $\delta_1$. (Step 1 in Figure \ref{fig:alg_example_2})
+Since the output of the root node is an order 1 tensor, its pullback, the derivative with respect to itself, is an order 2 delta tensor $\delta_1$ (Step 1 in Figure \ref{fig:alg_example_2}).
 
 Next, we compute the contribution of the root node to its children's pullbacks.
-However, since the root node is a sum node, it adds nothing of its own, which makes its childrens pullbacks the same as its.
+However, since the root node is a sum node, it adds nothing of its own, which makes its childrens pullbacks the same as its own.
 
 Continuing with the node's children, we start (arbitrarily) with the left child.
 The left child is an elementwise function node representing $\text{sin}(v)$.
 Using the differentiation rule for elementwise functions along with the derivative of the $\text{sin}$ function, we see that its contribution to its child's pullback is $\delta_1 *_{(ba,a \rightarrow ba)} \text{cos}(v)$.
-This is the first contribution to the pullback of $v$. (Step 2 in Figure \ref{fig:alg_example_2})
+This is the first contribution to the pullback of $v$ (Step 2 in Figure \ref{fig:alg_example_2}),
 Since the only child of the $\text{sin}$ node is the argument node $v$, we need not continue further and instead jump back up to explore the second child of the root node.
 
 The second child is an elementwise function node representing $\text{cos}((\text{sin}(v)))$.
@@ -934,8 +943,8 @@ The $\text{cos}$ node's child is the $\text{sin}$ node we have been to before.
 This means we need to add the new contribution to this node's pullback to the old one.
 The old contribution to the pullback of $\text{sin}(v)$ was $\delta_1$, to which we now add $\delta_1 *_{(ba,a \rightarrow ba)} -(\text{sin}(v))$ using a sum node.
 Since the pullback of $v$ depends on the pullback of $\text{sin}(v)$, we need to make sure to update it.
-We manage this by moving all parents of the old pullback to be parents of the new pullback instead.
-The left child of the product $\delta_1 *_{(ba,a \rightarrow ba)} \text{cos}(v)$ gets updated to be the sum node in the new, complete pullback. (Step 3 in Figure \ref{fig:alg_example_2})
+We manage this by changing all parents of the old pullback to be parents of the new pullback instead.
+The left child of the product $\delta_1 *_{(ba,a \rightarrow ba)} \text{cos}(v)$ gets updated to be the sum node in the new, complete pullback (Step 3 in Figure \ref{fig:alg_example_2}).
 
 Since there are no more unvisited children, we are done.
 The finished differentiation DAG represents the expression $(\delta_1 + (\delta_1 *_{(ba,a \rightarrow ba)} -(\text{sin}(v)))) *_{(ba,a \rightarrow ba)} cos(v)$.
@@ -1064,7 +1073,7 @@ Mittereiter, Laue and Giesen start from this definition applied to the product n
 Important to us is the fourth equality of the proof, where the associative property for tensor products is used to transform $\bar{C} *_{(s_4s_3,s_3 \rightarrow s_4)} (A *_{(s_1,s_2 \rightarrow s_3)} h)$ into $(\bar{C} *_{(s_4s_3,s_1 \rightarrow s_4s_2)} A) *_{(s_4s_2,s_2 \rightarrow s_4)} h$.
 Their goal is to create an expression that ends with a form of $D \circ h$, because that makes $D$ the Fr\'{e}chet Derivative they are looking for.
 
-Consider however the definition of the associative property for tensor products given by Laue, Mitterreiter and Giesen.
+However, consider the definition of the associative property for tensor products given by Laue, Mitterreiter and Giesen.
 $$
 (A *_{(s_1, s_2 s_4 \rightarrow s_3 s_4)} B) *_{(s_3 s_4, s_4 \rightarrow s_3)} C = A *_{(s_1, s_2 \rightarrow s_3)} (B *_{(s_2 s_4, s_4 \rightarrow s_2)})
 $$
@@ -1078,7 +1087,7 @@ To solve this problem, we forego the stated version of the associative property 
 We start by explicitly writing the Einstein-like tensor products as sums.
 The indices we sum over are the indices of the inputs with the result indices removed.
 $$
-\sum_{s_3} \bar{C}[s_4 s_3] \; (\sum_{s_1 s_2 \setminus s_3} A[s_1] \; h[s_2]) 
+\sum_{s_3} \bar{C}[s_4 s_3] \; \left( \sum_{s_1 s_2 \setminus s_3} A[s_1] \; h[s_2] \right) 
 $$
 Note that we obtain the indices of the outer sum from $s_3 s_4 \setminus s_4 = s_3$.
 As both sums go over separate, non-overlapping index sets, we may collapse them into a single sum.
@@ -1087,10 +1096,10 @@ $$
 $$
 As the first step towards writing our expression as an inner product, we split off part of the large sum to create two smaller sums over different indices.
 $$
-\sum_{s_2} (\sum_{s_1 s_3 \setminus s_2} \bar{C}[s_4 s_3] \; A[s_1]) \; h[s_2]
+\sum_{s_2} \left( \sum_{s_1 s_3 \setminus s_2} \bar{C}[s_4 s_3] \; A[s_1] \right) \; h[s_2]
 $$
 Next, we write the inner sum in our Einstein-like tensor product notation.
-This requires us to determine the output indices of the tensor product by adding the input indices, $s_4 s_3$ and $s_1$, and removing the indices that are summed over, $s_1 s_3 \setminus s_2$.
+This requires that we determine the output indices of the tensor product by adding the input indices, $s_4 s_3$ and $s_1$, and removing the indices that are summed over, $s_1 s_3 \setminus s_2$.
 This leads to $s_1 s_3 s_4 \setminus (s_1 s_3 \setminus s_2)$, which we may simplify in the following way:
 \begin{align*}
 &s_1 s_3 s_4 \setminus (s_1 s_3 \setminus s_2) \\
@@ -1125,9 +1134,9 @@ For any product node of the form $A *_{(s_1, s_{21} s_{22} \rightarrow s_3)} B$ 
 We append the missing indices to the output index string of the product node, leading to $A *_{(s_1, s_{21} s_{22} \rightarrow s_3 s_{22})} B$.
 This prevents an invalid product node from being created, because the indices in $s_{22}$ are now also present in the output indices.
 However, this also changes the node, since it now has more output axes than before.
-To remedy this, we add another product node where we explicitly sum over these axes while multiplying with a tensor full of ones, leasing to $(A *_{(s_1, s_{21} s_{22} \rightarrow s_3 s_{22})} B) *_{(s_3 s_{22}, s_{22} \rightarrow s_3)} 1$.
+To remedy this, we add another product node where we explicitly sum over these axes while multiplying with a tensor full of ones, leading to $(A *_{(s_1, s_{21} s_{22} \rightarrow s_3 s_{22})} B) *_{(s_3 s_{22}, s_{22} \rightarrow s_3)} 1$.
 Since $s_3$ appears in both the left input and the output, and $s_{22}$ appears in both inputs, this new product never has any missing indices.
-This transformation achieves the same result as the original DAG, but by making the sum over the axes explicit in another product node, we prevent the problematic case.
+This transformed DAG achieves the same result as the original DAG, but by making the sum over the axes explicit in another product node, we prevent the problematic case.
 
 In the example in Figure \ref{fig:missing_indices_example}, we would transform the original expression from $A *_{(ij,j \rightarrow )} v$ to $(A *_{(ij,j \rightarrow i)} v) *_{(i,i \rightarrow)} 1$.
 Both the modified DAG and the derivative are visible in Figure \ref{fig:missing_indices_example}.
@@ -1209,22 +1218,22 @@ We created a language for general tensor expressions using an Einstein-like nota
 We also demonstrated multiple preprocessing steps, substituting some subexpressions for more easily differentiable ones, eliminating multiple occurences of the same subexpression and storing both tensor order and an axis tuple for each node in the DAG.
 We gave a review of the theory behind the differentiation of tensor expressions using our notation and demonstrated our implementation, which is able to differentiate the preprocessed expression DAGs.
 The correctness of our implementation was verified by numerical checks, where the computed derivatives of a number of example inputs were compared with numerical approximation for random inputs. %TODO: IS THIS OUT-OF-PLACE?
-Possible further developments could address the flexibility and readablity of the input language, for example by adding a generalized transpose operation that allows axis permutations, which have to be embedded in tensor products in the current language.
+Possible further development could address the flexibility and readablity of the input language, for example by adding a generalized transpose operation that allows axis permutations, which have to be embedded in tensor products in the current language.
 The tensor products could also be generalized even further, possibly by adding a unary version that allows one to sum over a single tensor's axes.
 Furthermore, our algorithms could be analyzed and optimized in regards to efficiency and performance for different inputs.
 Lastly, one possible use of this thesis' results are convexity checks for arbitrary functions.
 How our representation of tensor function derivatives can be used to detect convexity and concavity is worth investigating.
-\addcontentsline{toc}{chapter}{Bibliography}
-\printbibliography
 
-\addcontentsline{toc}{chapter}{Statement of Autonomy}
-\chapter*{Declaration of Authorship}
-I hereby declare that I have created this thesis autonomously, using only the stated assistance and sources.
-The thesis has not been used for other courses or within other exam processes as exam work, nor has it been published in any language.
+\printbibliography
+\addcontentsline{toc}{chapter}{Bibliography}
+
+\chapter*{Selbstständigkeitserklärung}
+Ich erkläre, dass ich die vorliegende Arbeit selbständig und nur unter Verwendung der angegebenen Hilfsmittel und Quellen angefertigt habe.
+Die eingereichte Arbeit ist nicht anderweitig als Prüfungsleistung verwendet worden oder in deutscher oder einer anderen Sprache als Veröffentlichung erschienen.
 
 \setlength{\parindent}{0pt}
 \vspace{10pt}
-The author does not object to this thesis being made available for public use. \vspace{50pt}
+Seitens des Verfassers bestehen keine Einwände, die vorliegende Bachelorarbeit für die öffentliche Benutzung zur Verfügung zu stellen. \vspace{50pt}
 
 Jena, 25.08.2022
 
