@@ -202,7 +202,7 @@ One may even take diagonals of tensors using this notation, the inner product of
 
 \section{Grammar}
 With the representation of tensor products handled, we can now define the full syntax grammar.
-The grammar, presented here in extended backus-naur form, is based on a standard grammar for mathematical expressions by Julien Klaus. %Todo: Source here? NO
+The part of the grammar describing tensor expressions, presented here in extended backus-naur form, is based on a standard grammar for mathematical expressions.
 It was adapted to tensor expressions by generalizing multiplication to tensor products using the einstein summation convention.
 
 \rule[-2pt]{\textwidth}{0.5pt}
@@ -373,7 +373,7 @@ A full overview of the substituted expressions can be seen in Table \ref{tab:sub
         $A/B$ & $A \;.^*\; \text{elementwise\_inverse}(B)$ \\
         $\text{adj(X)}$ & $\text{det}(X) *_{(,ij \rightarrow ij)} \text{inv}(X)$ \\ 
     \end{tabular}
-    \caption{Table showing all operations that get substituted during preprocessing, along with their substitutes. Note that $(.^*)$ is a placeholder for elementwise multiplication. It is replaced with the appropriate tensor product during tensor order determination. $\text{elementwise\_inverse}$ is an elementwise function for which a differentiation rule is implemented.}
+    \caption{Table showing all operations that get substituted during preprocessing, along with their substitutes. Note that $(.^*)$ is a placeholder for elementwise multiplication. It is replaced with the appropriate tensor product during tensor order determination. The transformation of $A^B$ is only applied when both $A$ and $B$ contain the differentiation argument. $\text{elementwise\_inverse}$ is an elementwise function for which a differentiation rule is implemented.}
     \label{tab:substitutions}
 \end{table}
 \FloatBarrier
@@ -571,7 +571,7 @@ An overview of the applied propagation rules is seen in Table \ref{tab:axes_rule
 For a product nodes we employ a more complex procedure, setting each child's axes to the node's axes depending on the product indices.
 More details may be seen in Algorithm \ref{alg:product_axes_2}.
 
-\begin{algorithm}[ht!] %TODO: Get this to align at the top
+\begin{algorithm}[ht!]
     \caption{Propagate\_Product\_Axes\_Top\_Down (\textit{node})}
     \label{alg:product_axes_2}
     \begin{algorithmic}
@@ -799,10 +799,9 @@ They are listed in Table \ref{tab:func_diffs}
         $\text{inv}(x)$ & $-(\text{inv}(x)) *_{(ij,kl \rightarrow iklj)} \text{inv}(x)$ \\
         $\text{det}(x)$ & $\text{adj}(x) *_{(ij, \rightarrow ji)} 1$ \\
     \end{tabular}
-    \caption{Derivatives of all used functions. $.^*$ is a placeholder for elementwise multiplication with the fitting indices. The elementwise inverse $1 ./ x$ is internally handled as an elementwise function, which is why its derivative is listed here.} %TODO: Add a source?
+    \caption{Derivatives of all used functions. $.^*$ is a placeholder for elementwise multiplication with the fitting indices. The elementwise inverse $1 ./ x$ is internally handled as an elementwise function, which is why its derivative is listed here.}
     \label{tab:func_diffs}
 \end{table}
-
 
 \begin{figure}
     \centering
@@ -839,6 +838,19 @@ They are listed in Table \ref{tab:func_diffs}
     \caption{\textit{Left}: Part of a DAG that contains the subexpression $\text{sin(X)}$. $X$ is an order 2 tensor (matrix) and "..." represents the rest of the DAG. \textit{Right}: Derivative of the left DAG with respect to $X$ computed using the rule for elementwise functions. "..." represents the pullback of the function node. Note that the root output node of the left DAG is assumed to be scalar here, which has an impact on the indices in the product node in the right DAG.}
     \label{fig:func_rule}
 \end{figure}
+
+\subsection{Exponentiation Rules}
+If $u$ is a power node representing the subexpression $A^B$, where $A$ has indices $s_1$, in an expression where the root node has indices $s_2$, there are two possible differentiation rules to apply.
+If only $A$ contains the differentiation argument, the pullback of $A^B$ with respect to $A$ is 
+$$
+\frac{dy}{du} *_{(s_2 s_1, s_1 \rightarrow s_2 s_1)} (B *_{(, s_1 \rightarrow s_1)} A^{B-1}).
+$$
+If only $B$ contains the differentiation argument, the pullback of $A^B$ with respect to $B$ is
+$$
+\frac{dy}{du} *_{(s_2 s_1, s_1 \rightarrow s_2)} (A^B *_{(s_1, s_1 \rightarrow s_1)} \text{log}(A)).
+$$
+The case of both $A$ and $B$ containing the differentiation argument is covered by a previous transformation we discuss in section 3.2.1.
+
 
 \FloatBarrier
 \section{Example of Differentiation Rule Application}
