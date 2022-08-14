@@ -256,6 +256,7 @@ class DifferentiatorTests(unittest.TestCase):
         test = 'declare x 1 expression tan(x) derivative wrt x'
         d = Differentiator(test)
         d.differentiate()
+        self.assertEqual(str(d.diffDag), '(delta(1) *(ba,a->ba) (1 / (((cos(x)) *(a,a->a) (cos(x))))))')
         self.assertTrue(numcheck(d, h=self.numcheck_h, err_limit=self.numcheck_err_limit))
     
     def test_arcsin(self):
