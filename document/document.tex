@@ -15,6 +15,9 @@
 \usepackage{parskip}
 \usepackage{biblatex}
 \usepackage{subcaption}
+\usepackage{tocloft}
+\usepackage{setspace}
+\usepackage{multicol}
 
 \addbibresource{bibliography.bib}
 \usetikzlibrary{shapes.geometric}
@@ -22,10 +25,14 @@
 \titleformat{\chapter}[hang]{\Huge\bfseries}{\thechapter}{20pt}{\Huge\bfseries}
 
 \DeclareCaptionLabelFormat{custom}{\textbf{#1 #2}}
-
 \captionsetup{format=hang, labelformat=custom}
 
 \graphicspath{{figures/}}
+
+\setlength\cftbeforesecskip{-2pt}
+\setlength\cftbeforechapskip{0pt}
+
+\onehalfspacing
 
 \NewDocumentCommand{\codeword}{v}{%
 \texttt{{#1}}%
@@ -33,11 +40,11 @@
 
 \renewcommand{\contentsname}{Table of Contents}
 
-\setlength{\parindent}{10pt}
+\setlength{\parindent}{0pt}
 \title{
-\includegraphics[scale=0.7]{logo.png} \vspace{60pt}
+\includegraphics[scale=0.7]{logo.png} \vspace{50pt}
 
-Designing and Implementing a Tensor Calculus \vspace{30pt}
+Designing and Implementing a Tensor Calculus \vspace{20pt}
 
 \normalsize B A C H E L O R ' S $\;$ T H E S I S 
 
@@ -45,11 +52,11 @@ In Fulfillment of the Requirements for the Academic Degree of
 
 Bachelor of Science (B.Sc.)
 
-In the Study Program 'Computer Science' \vspace{20pt}
+In the Study Program 'Computer Science' \vspace{10pt}
 
 FRIEDRICH SCHILLER UNIVERSITY JENA 
 
-Faculty of Mathematics and Computer Science \vspace{40pt}
+Faculty of Mathematics and Computer Science \vspace{30pt}
 
 submitted by Farin Lippmann 
 
@@ -82,7 +89,7 @@ Supervisor: Prof. Dr. Joachim Giesen
 
 \begin{document}
 \maketitle
-
+\pagenumbering{gobble}
 \chapter*{Zusammenfassung} %TODO: In die Gruppe schicken
 Für Optimierungsprobleme spielen Ableitungen eine zentrale Rolle bei der Findung einer optimalen Lösung.
 Das automatische symbolische Ableiten von Matrixausdrücken und das numerische Ableiten von Tensorausdrücken sind gut erforscht und werden in der Industrie intensiv genutzt.
@@ -100,13 +107,13 @@ The field of automatic symbolic differentiation of tensor expressions, however, 
 In this thesis, we design and implement a tensor calculus for automatic symbolic differentiation of tensor expressions of any order.
 The calculus uses an Einstein-like product notation that is more general than the notation used in the popular Ricci calculus.
 Furthermore, its representation of tensor expressions as directed acyclic graphs allows us to bound the growth of the expression induced by differentiation to be linear in the number of edges and nodes in the graph.
-
 \pagenumbering{gobble}
 
-\addcontentsline{toc}{chapter}{Table of Contents}
+\clearpage
 \tableofcontents
 \pagenumbering{arabic}
 \setcounter{page}{4}
+\clearpage
 
 \chapter{Introduction}
 
@@ -197,7 +204,21 @@ One may even take diagonals of tensors using this notation, the inner product of
 With the representation of tensor products handled, we can now define the full syntax grammar.
 The grammar, presented here in extended backus-naur form, is based on a standard grammar for mathematical expressions by Julien Klaus. %Todo: Source here? NO
 It was adapted to tensor expressions by generalizing multiplication to tensor products using the einstein summation convention.
+
+\rule[-2pt]{\textwidth}{0.5pt}
+{
+\small
 \begin{verbatim}
+input = declaration expressionpart argument
+
+declaration = 'declare' {tensordeclaration}
+tensordeclaration = tensorname {digit}+
+tensorname = alpha { alpha | digit }
+alpha = smallalpha | largealpha
+smallalpha = [a-z]
+largealpha = [A-Z]
+
+expressionpart = 'expression' expr
 expr = term {( '+' | '-' ) term}+
 term = factor {( '*(' productindices ')') factor | '/' factor}+
 productindices = tensorindices ',' tensorindices '->' tensorindices
@@ -205,14 +226,31 @@ tensorindices = {smallalpha}+
 factor = {'-'} atom {'^' ('(' expr ')' | atom)}+
 atom = number | function '(' expr ')' | tensorname | '(' expr ')' | 
        delta
-number = ['-'] digit* '.' digit* [( 'e' | 'E' ) ['+' | '-'] (digit)*]
+number = ['-'] {digit}+ '.' {digit} [( 'e' | 'E' ) ['+' | '-'] {digit}+]
 digit = [0-9]
 function = 'sin' | 'cos' | 'tan' | 'arcsin' | 'arccos' | 'arctan' | 
            'tanh' | 'exp' | 'log' | 'sign' | 'relu' | 'abs' | 'det' | 
-           'inv' | 'adj'    
+           'inv' | 'adj'
 delta = 'delta(' {digit}+ ')' 
+
+argument = 'derivative wrt' tensorname
 \end{verbatim}
+}
+\rule[8pt]{\textwidth}{0.1pt}
 Here, \texttt{\string{x\string}} describes that \texttt{x} may occur any number of times, while \texttt{\string{x\string}+} lets \texttt{x} appear at least once.
+
+Some examples of inputs this grammar accepts are the following, although more examples can be found in the appendix.
+
+\begin{itemize}
+    \item \texttt{declare v 1 expression v *(i,i->i) v derivative wrt v}
+    \item \texttt{declare A 2 x 1 expression (A + 1) *(ij,j->i)x derivative wrt A}
+    \item \texttt{declare A 3 x 0 expression A *(ijk,->ijk) exp(x) derivative wrt x}
+\end{itemize}
+
+The input is structured around three keywords.
+After the first keyword, \codeword{declare}, are the tensor variables with their respective orders.
+The expression to be differentiated follows after \codeword{expression}.
+The last keyword, \codeword{derivative wrt}, precedes the name of the argument variable with respect to which is being differentiated.
 
 As can be seen in the grammar, we allow the following binary operations on tensors: products (\codeword{*(,->)}), sums (\codeword{+}), differences (\codeword{-}) and quotients (\codeword{/}).
 With the exception of tensor products, which have already been discussed, these operations are executed elementwise.
@@ -247,7 +285,7 @@ Each token is made up of two parts, the descriptor and the identifier.
 The descriptor is one of a few defined categories, describing what kind of logical unit the token forms, while the identifier contains the characters the token was formed from.
 As an example, the string \codeword{A + sin(b)} would be tokenized into the following sequence: \codeword{(ALPHANUM, 'a'), (PLUS, '+'), (ELEMENTWISE_FUNCTION, 'sin'), (LRBRACKET, '('), (LOWERCASE_ALPHA, 'b'), (RRBRACKET, ')')}.
 
-We define token descriptors for constants (\textit{e.g.} \codeword{'1.05'}), variable names (\textit{e.g.} \codeword{'A'}, \codeword{'b'}, \codeword{'C1'}), special symbols (\codeword{'+'}, \codeword{'-'}, \codeword{'*'}, \codeword{'/'}, \codeword{'^'}, \codeword{','}, \codeword{'('}, \codeword{')'}, \codeword{'>'}), keywords (\codeword{'declare'}, \codeword{'expression'}, \codeword{'derivative'}, \codeword{'wrt'}) and function names, which are recognized using the list of functions given in the grammar (\textit{e.g.}  \codeword{'sin'}, \codeword{'abs'}, \codeword{'det'}).
+We define token descriptors for constants (\textit{e.g.} \codeword{'1.05'}), variable names (\textit{e.g.} \codeword{'A'}, \codeword{'b'}, \codeword{'C1'}), special symbols (\codeword{'+'}, \codeword{'-'}, \codeword{'*'}, \codeword{'/'}, \codeword{'^'}, \codeword{','}, \codeword{'('}, \codeword{')'}, \codeword{'>'}) and function names, which are recognized using the list of functions given in the grammar (\textit{e.g.}  \codeword{'sin'}, \codeword{'abs'}, \codeword{'det'}).
 There are two token descriptors for functions, \codeword{ELEMENTWISE_FUNCTION} and \codeword{SPECIAL_FUNCTION}, because derivative rules are different for these two types.
 Special functions are the matrix determinant \codeword{det}, the matrix inverse \codeword{inv} and the adjugate matrix \codeword{adj}.
 
@@ -571,8 +609,8 @@ After this second pass through the DAG, each node now contains a fitting tuple o
 The previous chapter was concerned with creating a suitable internal representation for tensor expressions, which turned out to be a directed acyclic graph (DAG).
 In this chapter, we use this DAG representation of the expression for the differentiation.
 We start by giving some background information on the general differentiation procedure and describe the differentiation rules in theory.
-Following that, we elaborate on the details of our implementation of the procedure and the rules and finish by discussing how expressions grow when we differentiate them.
-
+Following that, we elaborate on the details of our implementation of the procedure and the rules and present a problem we discovered in the differentiation rule for tensor products, along with a solution for it.
+We finish this chapter with a description of how the correctness of our implementation is verified and a discussion of how tensor expressions grow when we differentiate them.
 
 \section{Background}
 The theory for differentiating tensor expressions using our Einstein-like notation was developed by Laue, Mitterreiter and Giesen \cite{tensorpaper}.
@@ -645,7 +683,6 @@ Having established the basic differentiation procedure, we will now describe the
 Proofs for the correctness of these rules can be found in the work of Laue, Mitterreiter and Giesen \cite{tensorpaper}.
 Since we are computing $\frac{du}{dv}$, the applied rule depends on the type of node $u$ is.
 
-\FloatBarrier
 \subsection{Sum Rule}
 If $u$ is a sum node, the differentiation is very simple.
 In this case, $u$ adds nothing of its own to the pullback of $v$, so the contribution of $u$ to the pullback of $v$ is only $\frac{dy}{du}$.
@@ -670,7 +707,6 @@ Thus, when differentiating a sum node that is their childrens' only parent, like
     \label{fig:sum_rule}
 \end{figure}
 
-\FloatBarrier
 \subsection{Product Rule}
 If $u$ is a product node representing the subexpression $v *_{(s_1,s_2 \rightarrow s_3)} w$ with index strings $s_1$, $s_2$ and $s_3$ in a tensor expression where the root node has indices $s_4$, then we may apply the product rule as follows.
 The contribution of $u$ to the pullback of $v$ is 
@@ -721,7 +757,6 @@ This detail will be discussed further in section 4.6.
     \label{fig:prod_rule}
 \end{figure}
 
-\FloatBarrier
 \subsection{Function Rules}
 If $u$ is a function node, we distinguish between two cases.
 The node $u$ either represents an elementwise function or a special function.
@@ -1210,6 +1245,31 @@ Both the modified DAG and the derivative are visible in Figure \ref{fig:missing_
     \label{fig:missing_indices_example}
 \end{figure}
 
+\section{Numerical Checks}
+To be certain of the correctness of our algorithm even in edge cases, we implement test cases.
+Each test case consists of a tensor expression describing a function $f$, returning an order $q$ tensor. 
+Our algorithm computes the derivative $f'$ of this function with respect to an argument $x_k$ of order $p$.
+This computed derivative function is evaluated with random values for all tensor variables $x_1, x_2, ... x_n$, including the differentiation argument $x_k$.
+We call these specific values for $x_1, ... x_n$ $v_1, ... v_n$.
+Note that since each expression only specifies the number of axes a tensor variable has, but not the lenght of each axes, we need to arbitrarily assign the lengths.
+We assign each axis the same length, $3$.
+We then compare $f'(x_1,... x_n)$ to a numerical approximation of the derivative we call $\overline{f'}$.
+If the tensor of differences, $|\overline{f'} - f'(x_1,... x_n)|$, is small enough in every entry (we use $10^{-6}$ as the maximum error allowed) then the check is passed.
+
+This approximation,$\overline{f'}$, is computed using a variant of the definition of the derivative.
+For any function $g$ with a scalar argument $x_k$, we may approximate the derivative with respect to $x_k$ using the following formula.
+$$\overline{g'} = \frac{g(x_1,... x_k-h,... x_n) - g(x_1,... x_k+h,... x_n)}{2h}$$ 
+for a very small number $h$ (We use $10^{-8}$).
+
+Since the argument for our differentiation of $f$ argument is an order $p$ tensor, it is not always scalar.
+Thus, we have to compute this approximation for each entry of the argument $x_k$.
+In each computation, we only add and subtract $h$ to one element in $x_k$, leaving the rest constant.
+Each computation returns a tensor of order $q$.
+We combine all the computed order $q$ tensors in a tensor $\overline{f'}$ of order $p+q$, resulting in an approximation of the full derivative.
+
+These checks are performed on a number of expressions to cover all basic features of our developed language.
+A full list of them can be found in the appendix.
+
 \section{Expression Growth}
 For performance purposes, it is of interest how the sizes of expressions change when we differentiate them.
 The size of an expression DAG may be measured in the number of nodes $|V|$ or the number of edges $|E|$ in the DAG.
@@ -1232,9 +1292,8 @@ We created a language for general tensor expressions using an Einstein-like nota
 We also demonstrated multiple preprocessing steps, substituting some subexpressions for more easily differentiable ones, eliminating multiple occurences of the same subexpression and storing both tensor order and an axis tuple for each node in the DAG.
 We gave a review of the theory behind the differentiation of tensor expressions using our notation and demonstrated our implementation, which is able to differentiate the preprocessed expression DAGs.
 A problem with the differentiation of some tensor products in the original paper \cite{tensorpaper} by Mitterreiter, Laue and Giesen, on which this thesis builds, was identified and remedied.
+The correctness of our implementation was verified by numerical checks, where the computed derivatives of a number of example inputs were compared with numerical approximation for random inputs.
 We were also able to bound the growth of tensor expressions induced by differentiation to be linear in the number of nodes and edges in the directed acyclic graph representation of the expression.
-
-The correctness of our implementation was verified by numerical checks, where the computed derivatives of a number of example inputs were compared with numerical approximation for random inputs. %TODO: IS THIS OUT OF PLACE?
 
 Possible further development could address the flexibility and readablity of the input language, for example by adding a generalized transpose operation that allows axis permutations, which have to be embedded in tensor products in the current language.
 The tensor products could also be generalized even further, possibly by adding a unary version that allows one to sum over a single tensor's axes.
@@ -1244,6 +1303,386 @@ How our representation of tensor function derivatives can be used to detect conv
 
 \printbibliography
 \addcontentsline{toc}{chapter}{Bibliography}
+
+\chapter*{Appendix}
+\addcontentsline{toc}{chapter}{Appendix}
+\section*{List of Examples used in Numerical Checks}
+This list of example inputs with their respective derivatives is structured in the following way.
+Each example consists of two parts.
+The first part is the input string, containing the tensor variable names with their orders, the expression itself and the name of the variable with respect to which is being differentiated.
+The second part is the output of our algorithm, the resulting derivative.
+
+\rule[0pt]{\textwidth}{0.4pt}
+\begin{multicols}{2}
+    \tiny
+\begin{verbatim}
+declare a 0 expression a derivative wrt a
+
+delta(0)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 1 b 1 c 0 expression (a*(i,i->)b)*(,->)c derivative 
+wrt c
+
+(a *(i,i->) b)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 0 expression (a*(,->)a) derivative wrt a
+
+(a + a)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 0 b 0 expression (b*(,->)a) *(,->) a derivative wrt a
+
+((a *(,->) b) + (b *(,->) a))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 0 b 0 expression a + b derivative wrt a
+
+delta(0)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 0 b 0 expression a + a + b derivative wrt a
+
+(delta(0) + delta(0))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 0 b 0 expression a + b + a derivative wrt a
+
+(delta(0) + delta(0))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 0 b 0 expression a - b derivative wrt b
+
+-1
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 0 b 0 expression a - a - b derivative wrt a
+
+(delta(0) + -1)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 0 b 0 expression a - b - a derivative wrt a
+
+(delta(0) + -1)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 1 b 1 c 1 expression a*(i,i->i)a + b + c derivative 
+wrt a
+
+((delta(1) *(ai,i->ai) a) + (delta(1) *(ai,i->ai) a))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 1 b 1 c 1 expression a*(i,i->i)b + a*(i,i->i)c 
+derivative wrt a
+
+((delta(1) *(ai,i->ai) b) + (delta(1) *(ai,i->ai) c))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 1 b 1 c 0 expression a*(i,i->)b + c derivative wrt a
+
+b
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 2 b 1 expression a*(ij,j->i)b derivative wrt a
+
+(delta(1) *(ai,j->aij) b)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 2 b 1 expression a*(ij,j->i)b derivative wrt a
+
+(delta(1) *(ai,j->aij) b)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare A 2 B 2 x 1 expression A*(ij,j->i)x + B*(ij,j->i)x 
+derivative wrt x
+
+((delta(1) *(ai,ij->aj) A) + (delta(1) *(ai,ij->aj) B))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare A 2 B 2 x 1 expression (A+B)*(ij,j->i)x derivative wrt x
+
+(delta(1) *(ai,ij->aj) (A + B))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+
+
+
+declare A 2 B 2 x 1 expression (A*(ij,ij->ij)B) * (ij,j->i)x 
+derivative wrt x
+
+(delta(1) *(ai,ij->aj) (A *(ij,ij->ij) B))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 1 expression x*(i,i->)x derivative wrt x
+
+(x + x)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 1 b 1 c 1 d 1 expression a*(i,i->)b + a*(i,i->)c 
++ a*(i,i->)d derivative wrt a
+
+((b + c) + d)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 1 b 1 c 1 expression a*(i,i->i)a - b - c derivative 
+wrt a
+
+((delta(1) *(ai,i->ai) a) + (delta(1) *(ai,i->ai) a))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 1 b 1 c 1 expression a*(i,i->i)b - a*(i,i->i)c 
+derivative wrt a
+
+((delta(1) *(ai,i->ai) b) + ((delta(1) *(ba,a->ba) -1) 
+*(ai,i->ai) c))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare A 2 B 2 x 1 expression (A-B)*(ij,j->i)x derivative wrt x
+
+(delta(1) *(ai,ij->aj) (A - B))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 1 expression sin(x) derivative wrt x
+
+(delta(1) *(ba,a->ba) (cos(x)))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare A 2 x 1 expression A *(ij,j->i) (sin(x)) derivative wrt x
+
+((delta(1) *(ai,ij->aj) A) *(ba,a->ba) (cos(x)))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare A 2 x 1 expression sin( A*(ij,j->i)x ) derivative wrt x
+
+((delta(1) *(ba,a->ba) (cos((A *(ij,j->i) x)))) *(ai,ij->aj) A)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 1 expression cos(x) + sin(x) derivative wrt x
+
+((delta(1) *(ba,a->ba) (-((sin(x))))) + (delta(1) 
+*(ba,a->ba) (cos(x))))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 1 expression exp(x) derivative wrt x
+
+(delta(1) *(ba,a->ba) (exp(x)))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare A 2 x 1 expression A *(ij,j->i) exp(x) derivative wrt x
+
+((delta(1) *(ai,ij->aj) A) *(ba,a->ba) (exp(x)))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare y 1 x 1 expression y / x derivative wrt x
+
+((delta(1) *(ba,a->ba) y) *(ba,a->ba) (-((1 / ((x 
+*(a,a->a) x))))))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 1 expression tan(x) derivative wrt x
+
+(delta(1) *(ba,a->ba) (1 / (((cos(x)) *(a,a->a) (cos(x))))))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 1 expression arcsin(x) derivative wrt x
+
+(delta(1) *(ba,a->ba) (1 / (((1 - (x ^ 2)) ^ 0.5))))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 1 expression arccos(x) derivative wrt x
+
+(delta(1) *(ba,a->ba) (-((1 / (((1 - (x ^ 2)) ^ 0.5))))))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 1 expression arctan(x) derivative wrt x
+
+(delta(1) *(ba,a->ba) (1 / (((x *(a,a->a) x) + 1))))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 1 expression log(x) derivative wrt x
+
+(delta(1) *(ba,a->ba) (1 / (x)))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 1 expression tanh(x) derivative wrt x
+
+(delta(1) *(ba,a->ba) (1 - ((tanh(x)) *(a,a->a) (tanh(x)))))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 1 expression abs(x) derivative wrt x
+
+(delta(1) *(ba,a->ba) (sign(x)))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 1 expression sign(x) derivative wrt x
+
+(delta(1) *(ba,a->ba) 0)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 1 expression relu(x) derivative wrt x
+
+(delta(1) *(ba,a->ba) (relu((sign(x)))))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 1 a 0 expression x^a derivative wrt x
+
+(delta(1) *(ba,a->ba) (a *(,a->a) (x ^ (a - 1))))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 1 a 0 expression (x^a) *(i,i->) x derivative wrt x
+
+((x *(a,a->a) (a *(,a->a) (x ^ (a - 1)))) + (x ^ a))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 0 a 1 expression a^x derivative wrt x
+
+((a ^ x) *(b,b->b) (log(a)))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare x 0 a 1 expression x^x derivative wrt x
+
+(((x ^ x) *(,->) (log(x))) + (((x ^ x) *(,->) x) *(,->) 
+(1 / (x))))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare A 2 expression inv(A) derivative wrt A
+
+(delta(2) *(efcd,cdab->efab) ((-((inv(A)))) *(ij,kl->kjli) 
+(inv(A))))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare A 2 expression det(A) derivative wrt A
+
+((adj(A)) *(ij,->ji) 1)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare X 2 expression adj(X) derivative wrt X
+
+(((inv(X)) *(cd,ab->cdab) ((adj(X)) *(ij,->ji) 1)) + ((delta(2) 
+*(abij,->abij) (det(X))) *(efcd,cdab->efab) ((-((inv(X)))) 
+*(ij,kl->kjli) (inv(X)))))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare X 2 expression 1*(,ij->)X derivative wrt X
+
+(1 *(ij,->ij) 1)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare X 2 expression X + X derivative wrt X
+
+(delta(2) + delta(2))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare X 2 expression 1*(ij, ij -> )(X + X) derivative wrt X
+
+(1 + 1)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare X 2 expression 1*(ij, ij -> )X + 1*(ij, ij -> )X 
+derivative wrt X
+
+(1 + 1)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare X 2 expression 1*(ij, ij -> )X + 1*(ij, ij -> ) (X+1) 
+derivative wrt X
+
+(1 + 1)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare v 1 expression v*(i, i -> )v + 1*(i, i -> )(v) 
+derivative wrt v
+
+((v + v) + 1)
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare v 1 expression (v *(i,i->i) v) + (v *(i,i->i) v) 
+derivative wrt v
+
+(((delta(1) + delta(1)) *(ai,i->ai) v) + ((delta(1) + delta(1)) 
+*(ai,i->ai) v))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare v 1 expression (delta(0) + 1) *(,i->i) v derivative wrt v
+
+(delta(1) *(ai,->ai) (delta(0) + 1))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare X 2 expression sin(delta(1)) *(ij,ij->) X derivative 
+wrt X
+
+(sin(delta(1)))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare a 2 X 4 expression a*(ij,ijkl->ijkl)X + cos(X) derivative 
+wrt X
+
+((delta(4) *(abcdijkl,ij->abcdijkl) a) + (delta(4) 
+*(efghabcd,abcd->efghabcd) (-((sin(X))))))
+\end{verbatim}
+\vspace{-20pt} \rule[-10pt]{\columnwidth}{0.1pt} 
+\begin{verbatim}
+declare X 2 expression sin(delta(1)) *(ij,ij->) X derivative wrt a
+
+0
+\end{verbatim}
+\end{multicols}
 
 \chapter*{Selbstständigkeitserklärung}
 Ich erkläre, dass ich die vorliegende Arbeit selbständig und nur unter Verwendung der angegebenen Hilfsmittel und Quellen angefertigt habe.
