@@ -29,8 +29,8 @@
 
 \graphicspath{{figures/}}
 
-\setlength\cftbeforesecskip{-2pt}
-\setlength\cftbeforechapskip{0pt}
+\setlength\cftbeforesecskip{-3pt}
+\setlength\cftbeforechapskip{-1pt}
 
 \onehalfspacing
 
@@ -39,6 +39,9 @@
 }
 
 \renewcommand{\contentsname}{Table of Contents}
+\renewcommand{\listfigurename}{\Large List of Figures \vspace{-30pt}}
+\renewcommand{\listtablename}{\Large List of Tables \vspace{-30pt}}
+\renewcommand{\listalgorithmname}{\Large List of Algorithms \vspace{-30pt}}
 
 \setlength{\parindent}{0pt}
 \title{
@@ -90,11 +93,11 @@ Supervisor: Prof. Dr. Joachim Giesen
 \begin{document}
 \maketitle
 \pagenumbering{gobble}
-\chapter*{Zusammenfassung} %TODO: In die Gruppe schicken
-Für Optimierungsprobleme spielen Ableitungen eine zentrale Rolle bei der Findung einer optimalen Lösung.
+\chapter*{Zusammenfassung}
+Beim Finden von Lösungen für Optimierungsprobleme spielen Ableitungen eine zentrale Rolle.
 Das automatische symbolische Ableiten von Matrixausdrücken und das numerische Ableiten von Tensorausdrücken sind gut erforscht und werden in der Industrie intensiv genutzt.
 Das Feld der automatischen symbolischen Ableitung von Tensorausdrücken ist hingegen weniger gut untersucht.
-In dieser Arbeit wird ein Tensorkalkül für die automatische symbolische Ableitung von Tensorausdrücken jeglichen Ranges erstellt und implementiert.
+In dieser Arbeit wird ein Kalkül für die automatische symbolische Ableitung von Tensorausdrücken jeglichen Ranges erstellt und implementiert.
 Zur Darstellung von Tensorprodukten nutzt das Kalkül ein Derivat der Einsteinnotation.
 Die verwendete Version ist generischer als die im populären Riccikalkül genutzte Notation.
 Weiterhin ermöglicht die Darstellung der Tensorausdrücke als gerichtete azyklische Graphen es, das Wachstum der Ausdrücke durch die Ableitung als linear in der Knoten- und Kantenzahl des Graphen abzuschätzen. 
@@ -104,17 +107,17 @@ Weiterhin ermöglicht die Darstellung der Tensorausdrücke als gerichtete azykli
 In optimization problems, derivatives play a crucial role in finding an optimal solution.
 Automatic symbolic differentiation of matrix expressions and numerical differentiation of tensor expressions are well researched and used intensively in the industry.
 The field of automatic symbolic differentiation of tensor expressions, however, is not explored as thoroughly.
-In this thesis, we design and implement a tensor calculus for automatic symbolic differentiation of tensor expressions of any order.
+In this thesis, we design and implement a calculus for automatic symbolic differentiation of tensor expressions of any order.
 The calculus uses an Einstein-like product notation that is more general than the notation used in the popular Ricci calculus.
 Furthermore, its representation of tensor expressions as directed acyclic graphs allows us to bound the growth of the expression induced by differentiation to be linear in the number of edges and nodes in the graph.
 \pagenumbering{gobble}
 
 \clearpage
 \tableofcontents
-\pagenumbering{arabic}
-\setcounter{page}{4}
 \clearpage
 
+\pagenumbering{arabic}
+\setcounter{page}{5}
 \chapter{Introduction}
 
 With the rise of machine learning applications, interest in optimization problems has been growing.
@@ -344,7 +347,7 @@ Note that, by convention, we set the argument of a unary function node to its ri
         \draw [->, n] (b) -- (sin);
         \draw [->, n] (sin) -- (+);
     \end{tikzpicture}
-    \caption{Binary expression tree generated from the expression string \texttt{A + sin(b)}. Empty nodes are omitted.}
+    \caption[Example of Binary Tree Generated from an Expression]{Binary expression tree generated from the expression string \texttt{A + sin(b)}. Empty nodes are omitted.}
     \label{fig:tree_example}
 \end{figure}
 
@@ -358,7 +361,7 @@ We employ the following three preprocessing steps.
     \item Each node's output tensor order is determined and stored.
 \end{itemize}
 
-\subsection{Equivalent Subtree Substitution}
+\subsection{Equivalent Subexpression Substitution}
 Some operations or functions may be viewed as equivalent to, or as special cases of other, more easily differentiable operations or functions.
 In these cases, we substitute the more general case to reduce the number of differentiation rules that need to be implemented.
 For example, when encountering the expression $A - B$, we substitute $A + -(B)$, viewing $(-)$ as an elementwise function.
@@ -369,11 +372,11 @@ A full overview of the substituted expressions can be seen in Table \ref{tab:sub
     \begin{tabular}{l | l}
         Original & Substitute \\\hline
         $A-B$ & $A + -(B)$ \\
-        $A^B$ & $\text{exp}(B *_{(,->)} \text{log}(A))$ \\ %TODO: Macht 0^B hier Probleme?
+        $A^B$ & $\text{exp}(B *_{(,->)} \text{log}(A))$ \\
         $A/B$ & $A \;.^*\; \text{elementwise\_inverse}(B)$ \\
         $\text{adj(X)}$ & $\text{det}(X) *_{(,ij \rightarrow ij)} \text{inv}(X)$ \\ 
     \end{tabular}
-    \caption{Table showing all operations that get substituted during preprocessing, along with their substitutes. Note that $(.^*)$ is a placeholder for elementwise multiplication. It is replaced with the appropriate tensor product during tensor order determination. The transformation of $A^B$ is only applied when both $A$ and $B$ contain the differentiation argument. $\text{elementwise\_inverse}$ is an elementwise function for which a differentiation rule is implemented.}
+    \caption[Subtree Substitutions Applied During Preprocessing]{Table showing all operations that get substituted during preprocessing, along with their substitutes. The transformation of $A^B$ is only applied when both $A$ and $B$ contain the differentiation argument, and is only valid when no entries of $A$ are zero. $(.^*)$ is a placeholder for elementwise multiplication; it is replaced with the appropriate tensor product during tensor order determination. $\text{elementwise\_inverse}$ is an elementwise function for which a differentiation rule is implemented.}
     \label{tab:substitutions}
 \end{table}
 \FloatBarrier
@@ -442,7 +445,7 @@ Nodes in the DAG still only have two child nodes, but may have many parent nodes
             \draw [->, n] (+1) -- (*);
         \end{tikzpicture}}
     \end{minipage}
-    \caption{\textit{Left}: Binary tree generated representing the expression $(X+1) + X *_{(ij,ij \rightarrow ij)} (X+1)$. \textit{Right}: DAG obtained by eliminating common subtrees in the left tree.}
+    \caption[Example of Common Subtree Elimination Performed on an Expression DAG]{\textit{Left}: Binary tree generated representing the expression $(X+1) + X *_{(ij,ij \rightarrow ij)} (X+1)$. \textit{Right}: DAG obtained by eliminating common subtrees in the left tree.}
     \label{fig:tree_to_dag}
 \end{figure}
 \FloatBarrier
@@ -484,7 +487,7 @@ Using these rules, we determine the tensor order of any node in an expression DA
         \codeword{adj}, \codeword{inv} & $2$ \\
         \codeword{det} & $0$ \\
     \end{tabular}
-    \caption{Rules applied to determine tensor orders of a node $X$, depending on the node's type. Note that the $\text{output\_indices}$ of a product node are given after the $\rightarrow$ in the product string, that the sum may also take its order from the right child, and that each special function (\texttt{det}, \texttt{inv}, \texttt{adj}) needs its own rule.}
+    \caption[Rules for Determining Tensor Order of a Node Depending on its Type]{Rules applied to determine tensor orders of a node $X$, depending on the node's type. Note that the $\text{output\_indices}$ of a product node are given after the $\rightarrow$ in the product string, that the sum may also take its order from the right child, and that each special function (\texttt{det}, \texttt{inv}, \texttt{adj}) needs its own rule.}
     \label{tab:order_rules}
 \end{table}
 
@@ -521,7 +524,7 @@ Then, these axes are propagated upwards through the DAG, using similar rules to 
         \codeword{adj}, \codeword{inv} & $\text{axes}(\text{right}(X))$ \\
         \codeword{det} & $()$ \\
     \end{tabular}
-    \caption{Rules applied to determine axes of a node $X$, depending on the type of node it is.}
+    \caption[Rules for Detemining Axes of A node Depending on its Type]{Rules applied to determine axes of a node $X$, depending on the type of node it is.}
     \label{tab:axes_rules}
 \end{table}
 
@@ -530,7 +533,7 @@ It chooses the correct axes for the product node from the axes of its children b
 See Algorithm \ref{alg:product_axes} for further details.
 
 \begin{algorithm}
-    \caption{Propagate\_Product\_Axes\_Bottom\_Up (\textit{node})}
+    \caption[Bottom-Up Axis Propagation in Product Node]{PropagateProductAxesBottomUp (\textit{node})}
     \label{alg:product_axes}
     \begin{algorithmic}
         \For{each \textit{i} in output\_indices(\textit{node})}
@@ -563,7 +566,7 @@ For each node $x$, we set its childrens' axes depending on its own, with differe
         \codeword{adj}, \codeword{inv} & - & $\text{axes}(X)$ \\
         \codeword{det} & - &$()$ \\
     \end{tabular}
-    \caption{Rules applied when propagating axis downward through a DAG. Note that elementwise and special functions have no left child, as we always set their argument to their right child.}
+    \caption[Rules Applied when Propagating Axes]{Rules applied when propagating axis downward through a DAG. Note that elementwise and special functions have no left child, as we always set their argument to their right child.}
     \label{tab:axes_rules_2}
 \end{table}
 
@@ -572,7 +575,7 @@ For a product nodes we employ a more complex procedure, setting each child's axe
 More details may be seen in Algorithm \ref{alg:product_axes_2}.
 
 \begin{algorithm}[ht!]
-    \caption{Propagate\_Product\_Axes\_Top\_Down (\textit{node})}
+    \caption[Top-Down Axis Propagation in Product Node]{PropagateProductAxesTopDown (\textit{node})}
     \label{alg:product_axes_2}
     \begin{algorithmic}
         \For{each \textit{i} in output\_indices(\textit{node})}
@@ -669,7 +672,7 @@ Concretely, if $y$ is an order $n$ tensor, then its derivative is a tensor $\del
         0 & 0 & 1
     \end{pmatrix}
     $$
-    \caption{\textit{Left}: An order 1 tensor. \textit{Right}: The derivative of the left tensor with respect to itself, resulting in an order 2 delta tensor.}
+    \caption[Example of a Delta Tensor in a Differentiation DAG]{\textit{Left}: An order 1 tensor. \textit{Right}: The derivative of the left tensor with respect to itself, resulting in an order 2 delta tensor.}
     \label{fig:delta}
 \end{figure}
 Intuitively, the first $n$ indices point to the entry of $y$ that is being differentiated, while the last $n$ indices point to the entry with respect to which we are differentiating.
@@ -703,7 +706,7 @@ Thus, when differentiating a sum node that is their childrens' only parent, like
             \draw [->, n] (+) -- (dots);
         \end{tikzpicture}
     }
-    \caption{A sum node in an expression DAG. The pullbacks of its children $A$ and $X$ are the same as its pullback.}
+    \caption[Example of Sum Rule Application]{A sum node in an expression DAG. The pullbacks of its children $A$ and $X$ are the same as its pullback.}
     \label{fig:sum_rule}
 \end{figure}
 
@@ -753,7 +756,7 @@ This detail will be discussed further in section 4.6.
             \end{tikzpicture}
         }
     \end{minipage}
-    \caption{\textit{Left}: A product node representing a scalar-vector-product in an expression DAG. "..." represents the rest of the DAG. \textit{Right}: Derivative of the left DAG with respect to $x$ computed using the product rule. "..." represents the pullback of the product node. Note that the product indices in the right DAG depend on the indices $s_4$ of the root node in the left DAG (not visible here), which is assumed to be scalar in this case.}
+    \caption[Example of Product Rule Application]{\textit{Left}: A product node representing a scalar-vector-product in an expression DAG. "..." represents the rest of the DAG. \textit{Right}: Derivative of the left DAG with respect to $x$ computed using the product rule. "..." represents the pullback of the product node. Note that the product indices in the right DAG depend on the indices $s_4$ of the root node in the left DAG (not visible here), which is assumed to be scalar in this case.}
     \label{fig:prod_rule}
 \end{figure}
 
@@ -799,7 +802,7 @@ They are listed in Table \ref{tab:func_diffs}
         $\text{inv}(x)$ & $-(\text{inv}(x)) *_{(ij,kl \rightarrow iklj)} \text{inv}(x)$ \\
         $\text{det}(x)$ & $\text{adj}(x) *_{(ij, \rightarrow ji)} 1$ \\
     \end{tabular}
-    \caption{Derivatives of all used functions. $.^*$ is a placeholder for elementwise multiplication with the fitting indices. The elementwise inverse $1 ./ x$ is internally handled as an elementwise function, which is why its derivative is listed here.}
+    \caption[List of All Function Derivatives Used in Differentiation]{Derivatives of all used functions. $.^*$ is a placeholder for elementwise multiplication with the fitting indices. The elementwise inverse $1 ./ x$ is internally handled as an elementwise function, which is why its derivative is listed here.}
     \label{tab:func_diffs}
 \end{table}
 
@@ -835,7 +838,7 @@ They are listed in Table \ref{tab:func_diffs}
             \end{tikzpicture}
         }
     \end{minipage}
-    \caption{\textit{Left}: Part of a DAG that contains the subexpression $\text{sin(X)}$. $X$ is an order 2 tensor (matrix) and "..." represents the rest of the DAG. \textit{Right}: Derivative of the left DAG with respect to $X$ computed using the rule for elementwise functions. "..." represents the pullback of the function node. Note that the root output node of the left DAG is assumed to be scalar here, which has an impact on the indices in the product node in the right DAG.}
+    \caption[Example of Function Rule Application]{\textit{Left}: Part of a DAG that contains the subexpression $\text{sin(X)}$. $X$ is an order 2 tensor (matrix) and "..." represents the rest of the DAG. \textit{Right}: Derivative of the left DAG with respect to $X$ computed using the rule for elementwise functions. "..." represents the pullback of the function node. Note that the root output node of the left DAG is assumed to be scalar here, which has an impact on the indices in the product node in the right DAG.}
     \label{fig:func_rule}
 \end{figure}
 
@@ -883,7 +886,7 @@ Because all ways from the root node to the argument have been processed, we are 
             \draw [->, n] (X) to[out=35, in=-45] (*);
         \end{tikzpicture}
     }
-    \caption{Expression DAG representing the elementwise product of a matrix $X$ with itself.}
+    \caption[Original DAG in Example of Differentiation Rule Application]{Expression DAG representing the elementwise product of a matrix $X$ with itself.}
     \label{fig:diff_example_original}
 \end{figure}
 
@@ -921,7 +924,7 @@ Because all ways from the root node to the argument have been processed, we are 
             \draw [->, n] (arr21) -- (arr22);
         \end{tikzpicture}
     }
-    \caption{Progression of the differentiation procedure on the DAG in Figure \ref{fig:diff_example_original}. \textit{Left}: Pullback of the root node. \textit{Middle}: One contribution to the pullback of $X$. \textit{Right}: Pullback of $X$, both contributions summed.}
+    \caption[Progression of Differentiation in Example of Differentiation Rule Application]{Progression of the differentiation procedure on the DAG in Figure \ref{fig:diff_example_original}. \textit{Left}: Pullback of the root node. \textit{Middle}: One contribution to the pullback of $X$. \textit{Right}: Pullback of $X$, both contributions summed.}
     \label{fig:diff_example_steps}
 \end{figure}
 
@@ -933,7 +936,7 @@ An overview of the differentiation procedure can be seen in Algorithm \ref{alg:1
 The details will be explained in the following paragraphs.
 
 \begin{algorithm}
-    \caption{Differentiate (\textit{root}, \textit{argument})}\label{alg:1}
+    \caption[Driver for DAG Differentiation]{Differentiate (\textit{root}, \textit{argument})}\label{alg:1}
     \begin{algorithmic}
         \State \textit{diffdag} $\gets$ delta(order(\textit{root})) \algorithmiccomment{Creates a node representing $\delta_{\text{order}(root)}$} \\
         \Return ReverseModeDiff(\textit{root}, \textit{argument}, \textit{diffdag}, EmptyDictionary())
@@ -941,7 +944,7 @@ The details will be explained in the following paragraphs.
 \end{algorithm}
 
 \begin{algorithm}
-    \caption{ReverseModeDiff (\textit{node}, \textit{argument}, \textit{diffdag}, \textit{contributions})}\label{alg:2}
+    \caption[Recursive DAG Differentiation]{ReverseModeDiff (\textit{node}, \textit{argument}, \textit{diffdag}, \textit{contributions})}\label{alg:2}
     \begin{algorithmic}
         \For{each \textit{child} of \textit{node}}
             \If{subtree of \textit{child} does not contain \textit{argument}}
@@ -1027,7 +1030,7 @@ The complete, simplified DAG is visible in Figure \ref{fig:alg_example_3}.
             \draw [->, n] (cos) -- (+);
         \end{tikzpicture}
     }
-    \caption{DAG representing the expression $\text{sin}(v) + \text{cos}((\text{sin}(v)))$.}
+    \caption[Orignal DAG in Example of Multiple Pullback Contributions]{DAG representing the expression $\text{sin}(v) + \text{cos}((\text{sin}(v)))$.}
     \label{fig:alg_example_1}
 \end{figure}
 
@@ -1077,7 +1080,7 @@ The complete, simplified DAG is visible in Figure \ref{fig:alg_example_3}.
             \draw [->, n] (arr21) -- (arr22);
         \end{tikzpicture}
     }
-    \caption{Progression of the differentiation procedure on the DAG in Figure \ref{fig:alg_example_1}. \textit{Left}: Pullback of the $+$, $\text{sin}$ and $\text{cos}$ nodes. \textit{Middle}: First contribution to the pullback of $v$. \textit{Right}: Full pullback of $v$.}
+    \caption[Progression of Differentiation in Example of Multiple Pullback Contributions]{Progression of the differentiation procedure on the DAG in Figure \ref{fig:alg_example_1}. \textit{Left}: Pullback of the $+$, $\text{sin}$ and $\text{cos}$ nodes. \textit{Middle}: First contribution to the pullback of $v$. \textit{Right}: Full pullback of $v$.}
     \label{fig:alg_example_2}
 \end{figure}
 
@@ -1104,7 +1107,7 @@ The complete, simplified DAG is visible in Figure \ref{fig:alg_example_3}.
             \draw [->, n] (delta) to[out=90, in=220] (+);
         \end{tikzpicture}
     }
-    \caption{Full simplified differentiation DAG of the original DAG in Figure \ref{fig:alg_example_1}.}
+    \caption[Simplified Differentiation DAG in Example of Multiple Pullback Contributions]{Full simplified differentiation DAG of the original DAG in Figure \ref{fig:alg_example_1}.}
     \label{fig:alg_example_3}
 \end{figure}
 
@@ -1253,7 +1256,7 @@ Both the modified DAG and the derivative are visible in Figure \ref{fig:missing_
             \end{tikzpicture}
         }
     \end{minipage}
-    \caption{\textit{Left}: DAG with a disappearing index $i$. \textit{Middle}: Modified DAG where the sum over index $i$ is made explicit. \textit{Right}: Derivative of the middle DAG with respect to $A$.}
+    \caption[Example of Differentiation of DAG with Missing Index]{\textit{Left}: DAG with a disappearing index $i$. \textit{Middle}: Modified DAG where the sum over index $i$ is made explicit. \textit{Right}: Derivative of the middle DAG with respect to $A$.}
     \label{fig:missing_indices_example}
 \end{figure}
 
@@ -1315,6 +1318,13 @@ How our representation of tensor function derivatives can be used to detect conv
 
 \printbibliography
 \addcontentsline{toc}{chapter}{Bibliography}
+
+\clearpage
+\chapter*{Listings}\vspace{-50pt}
+\addcontentsline{toc}{chapter}{Listings}
+\listoffigures
+\listoftables
+\listofalgorithms
 
 \chapter*{Appendix}
 \addcontentsline{toc}{chapter}{Appendix}
@@ -1705,6 +1715,6 @@ Die eingereichte Arbeit ist nicht anderweitig als Prüfungsleistung verwendet wo
 Seitens des Verfassers bestehen keine Einwände, die vorliegende Bachelorarbeit für die öffentliche Benutzung zur Verfügung zu stellen. \vspace{50pt}
 
 Jena, 25.08.2022
-
+\pagenumbering{gobble}
 
 \end{document}
