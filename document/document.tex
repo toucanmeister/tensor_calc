@@ -95,19 +95,19 @@ Supervisor: Prof. Dr. Joachim Giesen
 \pagenumbering{gobble}
 \chapter*{Zusammenfassung}
 Beim Finden von Lösungen für Optimierungsprobleme spielen Ableitungen eine zentrale Rolle.
-Das automatische symbolische Ableiten von Matrixausdrücken und das numerische Ableiten von Tensorausdrücken sind gut erforscht und werden in der Industrie intensiv genutzt.
+Das automatische symbolische Ableiten von Matrixausdrücken und das numerische Ableiten von Tensorausdrücken sind gut erforscht und werden in der Wirtschaft extensiv genutzt.
 Das Feld der automatischen symbolischen Ableitung von Tensorausdrücken ist hingegen weniger gut untersucht.
-In dieser Arbeit wird ein Kalkül für die automatische symbolische Ableitung von Tensorausdrücken jeglichen Ranges erstellt und implementiert.
+In dieser Arbeit wird ein Kalkül für die automatische symbolische Ableitung von Tensorausdrücken jeglicher Ordnung eingeführt und implementiert.
 Zur Darstellung von Tensorprodukten nutzt das Kalkül ein Derivat der Einsteinnotation.
 Die verwendete Version ist generischer als die im populären Riccikalkül genutzte Notation.
-Weiterhin ermöglicht die Darstellung der Tensorausdrücke als gerichtete azyklische Graphen es, das Wachstum der Ausdrücke durch die Ableitung als linear in der Knoten- und Kantenzahl des Graphen abzuschätzen. 
+Weiterhin ermöglicht eine Darstellung der Tensorausdrücke als gerichtete azyklische Graphen es, das Wachstum der Ausdrücke durch die Ableitung als höchstens linear in der Knoten- und Kantenzahl des Graphen zu bestimmen. 
 \pagenumbering{gobble}
 
 \chapter*{Abstract}
 In optimization problems, derivatives play a crucial role in finding an optimal solution.
-Automatic symbolic differentiation of matrix expressions and numerical differentiation of tensor expressions are well researched and used intensively in the industry.
+Automatic symbolic differentiation of matrix expressions and numerical differentiation of tensor expressions are well researched and used extensively in the industry.
 The field of automatic symbolic differentiation of tensor expressions, however, is not explored as thoroughly.
-In this thesis, we design and implement a calculus for automatic symbolic differentiation of tensor expressions of any order.
+In this thesis, we introduce and implement a calculus for automatic symbolic differentiation of tensor expressions of any order.
 The calculus uses an Einstein-like product notation that is more general than the notation used in the popular Ricci calculus.
 Furthermore, its representation of tensor expressions as directed acyclic graphs allows us to bound the growth of the expression induced by differentiation to be linear in the number of edges and nodes in the graph.
 \pagenumbering{gobble}
@@ -126,11 +126,11 @@ While some optimization problems have a closed-form solution which can be comput
 When computing these approximate solutions, derivatives play a crucial role.
 In particular, the first derivative of the objective function is used in the ubiquitous gradient descent procedure.
 In most optimization problems, multiple parameters need to be optimized simultaneously.
-This means that derivatives need to be computed with respect to multiple variables, organized either in vectors, matrices or higher-order tensors.
+This requires derivatives to be computed with respect to multiple variables, organized either in vectors, matrices or higher-order tensors.
 Commonly used machine learning frameworks (like Tensorflow, PyTorch or Theano) focus heavily on the first derivatives of the objective function.
 
 Higher-order derivatives can, however, also be of interest.
-As an example, the matrix of second-order partial derivatives, called the Hessian, is used in the application of Newton's method, which can be more efficient than gradient descent for some problems.
+As an example, the matrix of second-order partial derivatives, called the Hessian, is used in the application of Newton's method, which has better convergence time guarantees than gradient descent \cite{newtons}.
 Convexity checks constitute another application of higher-order derivatives.
 The convexity of objective functions and their associated optimization problems play a major role in the field of optimization.
 If a problem is strictly convex or concave, then it has a unique global optimum and the gradient descent algorithm can approximate it arbitrarily well.
@@ -150,13 +150,19 @@ We then discuss the parsing and representation of tensor expressions.
 Following that, the theoretical background and practical implementation of the differentiation process are described.
 We also remedy a problem that was present in the original work \cite{tensorpaper} by Laue, Mitterreiter and Giesen and prove that our algorithm causes tensor expressions to grow linearly when differentiating.
 
+A short note on notation: This thesis uses a \codeword{monospace} font when describing strings of characters.
 
 \chapter{A Syntax for Tensor Expressions}
 \section{Aims}
 In this chapter we develop the language that will be used to specify tensor expressions for differentiation.
-To differentiate a tensor expression, three pieces of information are needed: 1. the tensor expression itself, 2. the variable with respect to which should be differentiated, 3. the tensor order of all variables in the expression.
+To differentiate a tensor expression, three pieces of information are needed: 
+\begin{itemize}
+    \item the tensor expression itself
+    \item the variable with respect to which should be differentiated
+    \item the tensor order of all variables in the expression
+\end{itemize}
 The neccessity of the third condition is not immediately obvious.
-During differentiation, the tensor orders of each subexpression need to be known.
+During differentiation, the tensor orders of each subexpression need to be known in order to apply the differentiation rules.
 We compute these tensor orders for all subexpressions from the given tensor orders of variables.
 Further details are covered in chapter 3.
 
@@ -165,7 +171,7 @@ It should allow representation of tensor expressions of arbitrary order and shou
 Even so, as the motivation for this thesis comes from the background of optimization and machine learning, the most common specifics of these fields should be covered.
 
 The main point of interest for this syntax is how to represent tensors and their products, as there are many ways to multiply two tensors.
-We start with an established tensor calculus and its notation, and generalize it to fit our problem domain.
+We start the notation of an established tensor calculus and generalize it to fit our problem domain.
 
 \section{Representing Tensor Products}
 There exists a calculus for tensor expressions, called Ricci calculus, that is heavily used in physics. \cite{ricci}
@@ -178,7 +184,7 @@ Since, for our purposes, tensors are simply containers for variables, we have no
 A part of Ricci calculus that we bring over into our notation is a derived version of the Einstein summation convention \cite{einstein}.
 This is a notational convention that allows elegant representation of tensor products.
 Since tensors, depending on their order, may be multiplied in many ways, we need a way to describe which tensor axes should be multiplied in what way.
-For example, two vectors could be multiplied by taking their inner product, their outer product, or even their elementwise product.
+For example, two vectors could be multiplied by taking their inner product, their outer product, or their elementwise product.
 Einstein notation handles this problem by adding index strings to the inputs and the output of the product, each index representing an axis in the respective tensor.
 If an index appears in both inputs, the respective axes will be multiplied.
 If an index appears in inputs but not in the output, this axis will be summed over.
@@ -188,8 +194,11 @@ This simple set of rules provides an elegant way to express the main tensor oper
 
 We take a large part of the syntax for tensor multiplication from the established Python software package \textit{NumPy} \cite{numpy}, specifically its \codeword{einsum} procedure.
 A product of two tensors $x$ and $y$ has the form $x*_{(a,b \rightarrow c)}y$, where $a$,$b$ and $c$ are strings of indices.
-A formal characterization of the product $C = A *_{(s_1,s_2 \rightarrow s_3)} B$ is given in Equation \ref{eq:product}, where $s_1$, $s_2$ and $s_3$ represent index sets.
-Note that for two index sets $s_1$ and $s_2$, we write $s_1 s_2$ as shorthand for $s_1 \cup s_2$.
+A formal characterization of the product $C = A *_{(s_1,s_2 \rightarrow s_3)} B$ is given in Equation \ref{eq:product}, where $s_1$, $s_2$ and $s_3$ represent index strings.
+In the original work \cite{tensorpaper} by Laue, Mitterreiter and Giesen, tensor products are characterized by index sets instead of index strings.
+This, however, restricts us in specifying the order of axes.
+We work with index strings, but may apply the results of their work as strings may be viewed as sets with a specified ordering.
+Note that for two index strings $s_1$ and $s_2$, we write $s_1 s_2$ as shorthand for $s_1 \cup s_2$.
 
 \begin{equation}
     C[s_3] = \sum_{(s_1 s_2)  \backslash s_3} A[s_1] \cdot B[s_2]
@@ -200,8 +209,6 @@ As an example of tensor products, see the inner, outer and elementwise product o
 The application of a matrix $A$ to a vector $v$ would be written as $A*_{(ij,j \rightarrow i)}v$, while the elementwise product of two matrices $A$ and $B$ would be $A*_{(ij,ij \rightarrow ij)}B$.
 By swapping the order of output indices, the axis order can be manipulated.
 A special case of this is the matrix transpose, which for a matrix $X$ can be taken using the product $X *_{(ij, \rightarrow ji)} 1$.
-One may even take diagonals of tensors using this notation, the inner product of a square matrix $A$'s main diagonal and a vector $v$ would be $A*_{(ii,i \rightarrow)}v$.
-
 
 \section{Grammar}
 With the representation of tensor products handled, we can now define the full syntax grammar.
@@ -251,7 +258,7 @@ Some examples of inputs this grammar accepts are the following, although more ex
 \end{itemize}
 
 The input is structured around three keywords.
-After the first keyword, \codeword{declare}, are the tensor variables with their respective orders.
+After the first keyword, \codeword{declare}, are the tensor variables that appear in the expression with their respective orders.
 The expression to be differentiated follows after \codeword{expression}.
 The last keyword, \codeword{derivative wrt}, precedes the name of the argument variable with respect to which is being differentiated.
 
@@ -264,15 +271,18 @@ A variety of functions with relevance to optimization and machine learning are i
 The exceptions to this are the matrix inverse \codeword{inv}, the matrix determinant \codeword{det} and the adjugate matrix $\codeword{adj}$, all of which are not applied elementwise and may only operate on order 2 tensors.
 The inclusion of these functions takes away from the generality of our grammar, as the idea of an inverse and a determinant can only be applied to matrices, not higher-order tensors, but they are crucial to some common optimization problems that work with matrices.
 
+We automatically broadcast constants, like the \codeword{1} in the second example above, to the appropriate tensor order for ease of use.
+How this is accomplished is covered in chapter 3.
+
 \chapter{Parsing and Representation}
 Having defined the syntax, we now discuss how a given tensor expression is parsed and represented internally.
 In our application, tensor expressions are represented using directed acyclic graphs derived from binary trees.
-This data structure was chosen because graphical representations are well tested for expressions and because the foundational work by Laue, Mitterreiter and Giesen also assumes such a representation.
+This data structure was chosen because graphical representations are well tested for expressions and because the foundational work \cite{tensorpaper} by Laue, Mitterreiter and Giesen also assumes such a representation.
 This allows the differentiation rules presented in their work to be easily implemented.
 Furthermore, many of the algorithms described in this chapter and the next are most naturally written recursively.
 A recursive data structure like a tree lends itself to these algorithms.
 
-In this chapter we first describe how a tensor expression is parsed into a binary expression tree and explain the processing steps taken to transform the binary tree into a directed acyclic graph without duplicate subexpressions.
+In this chapter we first describe how a tensor expression string is parsed into a binary expression tree and explain the processing steps taken to simplify the binary tree into a directed acyclic graph without duplicate subexpressions.
 We also describe how we assign a tensor order and an axis tuple to each node in the graph, which is required for differentiation and for possible numerical evaluation of the derivative expression.
 
 \section{Parsing}
@@ -281,7 +291,7 @@ We parse an expression string in two separate steps, tokenization and tree build
 
 \subsection{Tokenization}
 To be able to parse an expression string, we first transform it into a sequence of tokens.
-This is done by the tokenizer, sometimes also called lexical scanner, which recognizes certain defined patterns in the expression string and unifies them into a token.
+This is done by a piece of software called a tokenizer, sometimes also called lexical scanner, which recognizes certain defined patterns in the expression string and unifies them into a token.
 Each of these tokens represents a logical unit that is used in the next step of parsing.
 Tokenization allows the parser to work only with well-defined tokens, not having to work on the level of individual characters.
 Each token is made up of two parts, the descriptor and the identifier.
@@ -300,7 +310,10 @@ The exception to this is the root, which has no parent.
 We call nodes that have no children leaf nodes.
 
 Formally, we define a binary tree $B$ as follows:
-$B$ is either the empty set or a tuple $(\text{left}(B),\text{root}(B),\text{right}(B))$, where $\text{left}(B)$ and $\text{right}(B)$ are also binary trees and have $B$ as their only parent, and $\text{root}(B)$ is the root of the tree, containing some value.
+$B$ is either the empty set or a tuple $(\text{left}(B),\text{root}(B),\text{right}(B))$, where $\text{left}(B)$ and $\text{right}(B)$ are also binary trees and have $B$ as their only parent, and $\text{root}(B)$ is the root node, containing some value.
+
+To unify the formal definition with our intuitive characterization, refer to empty nodes as nonexistant and omit them from graphical representations.
+This allows us to speak of nodes in terms of their number of children.
 
 The process  of constructing such a tree from a given expression follows the structure of the grammar defined in the previous chapter.
 Starting with \codeword{expr}, we recursively step through the grammar, using the tokens to decide which options to follow.
@@ -347,18 +360,19 @@ Note that, by convention, we set the argument of a unary function node to its ri
         \draw [->, n] (b) -- (sin);
         \draw [->, n] (sin) -- (+);
     \end{tikzpicture}
-    \caption[Example of Binary Tree Generated from an Expression]{Binary expression tree generated from the expression string \texttt{A + sin(b)}. Empty nodes are omitted.}
+    \caption[Example of Binary Tree Generated from an Expression]{Binary expression tree generated from the expression string \texttt{A + sin(b)}. We omit the label describing which of a nodes' children is the left and right child when it is obvious from the figure or makes no difference in the expression the graph represents.}
     \label{fig:tree_example}
 \end{figure}
 
 \FloatBarrier
 \section{Preprocessing}
 Having shown how a binary expression tree is created from a given tensor expression, we now describe how this tree is processed further to prepare it for differentiation.
-We employ the following three preprocessing steps.
+We employ the following preprocessing steps.
 \begin{itemize}
     \item Some subtrees are substituted with equivalent ones which are more easily differentiated.
     \item Subtrees which occur more than once are fused.
     \item Each node's output tensor order is determined and stored.
+    \item Each node is assigned a tuple of axis identifiers.
 \end{itemize}
 
 \subsection{Equivalent Subexpression Substitution}
@@ -374,9 +388,9 @@ A full overview of the substituted expressions can be seen in Table \ref{tab:sub
         $A-B$ & $A + -(B)$ \\
         $A^B$ & $\text{exp}(B *_{(,->)} \text{log}(A))$ \\
         $A/B$ & $A \;.^*\; \text{elementwise\_inverse}(B)$ \\
-        $\text{adj(X)}$ & $\text{det}(X) *_{(,ij \rightarrow ij)} \text{inv}(X)$ \\ 
+        $\text{adj}(X)$ & $\text{det}(X) *_{(,ij \rightarrow ij)} \text{inv}(X)$ \\ 
     \end{tabular}
-    \caption[Subtree Substitutions Applied During Preprocessing]{Table showing all operations that get substituted during preprocessing, along with their substitutes. The transformation of $A^B$ is only applied when both $A$ and $B$ contain the differentiation argument, and is only valid when no entries of $A$ are zero. $(.^*)$ is a placeholder for elementwise multiplication; it is replaced with the appropriate tensor product during tensor order determination. $\text{elementwise\_inverse}$ is an elementwise function for which a differentiation rule is implemented.}
+    \caption[Subexpression Substitutions Applied During Preprocessing]{Table showing all operations that get substituted during preprocessing, along with their substitutes. The transformation of $A^B$ is only applied when both $A$ and $B$ contain the differentiation argument, and is only valid when no entries of $A$ are zero. $(.^*)$ is a placeholder for elementwise multiplication; it is replaced with the appropriate tensor product during tensor order determination. The transformation for $\text{adj}(X)$ is only valid if $X$ is invertible. $\text{elementwise\_inverse}$ is an elementwise function for which a differentiation rule is implemented.}
     \label{tab:substitutions}
 \end{table}
 \FloatBarrier
@@ -388,13 +402,13 @@ To help with this, and also to reduce the number of nodes in the expression tree
 First, to identify duplicate subtrees, the notion of equality needs to be defined for trees.
 We define equality of two trees, $A$ and $B$, as follows.
 $$
-A = B \iff \text{root}(A) = \text{root}(B) \land \text{left}(A) = \text{left}(B) \land \text{right}(A) = \text{right}(B)
+A = B \iff (\text{root}(A) = \text{root}(B)) \land (\text{left}(A) = \text{left}(B)) \land (\text{right}(A) = \text{right}(B))
 $$
-Equality of nodes is handled by comparing all components of the node (node type, name, indices for product nodes) individually.
+Equality of root nodes is handled by comparing all components of the node (node type, name, indices for product nodes) individually.
 
 Now that we may identify when two subtrees are equal, we continue with common subtree elimination.
 We first obtain all subtrees by traversing the whole tree.
-Then, we store each unique subtree we find in a hash table.
+Then, we store each unique subtree we find in a hashmap.
 When we encounter a subtree that is already present in our hashmap, we let its parent node have the tree in the hashmap as its child instead of the original.
 In doing so, we remove duplicate subtrees and transform the binary expression tree into a directed acyclic graph (DAG) representing the expression.
 Nodes in the DAG still only have two child nodes, but may have many parent nodes.
@@ -445,22 +459,21 @@ Nodes in the DAG still only have two child nodes, but may have many parent nodes
             \draw [->, n] (+1) -- (*);
         \end{tikzpicture}}
     \end{minipage}
-    \caption[Example of Common Subtree Elimination Performed on an Expression DAG]{\textit{Left}: Binary tree generated representing the expression $(X+1) + X *_{(ij,ij \rightarrow ij)} (X+1)$. \textit{Right}: DAG obtained by eliminating common subtrees in the left tree.}
+    \caption[Example of Common Subtree Elimination Performed on an Expression DAG]{\textit{Left}: Binary tree representing the expression $(X+1) + X *_{(ij,ij \rightarrow ij)} (X+1)$. \textit{Right}: DAG obtained by eliminating common subtrees in the left tree.}
     \label{fig:tree_to_dag}
 \end{figure}
 \FloatBarrier
 \subsection{Tensor Order Determination}
-Another preprocessing step is tensor order determination.
 During differentiation, we often create new product nodes.
 Because we need to specify product indices when we create a product node, we require knowledge of the tensor orders of both inputs and the output of the new node, which depend on the tensor orders of nodes in the original DAG.
-Because we may need the tensor rank of all nodes in the orignal DAG, we determine them by propagating tensor orders from the bottom of the DAG upwards toward the root.
+Because we may need the tensor order of all nodes in the orignal DAG, we determine them by propagating tensor orders from the bottom of the DAG toward the root.
 
 The bottom nodes contain either variables or constants.
 The tensor orders of variables need to be given, as they function as the start for the upwards propagation of tensor orders.
 Constants are handled specially and are covered in the following paragraph.
 Starting from the bottom nodes in the graph, each parent node calculates its tensor order based on its child nodes.
 For example, a sum will have its order set equal to the order of its children.
-A full overview of these order determination rules can be found in table \ref{tab:order_rules}.
+A full overview of these order determination rules can be found in Table \ref{tab:order_rules}.
 
 Constants may need to be broadcast to fit into the expression.
 For example, in the expression $1 + \text{det}(X)$ with an order 2 tensor $X$, $1$ would be a scalar (order 0 tensor) since it needs to be summed with another scalar.
@@ -475,7 +488,7 @@ Nonetheless, we may find a fitting order using the expression in which the outpu
 This is possible since the input and output order of elementwise functions are always the same.
 As an example, the order of the tensor constant $2$ in the expression $X + \text{log}(2)$ may be determined by finding out what order $\text{log}(2)$ needs to be to fit in the sum.
 Since summands always have the same order, $\text{log}(2)$, and by extension $2$, need to have the same order as $X$.
-Using these rules, we determine the tensor order of any node in an expression DAG.
+Using these rules, we determine the tensor order of all nodes in an expression DAG.
 
 \begin{table}[ht]
     \centering
@@ -524,7 +537,7 @@ Then, these axes are propagated upwards through the DAG, using similar rules to 
         \codeword{adj}, \codeword{inv} & $\text{axes}(\text{right}(X))$ \\
         \codeword{det} & $()$ \\
     \end{tabular}
-    \caption[Rules for Detemining Axes of A node Depending on its Type]{Rules applied to determine axes of a node $X$, depending on the type of node it is.}
+    \caption[Rules for Determining Axes of a Node Depending on its Type]{Rules applied to determine axes of a node $X$, depending on the type of node it is.}
     \label{tab:axes_rules}
 \end{table}
 
@@ -571,7 +584,7 @@ For each node $x$, we set its childrens' axes depending on its own, with differe
 \end{table}
 
 An overview of the applied propagation rules is seen in Table \ref{tab:axes_rules_2}.
-For a product nodes we employ a more complex procedure, setting each child's axes to the node's axes depending on the product indices.
+For product nodes we employ a more complex procedure, setting each child's axes to the node's axes depending on the product indices and unifying equivalent axes.
 More details may be seen in Algorithm \ref{alg:product_axes_2}.
 
 \begin{algorithm}[ht!]
@@ -605,12 +618,12 @@ More details may be seen in Algorithm \ref{alg:product_axes_2}.
     \end{algorithmic}
 \end{algorithm}
 
-After this second pass through the DAG, each node now contains a fitting tuple of axes, unified as much as possible, with each axis coming from a variable in the original DAG.
+After this second pass through the DAG, each node now contains a fitting tuple of axes, unified as much as possible, with each axis originating from a variable in the original DAG.
 
 \FloatBarrier
 \chapter{Differentiation}
-The previous chapter was concerned with creating a suitable internal representation for tensor expressions, which turned out to be a directed acyclic graph (DAG).
-In this chapter, we use this DAG representation of the expression for the differentiation.
+The previous chapter was concerned with developing a suitable internal representation for tensor expressions, which turned out to be a directed acyclic graph (DAG).
+In this chapter, we use this DAG representation of expressions for differentiation.
 We start by giving some background information on the general differentiation procedure and describe the differentiation rules in theory.
 Following that, we elaborate on the details of our implementation of the procedure and the rules and present a problem we discovered in the differentiation rule for tensor products, along with a solution for it.
 We finish this chapter with a description of how the correctness of our implementation is verified and a discussion of how tensor expressions grow when we differentiate them.
@@ -633,17 +646,18 @@ When traversing the DAG, the pullback is known for each parent node $u$ of $v$, 
 
 where $(v,u) \in E$ means that there is an edge going from $v$ to $u$ in the DAG, which makes $u$ a parent of $v$. 
 Note also that $\cdot$ is a placeholder for an appropriate tensor product, which is specified in the differentiation rules. 
-This rule allows us to calculate the pullback of $v$ using the known pullbacks of $v$'s parents $u$.
+This rule allows us to calculate the pullback of $v$ using the known pullbacks of $v$'s parents.
 The only new calculation to be done for each node is the derivation of the parent nodes $u$ with respect to $v$, $\frac{du}{dv}$.
+This is accomplished by a number of differentiation rules covered in the next section of this chapter.
 
 The procedure starts with the root node $y$, representing the entire expression, and computes its pullback, which is the derivative with respect to itself.
-This pullback is then used to compute the pullback of $y$'s child nodes, which are used to compute their child nodes, continuing recursively until all paths from the top node $y$ to the argument node have been traversed.
+This pullback is then used to compute the pullback of $y$'s child nodes, which are used to compute their child nodes, continuing recursively until all paths from the root node $y$ to the argument node have been traversed.
 The pullback for the node containing the argument is the result of the differentiation, the derivative of the whole expression $y$ with respect to the argument.
 
-In the very first step of the procedure, the derivative of the top node $y$ with respect to itself is computed.
+In the very first step of the procedure, the derivative of the root node $y$ with respect to itself is computed.
 Since $y$ is a tensor-valued function, its derivative is also a tensor.
 Specifically, differentiating $y$ with respect to itself means that each entry of the tensor represented by $y$ is differentiated once with respect to all other entries.
-Thus, this differentiation creates a new tensor of the same size as $y$ for each entry in $y$, where for each of these tensors, only one entry is $1$, while the rest are $0$, visible in Figure \ref{fig:delta}.
+This differentiation creates a new tensor of the same size as $y$ for each entry in $y$, where for each of these tensors, only one entry is $1$, while the rest are $0$, visible in Figure \ref{fig:delta}.
 Concretely, if $y$ is an order $n$ tensor, then its derivative is a tensor $\delta_n$ of order $2n$, where
 \begin{equation}
     \delta_n[i_1,..,i_{2n}] = 
@@ -675,6 +689,7 @@ Concretely, if $y$ is an order $n$ tensor, then its derivative is a tensor $\del
     \caption[Example of a Delta Tensor in a Differentiation DAG]{\textit{Left}: An order 1 tensor. \textit{Right}: The derivative of the left tensor with respect to itself, resulting in an order 2 delta tensor.}
     \label{fig:delta}
 \end{figure}
+
 Intuitively, the first $n$ indices point to the entry of $y$ that is being differentiated, while the last $n$ indices point to the entry with respect to which we are differentiating.
 Only when we differentiate an entry with respect to itself is the result a $1$, otherwise it is $0$.
 Tensors that satisfy Equation \ref{eq:delta} are called delta tensors.
@@ -769,18 +784,18 @@ If the node $u$ represents an elementwise function $f$ being applied to the chil
 $$
 \frac{dy}{du} *_{(s_2s_1,s_1 \rightarrow s_2s_1)} f'(v),
 $$
-where $s_1$ is the index string of $v$, $s_2$ is the index string of the output node of the DAG and $f'$ is the derivative of $f$.
+where $s_1$ is the index string of $v$, $s_2$ is the index string of the root node of the DAG and $f'$ is the derivative of $f$.
 An example can be seen in Figure \ref{fig:func_rule}.
 
 If the node $u$ represents a special function $f$ being applied to the child node $v$, then the contribution of $u$ to the pullback $v$ is
 $$
 \frac{dy}{du} *_{(s_3s_2,s_2s_1 \rightarrow s_3s_1)} f'(v),
 $$
-where $s_1$ is $v$'s input, representing the domain of $f$, $s_2$ is the index string of $v$, representing the range of $f$, and $s_3$ is the index string of the output node of the DAG with $f'$ still being the derivative of $f$.
+where $s_1$ is $v$'s input, representing the domain of $f$, $s_2$ is the index string of $v$, representing the range of $f$, and $s_3$ is the index string of the root node of the DAG with $f'$ still being the derivative of $f$.
 The distinction between $s_1$ and $s_2$ is neccessary because domain and range of $f$ may not be the same with these functions.
-
 The derivatives $f'$ of all accepted functions $f$ need to be known.
-They are listed in Table \ref{tab:func_diffs}
+They are listed in Table \ref{tab:func_diffs}.
+
 \begin{table}[ht]
     \centering
     \begin{tabular}{l | l}
@@ -838,7 +853,7 @@ They are listed in Table \ref{tab:func_diffs}
             \end{tikzpicture}
         }
     \end{minipage}
-    \caption[Example of Function Rule Application]{\textit{Left}: Part of a DAG that contains the subexpression $\text{sin(X)}$. $X$ is an order 2 tensor (matrix) and "..." represents the rest of the DAG. \textit{Right}: Derivative of the left DAG with respect to $X$ computed using the rule for elementwise functions. "..." represents the pullback of the function node. Note that the root output node of the left DAG is assumed to be scalar here, which has an impact on the indices in the product node in the right DAG.}
+    \caption[Example of Function Rule Application]{\textit{Left}: Part of a DAG that contains the subexpression $\text{sin(X)}$. $X$ is an order 2 tensor (matrix) and "..." represents the rest of the DAG. \textit{Right}: Derivative of the left DAG with respect to $X$ computed using the rule for elementwise functions. "..." represents the pullback of the function node. Note that the root node of the left DAG is assumed to be scalar here, which has an impact on the indices in the product node in the right DAG.}
     \label{fig:func_rule}
 \end{figure}
 
@@ -867,7 +882,7 @@ Since the expression is an order 2 tensor, this creates a delta tensor $\delta_2
 
 Continuing from the root node, we compute its contribution to the pullback of the left child first.
 In this case, the left child and the right child are the same, but are still handled separately.
-Using the product rule, we can see that the contribution of the top node $y$ to the left child is $\frac{dy}{dy} *_{(abij,ij \rightarrow abij)} X$, with $\frac{dy}{dy}$ being $\delta_2$ (Step 2 in Figure \ref{fig:diff_example_steps}).
+Using the product rule, we can see that the contribution of the root node $y$ to the left child is $\frac{dy}{dy} *_{(abij,ij \rightarrow abij)} X$, with $\frac{dy}{dy}$ being $\delta_2$ (Step 2 in Figure \ref{fig:diff_example_steps}).
 
 Since $X$ has no children, we continue with the right child of $y$.
 Here, we apply the product rule and obtain the same $\delta_2 *_{(abij,ij \rightarrow abij)} X$ as the contribution to the pullback of $X$.
@@ -950,7 +965,7 @@ The details will be explained in the following paragraphs.
             \If{subtree of \textit{child} does not contain \textit{argument}}
                 \State Continue with next \textit{child}
             \EndIf
-            \State Apply fitting differentiation rule (depending on \textit{node}) to \textit{child}
+            \State Add \textit{node}'s contribution to \textit{child}'s pullback to \textit{diffdag} using fitting diff. rule
             \If{\textit{child} is in keys(\textit{contributions})}
                 \State Add new contribution to \textit{contributions}[\textit{child}] using a sum node
                 \State Move all parents of the \textit{contributions}[\textit{child}] to the sum node
@@ -965,9 +980,9 @@ The details will be explained in the following paragraphs.
 \end{algorithm}
 
 As can be seen in Algorithm \ref{alg:1}, the first node is added specially, before the real differentiation algorithm starts.
-This node, a delta tensor, is the derivative of the top node $y$ with respect to itself and has double the order of the original top node.
+This node, a delta tensor, is the derivative of the root node $y$ with respect to itself and has double the order of the original root node.
 
-The original DAG is traversed from the top node down to the argument node, building up the differentiation DAG alongside it.
+The original DAG is traversed from the root node down to the argument node, building up the differentiation DAG alongside it.
 With each node $u$ of the original DAG that is processed, its contributions to the pullbacks of its child nodes are added to the differentiation DAG.
 These pullbacks are computed using the differentiation rules discussed in the previous chapter.
 
@@ -985,7 +1000,7 @@ This way, we build up the correct pullback over time, adding contributions as we
 \FloatBarrier
 \section{Example of Multiple Pullback Contributions}
 To better illustrate the process of building a pullback piece by piece, we showcase an example.
-Consider the DAG in Figure \ref{fig:alg_example_1} representing the expression $\text{sin}(v) + \text{cos}((\text{sin}(v)))$ for an order 1 tensor $v$.
+Consider the DAG in Figure \ref{fig:alg_example_1} representing the expression $\text{sin}(v) + \text{cos}(\text{sin}(v))$ for an order 1 tensor $v$.
 We differentiate this expression with respect to $v$.
 
 Starting out, we compute the pullback of the root node.
@@ -997,10 +1012,10 @@ However, since the root node is a sum node, it adds nothing of its own, which ma
 Continuing with the node's children, we start (arbitrarily) with the left child.
 The left child is an elementwise function node representing $\text{sin}(v)$.
 Using the differentiation rule for elementwise functions along with the derivative of the $\text{sin}$ function, we see that its contribution to its child's pullback is $\delta_1 *_{(ba,a \rightarrow ba)} \text{cos}(v)$.
-This is the first contribution to the pullback of $v$ (Step 2 in Figure \ref{fig:alg_example_2}),
+This is the first contribution to the pullback of $v$ (Step 2 in Figure \ref{fig:alg_example_2}).
 Since the only child of the $\text{sin}$ node is the argument node $v$, we need not continue further and instead jump back up to explore the second child of the root node.
 
-The second child is an elementwise function node representing $\text{cos}((\text{sin}(v)))$.
+The second child is an elementwise function node representing $\text{cos}(\text{sin}(v))$.
 Using the differentiation rule for elementwise functions along with the derivative of the $\text{cos}$ function, we obtain $\delta_1 *_{(ba,a \rightarrow ba)} -(\text{sin}(v))$ as the contribution of the node to its child's pullback.
 
 The $\text{cos}$ node's child is the $\text{sin}$ node we have been to before.
@@ -1011,7 +1026,7 @@ We manage this by changing all parents of the old pullback to be parents of the 
 The left child of the product $\delta_1 *_{(ba,a \rightarrow ba)} \text{cos}(v)$ gets updated to be the sum node in the new, complete pullback (Step 3 in Figure \ref{fig:alg_example_2}).
 
 Since there are no more unvisited children, we are done.
-The finished differentiation DAG represents the expression $(\delta_1 + (\delta_1 *_{(ba,a \rightarrow ba)} -(\text{sin}(v)))) *_{(ba,a \rightarrow ba)} cos(v)$.
+The finished differentiation DAG represents the expression $(\delta_1 + (\delta_1 *_{(ba,a \rightarrow ba)} -(\text{sin}(v)))) *_{(ba,a \rightarrow ba)} \text{cos}(v)$.
 The complete, simplified DAG is visible in Figure \ref{fig:alg_example_3}.
 
 \begin{figure}
@@ -1030,7 +1045,7 @@ The complete, simplified DAG is visible in Figure \ref{fig:alg_example_3}.
             \draw [->, n] (cos) -- (+);
         \end{tikzpicture}
     }
-    \caption[Orignal DAG in Example of Multiple Pullback Contributions]{DAG representing the expression $\text{sin}(v) + \text{cos}((\text{sin}(v)))$.}
+    \caption[Orignal DAG in Example of Multiple Pullback Contributions]{DAG representing the expression $\text{sin}(v) + \text{cos}(\text{sin}(v))$.}
     \label{fig:alg_example_1}
 \end{figure}
 
@@ -1107,7 +1122,7 @@ The complete, simplified DAG is visible in Figure \ref{fig:alg_example_3}.
             \draw [->, n] (delta) to[out=90, in=220] (+);
         \end{tikzpicture}
     }
-    \caption[Simplified Differentiation DAG in Example of Multiple Pullback Contributions]{Full simplified differentiation DAG of the original DAG in Figure \ref{fig:alg_example_1}.}
+    \caption[Simplified Differentiation DAG in Example of Multiple Pullback Contributions]{Complete, simplified differentiation DAG of the original DAG in Figure \ref{fig:alg_example_1}.}
     \label{fig:alg_example_3}
 \end{figure}
 
@@ -1128,13 +1143,13 @@ They utilize the Fr\'{e}chet Derivative, which is defined as follows.
 
 For a function $f$ that maps from an order $k$ tensor to an order $l$ tensor, we call a tensor $D$ of order $k+l$ the derivative of $f$ at $x$ if and only if
 $$
-\text{lim}_{h \rightarrow 0} \frac{||f(x+h) - f(x) - D \circ h||}{||h||} = 0
+\lim_{h \rightarrow 0} \; \frac{||f(x+h) - f(x) - D \circ h||}{||h||} = 0
 $$
 Here, $\circ$ describes an inner product.
 In our notation, an inner product has the form $D *_{(s_1 s_2, s_2 \rightarrow s_1)} h$ for two index strings $s_1$ and $s_2$.
 
-Mitterreiter, Laue and Giesen start from this definition applied to the product node $A *_{(s_1, s_2 \rightarrow s_3)} B$ and transform it to describe the pullback of $B$.
-Important to us is the fourth equality of the proof, where the associative property for tensor products is used to transform $\bar{C} *_{(s_4s_3,s_3 \rightarrow s_4)} (A *_{(s_1,s_2 \rightarrow s_3)} h)$ into $(\bar{C} *_{(s_4s_3,s_1 \rightarrow s_4s_2)} A) *_{(s_4s_2,s_2 \rightarrow s_4)} h$.
+Laue, Mitterreiter and Giesen start from this definition applied to the product node $A *_{(s_1, s_2 \rightarrow s_3)} B$ and transform it to describe the pullback of $B$.
+Important to us is the fourth equality of their proof, where the associative property for tensor products is used to transform $\bar{C} *_{(s_4s_3,s_3 \rightarrow s_4)} (A *_{(s_1,s_2 \rightarrow s_3)} h)$ into $(\bar{C} *_{(s_4s_3,s_1 \rightarrow s_4s_2)} A) *_{(s_4s_2,s_2 \rightarrow s_4)} h$.
 Their goal is to create an expression that ends with a form of $D \circ h$, because that makes $D$ the Fr\'{e}chet Derivative they are looking for.
 
 However, consider the definition of the associative property for tensor products given by Laue, Mitterreiter and Giesen.
@@ -1153,7 +1168,6 @@ The indices we sum over are the indices of the inputs with the result indices re
 $$
 \sum_{s_3} \bar{C}[s_4 s_3] \; \left( \sum_{s_1 s_2 \setminus s_3} A[s_1] \; h[s_2] \right) 
 $$
-Note that we obtain the indices of the outer sum from $s_3 s_4 \setminus s_4 = s_3$.
 As both sums go over separate, non-overlapping index sets, we may collapse them into a single sum.
 $$
 \sum_{s_1 s_2 s_3} \bar{C}[s_4 s_3] \; A[s_1] \; h[s_2]
@@ -1163,8 +1177,8 @@ $$
 \sum_{s_2} \left( \sum_{s_1 s_3 \setminus s_2} \bar{C}[s_4 s_3] \; A[s_1] \right) \; h[s_2]
 $$
 Next, we write the inner sum in our Einstein-like tensor product notation.
-This requires that we determine the output indices of the tensor product by adding the input indices, $s_4 s_3$ and $s_1$, and removing the indices that are summed over, $s_1 s_3 \setminus s_2$.
-This leads to $s_1 s_3 s_4 \setminus (s_1 s_3 \setminus s_2)$, which we may simplify in the following way:
+This requires that we determine the output indices of the tensor product by removing the indices that are summed over, $s_1 s_3 \setminus s_2$, from the input indices, $s_4 s_3$ and $s_1$.
+The result, $s_1 s_3 s_4 \setminus (s_1 s_3 \setminus s_2)$, can be simplified in the following way:
 \begin{align*}
 &s_1 s_3 s_4 \setminus (s_1 s_3 \setminus s_2) \\
 &= s_1 s_3 s_4 \setminus (s_1 s_3 \cap \overline{s_2}) \\
@@ -1189,7 +1203,7 @@ $$
 (C *_{(s_4 s_3, s_1 \rightarrow s_4 \cup (s_1 s_3 \cap s_2))} A) *_{((s_4 \cup (s_1 s_3 \cap s_2)), s_2 \rightarrow s_4)} h
 $$
 At this point, if we had $s_4 s_2$ instead of $s_4 \cup (s_1 s_3 \cap s_2)$ in the left and right products, the right product would have the form $*_{(s_4 s_2, s_2 \rightarrow s_4)}$ and would be an inner product.
-We can see that $s_4 s_2 \neq s_4 \cup (s_1 s_3 \cap s_2)$ when there are indices in $s_2$ that are not present in either $s_1$ or $s_3$.
+We can see that $s_4 s_2 \neq s_4 \cup (s_1 s_3 \cap s_2)$ if and only if there are indices in $s_2$ that are not present in either $s_1$ or $s_3$.
 If we could remove this case, we would be successful in creating an inner product and thus in computing the derivative.
 
 To implement this idea and prevent invalid product nodes from appearing, we modify the original DAG before it is differentiated.
@@ -1264,23 +1278,23 @@ Both the modified DAG and the derivative are visible in Figure \ref{fig:missing_
 To be certain of the correctness of our algorithm even in edge cases, we implement test cases.
 Each test case consists of a tensor expression describing a function $f$, returning an order $q$ tensor. 
 Our algorithm computes the derivative $f'$ of this function with respect to an argument $x_k$ of order $p$.
-This computed derivative function is evaluated with random values for all tensor variables $x_1, x_2, ... x_n$, including the differentiation argument $x_k$.
+This computed derivative function is evaluated with random values for all tensor variables $x_1, x_2, ... x_n$ in the function, including the differentiation argument $x_k$.
 We call these specific values for $x_1, ... x_n$ $v_1, ... v_n$.
-Note that since each expression only specifies the number of axes a tensor variable has, but not the lenght of each axes, we need to arbitrarily assign the lengths.
+Note that since each expression only specifies the number of axes a tensor variable has, but not the length of each axis, we need to arbitrarily assign the lengths.
 We assign each axis the same length, $3$.
-We then compare $f'(x_1,... x_n)$ to a numerical approximation of the derivative we call $\overline{f'}$.
-If the tensor of differences, $|\overline{f'} - f'(x_1,... x_n)|$, is small enough in every entry (we use $10^{-6}$ as the maximum error allowed) then the check is passed.
+We then compare $f'(v_1,... v_n)$ to a numerical approximation of the derivative we call $\bar{f'}$.
+If the tensor of differences, $|\bar{f'} - f'(v_1,... v_n)|$, is small enough in every entry (we use $10^{-6}$ as the maximum error allowed) then the check is passed.
 
-This approximation,$\overline{f'}$, is computed using a variant of the definition of the derivative.
+This approximation, $\bar{f'}$, is computed using a variant of the definition of the derivative.
 For any function $g$ with a scalar argument $x_k$, we may approximate the derivative with respect to $x_k$ using the following formula.
-$$\overline{g'} = \frac{g(x_1,... x_k-h,... x_n) - g(x_1,... x_k+h,... x_n)}{2h}$$ 
+$$\bar{g'} = \frac{g(x_1,... x_k-h,... x_n) - g(x_1,... x_k+h,... x_n)}{2h}$$ 
 for a very small number $h$ (We use $10^{-8}$).
 
 Since the argument for our differentiation of $f$ argument is an order $p$ tensor, it is not always scalar.
 Thus, we have to compute this approximation for each entry of the argument $x_k$.
 In each computation, we only add and subtract $h$ to one element in $x_k$, leaving the rest constant.
-Each computation returns a tensor of order $q$.
-We combine all the computed order $q$ tensors in a tensor $\overline{f'}$ of order $p+q$, resulting in an approximation of the full derivative.
+Each computation returns a tensor of order $q$, approximating the partial derivative of $f$ with respect to one element of $x_k$.
+We combine all the computed order $q$ tensors in a tensor $\bar{f'}$ of order $p+q$, resulting in an approximation of the full derivative.
 
 These checks are performed on a number of expressions to cover all basic features of our developed language.
 A full list of them can be found in the appendix.
@@ -1289,7 +1303,7 @@ A full list of them can be found in the appendix.
 For performance purposes, it is of interest how the sizes of expressions change when we differentiate them.
 The size of an expression DAG may be measured in the number of nodes $|V|$ or the number of edges $|E|$ in the DAG.
 We include discussions on both size measures.
-In the differentiation process, there are two points where nodes are added to the differentiation DAG: when applying the differentiation rules and when summing contributions to the same pullback.
+In the differentiation process, there are two points where nodes and edges are added to the differentiation DAG: when applying the differentiation rules and when summing contributions to the same pullback.
 
 We apply one differentiation rule per node, with each differentiation rule adding a constant number of nodes and edges to the differentiation DAG.
 Thus, the number of nodes and the number of edges both scale linearly ($O(|V|)$) during this step.
@@ -1306,8 +1320,8 @@ In this thesis, we covered the design and implementation of a calculus for autom
 We created a language for general tensor expressions using an Einstein-like notation for tensor products and discussed how expressions formulated in this language may be parsed into a suitable representation, a directed acyclic graph (DAG).
 We also demonstrated multiple preprocessing steps, substituting some subexpressions for more easily differentiable ones, eliminating multiple occurences of the same subexpression and storing both tensor order and an axis tuple for each node in the DAG.
 We gave a review of the theory behind the differentiation of tensor expressions using our notation and demonstrated our implementation, which is able to differentiate the preprocessed expression DAGs.
-A problem with the differentiation of some tensor products in the original paper \cite{tensorpaper} by Mitterreiter, Laue and Giesen, on which this thesis builds, was identified and remedied.
-The correctness of our implementation was verified by numerical checks, where the computed derivatives of a number of example inputs were compared with numerical approximation for random inputs.
+A problem with the differentiation of some tensor products in the original work \cite{tensorpaper} by Laue, Mitterreiter and Giesen, on which this thesis builds, was identified and remedied.
+The correctness of our implementation was verified by numerical checks, where the computed derivatives of a number of example inputs were compared with numerical approximations for random inputs.
 We were also able to bound the growth of tensor expressions induced by differentiation to be linear in the number of nodes and edges in the directed acyclic graph representation of the expression.
 
 Possible further development could address the flexibility and readablity of the input language, for example by adding a generalized transpose operation that allows axis permutations, which have to be embedded in tensor products in the current language.
@@ -1330,7 +1344,7 @@ How our representation of tensor function derivatives can be used to detect conv
 \addcontentsline{toc}{chapter}{Appendix}
 \section*{List of Examples used in Numerical Checks}
 This list of example inputs with their respective derivatives is structured in the following way.
-Each example consists of two parts.
+Each example consists of two parts separated by an empty line, with examples being separated by a horizontal rule.
 The first part is the input string, containing the tensor variable names with their orders, the expression itself and the name of the variable with respect to which is being differentiated.
 The second part is the output of our algorithm, the resulting derivative.
 
@@ -1707,12 +1721,12 @@ declare X 2 expression sin(delta(1)) *(ij,ij->) X derivative wrt a
 \end{multicols}
 
 \chapter*{Selbstständigkeitserklärung}
-Ich erkläre, dass ich die vorliegende Arbeit selbständig und nur unter Verwendung der angegebenen Hilfsmittel und Quellen angefertigt habe.
+Ich erkläre, dass ich die vorliegende Arbeit selbstständig und nur unter Verwendung der angegebenen Hilfsmittel und Quellen angefertigt habe.
 Die eingereichte Arbeit ist nicht anderweitig als Prüfungsleistung verwendet worden oder in deutscher oder einer anderen Sprache als Veröffentlichung erschienen.
 
 \setlength{\parindent}{0pt}
 \vspace{10pt}
-Seitens des Verfassers bestehen keine Einwände, die vorliegende Bachelorarbeit für die öffentliche Benutzung zur Verfügung zu stellen. \vspace{50pt}
+Seitens des Verfassers bestehen keine Einwände, die vorliegende Bachelorarbeit für die öffentliche Benutzung im Universitätsarchiv zur Verfügung zu stellen. \vspace{80pt}
 
 Jena, 25.08.2022
 \pagenumbering{gobble}
