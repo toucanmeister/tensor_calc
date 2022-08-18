@@ -8,7 +8,7 @@ from exporttree import python_code
 # h:            x value difference used for the finite differences approximation
 # err_limit:    Maximum allowed absolute error
 # verbose:      Output lots of intermediate information or not
-def numcheck(d, h=1e-8, err_limit=0.01, verbose=False):
+def numcheck(d, h=1e-8, err_limit=1e-6, verbose=False):
     if verbose: 
         print('Numerical check')
         print('-----------------')

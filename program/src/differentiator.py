@@ -33,17 +33,18 @@ class Differentiator():
         self.diffDag.rank = originalRank * 2
         self.diffDag.axes = self.originalDag.axes + self.originalDag.axes
         self.diffDag = self.reverse_mode_diff(self.originalDag, self.diffDag)
+        self.diffDag.dot('dags/shmeep')
         self.diffDag.set_tensorrank(self.variable_ranks, self.arg)
         self.diffDag.add_incoming_edges()
         self.diffDag.unify_axes()
         self.diffDag.rename_equivalent_constants()
+        self.diffDag = self.diffDag.remove_unneccessary_deltas()
         self.simplify(self.diffDag)
         self.diffDag.eliminate_common_subtrees()
         self.diffDag.add_incoming_edges()
         self.diffDag.set_tensorrank(self.variable_ranks, self.arg)
         self.diffDag.unify_axes()
         self.diffDag.remove_nonexistant_axes()
-        self.diffDag = self.diffDag.remove_unneccessary_deltas()
 
     def reverse_mode_diff(self, node, diff):  # Computes derivative of node.left and node.right | node: node in original dag | diff : node that contains derivative with respect to node.
         if node.type == NODETYPE.PRODUCT:
@@ -241,42 +242,52 @@ class Differentiator():
     def simplify(self, node):
         if node.left: self.simplify(node.left)
         if node.right: self.simplify(node.right)
-        if self.is_simplifiable_sum_minus_1(node): # Simplify (a + (- b)) to (a - b)
-            node.type = NODETYPE.DIFFERENCE
-            node.name = '-'
-            node.right = node.right.right
-        if self.is_simplifiable_power(node): # Simplify exp(b * log(a)) to (a ^ b)
-            node.type = NODETYPE.POWER
-            node.name = '^'
-            node.left = node.right.left
-            node.right = node.right.right.right
-        if self.is_simplifiable_adj(node): # Simplify det(X) * inv(X) = adj(X)
-            node.type = NODETYPE.SPECIAL_FUNCTION
-            node.name = 'adj'
-            node.left = None
-            node.right = node.right.right
-        if self.is_simplifiable_const_minus(node): # Turn (- (const)) into a const with a minus
-            node.type = NODETYPE.CONSTANT
-            if node.right.name.startswith('-'):
-                node.name = node.right.name.strip('-')
-            else:
-                node.name = '-' + node.right.name
-            node.left = None
-            node.right = None
-        if self.is_simplifiable_const_sum(node): # Compute sum of constants
-            node.type = NODETYPE.CONSTANT
-            node.name = str(int(node.left.name.split()[0]) + int(node.right.name.split()[0]))
-            node.left = None
-            node.right = None
-        if self.is_simplifiable_const_sum_minus(node): # Simplify (a + b) to (a - (-b)) when b is a const and has a -
-            node.type = NODETYPE.DIFFERENCE
-            node.name = '-'
-            node.right.name = node.right.name.strip('-')
-        if self.is_simplifiable_const_diff(node): # Compute difference of constants
-            node.type = NODETYPE.CONSTANT
-            node.name = str(int(node.left.name.split()[0]) - int(node.right.name.split()[0]))
-            node.left = None
-            node.right = None
+        node_changed = True
+        while(node_changed):
+            node_changed = False
+            if self.is_simplifiable_sum_minus_1(node): # Simplify (a + (- b)) to (a - b)
+                node.type = NODETYPE.DIFFERENCE
+                node.name = '-'
+                node.right = node.right.right
+                node_changed = True
+            if self.is_simplifiable_power(node): # Simplify exp(b * log(a)) to (a ^ b)
+                node.type = NODETYPE.POWER
+                node.name = '^'
+                node.left = node.right.left
+                node.right = node.right.right.right
+                node_changed = True
+            if self.is_simplifiable_adj(node): # Simplify det(X) * inv(X) = adj(X)
+                node.type = NODETYPE.SPECIAL_FUNCTION
+                node.name = 'adj'
+                node.left = None
+                node.right = node.right.right
+                node_changed = True
+            if self.is_simplifiable_const_minus(node): # Turn (- (const)) into a const with a minus
+                node.type = NODETYPE.CONSTANT
+                if node.right.name.startswith('-'):
+                    node.name = node.right.name.strip('-')
+                else:
+                    node.name = '-' + node.right.name
+                node.left = None
+                node.right = None
+                node_changed = True
+            if self.is_simplifiable_const_sum(node): # Compute sum of constants
+                node.type = NODETYPE.CONSTANT
+                node.name = str(int(node.left.name.split('_')[0]) + int(node.right.name.split('_')[0]))
+                node.left = None
+                node.right = None
+                node_changed = True
+            if self.is_simplifiable_const_sum_minus(node): # Simplify (a + b) to (a - (-b)) when b is a const and has a -
+                node.type = NODETYPE.DIFFERENCE
+                node.name = '-'
+                node.right.name = node.right.name.strip('-')
+                node_changed = True
+            if self.is_simplifiable_const_diff(node): # Compute difference of constants
+                node.type = NODETYPE.CONSTANT
+                node.name = str(int(node.left.name.split('_')[0]) - int(node.right.name.split('_')[0]))
+                node.left = None
+                node.right = None
+                node_changed = True
 
 
     def is_simplifiable_sum_minus_1(self, node):
@@ -337,35 +348,10 @@ class Differentiator():
 
 if __name__ == '__main__':
     example= '''
-        declare
-            a 0
-            X 2
-            Y 2
-            W 2
-        expression (a *(,->) (W *(ij,ij->) W)) + (-1 *(,ik->) (log(exp(X *(ij,jk->ik) W) / ((exp(X *(ij,jk->ik) W) * (ik,k->i) 1) * (i,k->ik) 1) + 1e-08) * (ik,ik->ik) Y))    
-        derivative wrt W
+        declare x 0 expression 2 *(,->) (x+x) derivative wrt x
     '''
     d = Differentiator(example)
-    #d.originalDag.dot('dags/original')
     d.differentiate()
-    #d.render()
     print(d.diffDag.repr_with_constant_numbers())
-    d.differentiate()
-    print('Second time calling differentiate:')
-    print(d.diffDag.repr_with_constant_numbers())
-
-    example2 = '''
-        declare
-            a 0
-            X 2
-            Y 2
-            W 2
-        expression (((a *(,ij->ij) W) + (a *(,ij->ij) W)) + (((((((1 *(ik,->ik) -1) *(ik,ik->ik) Y) *(ab,ab->ab) (1 / ((((exp((X *(ij,jk->ik) W))) *(ab,ab->ab) (1 / ((((exp((X *(ij,jk->ik) W))) *(ik,k->i) 1) *(i,k->ik) 1)))) + 1e-08)))) *(ab,ab->ab) (1 / ((((exp((X *(ij,jk->ik) W))) *(ik,k->i) 1) *(i,k->ik) 1)))) + (((((((1 *(ik,->ik) -1) *(ik,ik->ik) Y) *(ab,ab->ab) (1 / ((((exp((X *(ij,jk->ik) W))) *(ab,ab->ab) (1 / ((((exp((X *(ij,jk->ik) W))) *(ik,k->i) 1) *(i,k->ik) 1)))) + 1e-08)))) *(ab,ab->ab) (exp((X *(ij,jk->ik) W)))) *(ab,ab->ab) (-((1 / (((((exp((X *(ij,jk->ik) W))) *(ik,k->i) 1) *(i,k->ik) 1) *(ab,ab->ab) (((exp((X *(ij,jk->ik) W))) *(ik,k->i) 1) *(i,k->ik) 1))))))) *(ik,k->i) 1) *(i,k->ik) 1)) *(ab,ab->ab) (exp((X *(ij,jk->ik) W)))) *(ik,ij->jk) X)) 
-        derivative wrt W
-    '''
-    d = Differentiator(example2)
-    d.differentiate()
-    print()
-    print('Explicitly differentiating the first diff:')
-    print(d.diffDag.repr_with_constant_numbers())
+    d.print_axes_help()
 

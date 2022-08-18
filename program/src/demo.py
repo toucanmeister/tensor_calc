@@ -11,4 +11,5 @@ if __name__ == '__main__':
 
     d = Differentiator(example)
     d.differentiate()
-    numcheck(d, verbose=True)
+    passed_checks = 0
+    numcheck(d, h = 1e-7, err_limit=1e-6, verbose=True)
