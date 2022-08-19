@@ -212,7 +212,7 @@ class Parser():
                         self.get_sym()
                         if self.fits(TOKEN_ID.RRBRACKET):
                             self.get_sym()
-                            tree = Tree(NODETYPE.DELTA, f'delta({deltanum})')
+                            tree = Tree(NODETYPE.DELTA, f'delta_{Tree.new_delta()}')
                             tree.rank = 2*deltanum
                         else:
                             self.error(TOKEN_ID.RRBRACKET.value)

@@ -3,6 +3,7 @@ from collections import OrderedDict
 
 from differentiator import Differentiator
 from exporttree import python_code
+from tree import NODETYPE
 
 # d:            Differentiator
 # h:            x value difference used for the finite differences approximation
@@ -15,8 +16,9 @@ def numcheck(d, h=1e-8, err_limit=1e-6, verbose=False):
         print(f'Original expression:   {d.originalDag}')
         print(f'Derivative expression: {d.diffDag}')
     axis_length = 3 # We set all axes to this length
-    variable_names = d.variable_ranks.keys()
-    variable_names_string = ','.join(variable_names)
+    variable_names = list(d.variable_ranks.keys())
+    (deltas, ranks) = get_deltas_in_input(d)
+    variable_names_string = ','.join(variable_names + deltas)
     f = eval(f'lambda {variable_names_string}: {python_code(d.originalDag)}') # Create a function that computes the expression represented by the dag
     df = eval(f'lambda {variable_names_string}: {python_code(d.diffDag)}')
     if verbose:
@@ -29,6 +31,11 @@ def numcheck(d, h=1e-8, err_limit=1e-6, verbose=False):
         for axis in range(d.variable_ranks[variable_name]):
             shape += (axis_length,) # Construct a tuple where each entry is the length of the corresponding axis, always axis_length
         variables[variable_name] = np.random.random_sample(shape) # All variables used in the expression with fitting shapes and random values. All axes have length axis_length
+    for delta in deltas:
+        shape = ()
+        for axis in range(ranks[delta]):
+            shape += (axis_length,)
+        variables[delta] = np.random.random_sample(shape)
     approx_shape = () # Shape of the output of df
     for axis in range(d.diffDag.rank):
         approx_shape += (axis_length,)
@@ -54,3 +61,16 @@ def numcheck(d, h=1e-8, err_limit=1e-6, verbose=False):
         if not check_passed: print('Check failed')
         else: print('Check passed')
     return check_passed
+
+def get_deltas_in_input(d):
+    deltas = []
+    ranks = {}
+    def helper(node):
+        if not node: return
+        if node.type == NODETYPE.DELTA and node.name not in deltas:
+            deltas.append(node.name)
+            ranks[node.name] = node.rank
+        helper(node.left)
+        helper(node.right)
+    helper(d.originalDag)
+    return deltas, ranks

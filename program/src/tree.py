@@ -21,6 +21,7 @@ class Tree():
     axes_counter = 1        # Running id for axes
     axis_to_origin = {}     # Axis -> Name of node from which that axis originated, along with the index of that axis in the original node
     constant_counter = 0    # Running id for constants
+    delta_counter = 0       # Running id for deltas
     printing_constants = {} # A dict for saving constants that only get created during printing and their axes 
                             # (this is for convenience when transforming elementwise_inverse(x) to 1/x during printing)
     
@@ -55,8 +56,10 @@ class Tree():
 
     def __repr__(self):
         to_print = self.name
-        if self.type == NODETYPE.CONSTANT:
-            to_print = to_print.split('_')[0] # Removes the running constant number 
+        if self.type in [NODETYPE.CONSTANT, NODETYPE.DELTA]:
+            to_print = to_print.split('_')[0] # Removes the running id 
+        if self.type == NODETYPE.DELTA:
+            to_print += f'({str(int(self.rank / 2))})'
         if self.right:
             if self.left:
                 return f'({self.left} {to_print} {self.right})'
@@ -70,17 +73,20 @@ class Tree():
             return f'{to_print}'
     
     def repr_with_constant_numbers(self):
+        to_print = self.name
+        if self.type == NODETYPE.DELTA:
+            to_print += f'({str(int(self.rank / 2))})'
         if self.right:
             if self.left:
-                return f'({self.left} {self.name} {self.right})'
+                return f'({self.left} {to_print} {self.right})'
             else:
                 if self.name == 'elementwise_inverse':
                     const = f'1_{Tree.new_constant()}'
                     Tree.printing_constants[const] = self.right.axes
                     return f'({const} / ({self.right}))'
-                return f'({self.name}({self.right}))'
+                return f'({to_print}({self.right}))'
         else:
-            return f'{self.name}'
+            return f'{to_print}'
     
     def __eq__(self, other):
         return other and self.type == other.type and self.name == other.name and self.rank == other.rank and self.left == other.left and self.right == other.right and self.axes == other.axes
@@ -166,6 +172,12 @@ class Tree():
         constant = Tree.constant_counter
         Tree.constant_counter += 1
         return constant
+    
+    @classmethod
+    def new_delta(cls):
+        delta = Tree.delta_counter
+        Tree.delta_counter += 1
+        return delta
 
     @classmethod
     def reset_tree_attributes(cls):

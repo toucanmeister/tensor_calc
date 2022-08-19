@@ -3,6 +3,14 @@ from scanner import ELEMENTWISE_FUNCTIONS, TOKEN_ID
 from tree import Tree, NODETYPE
 import string
 
+#                   !!! Important Note !!!
+# ------------------------------------------------------------------
+# Currently, a lot of information about the current differentiation 
+# is stored in class variables of the Tree class.
+# This causes some not nice behaviour when working with multiple
+# Differentiations at once. Therefore, this is not advised.
+# ------------------------------------------------------------------
+
 # This class differentiates an expression DAG with respect to an argument supplied by the parser
 class Differentiator():
     def __init__(self, input):
@@ -29,11 +37,10 @@ class Differentiator():
             self.diffDag.rank = originalRank * 2
             self.diffDag.axes = self.originalDag.axes + self.originalDag.axes
             return
-        self.diffDag = Tree(NODETYPE.DELTA, f'delta({originalRank})')   # Derivative of the top node y with respect to itself
+        self.diffDag = Tree(NODETYPE.DELTA, f'delta_{Tree.new_delta()}')   # Derivative of the top node y with respect to itself
         self.diffDag.rank = originalRank * 2
         self.diffDag.axes = self.originalDag.axes + self.originalDag.axes
         self.diffDag = self.reverse_mode_diff(self.originalDag, self.diffDag)
-        self.diffDag.dot('dags/shmeep')
         self.diffDag.set_tensorrank(self.variable_ranks, self.arg)
         self.diffDag.add_incoming_edges()
         self.diffDag.unify_axes()

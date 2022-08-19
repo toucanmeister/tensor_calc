@@ -4,12 +4,13 @@ from numcheck import numcheck
 if __name__ == '__main__':
     example = '''
         declare 
-            A 2
-        expression inv(A)
-        derivative wrt A
+            v 1 
+        expression (delta(1) + 1) *(ij,i->i) (v *(i,i->i) v) 
+        derivative wrt v
     '''
-
     d = Differentiator(example)
     d.differentiate()
-    passed_checks = 0
-    numcheck(d, h = 1e-7, err_limit=1e-6, verbose=True)
+    d.render()
+    d2 = Differentiator(f'declare v 1 expression {d.diffDag} derivative wrt v')
+    d2.differentiate()
+    numcheck(d2, verbose=True)
