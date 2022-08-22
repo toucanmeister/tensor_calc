@@ -1,4 +1,4 @@
-\documentclass[12pt, a4paper]{report} % openright, twoside
+\documentclass[12pt, a4paper]{report}
 \usepackage[utf8]{inputenc}
 \usepackage[left=40mm, right=20mm, top=30mm, bottom=30mm]{geometry}
 \usepackage{titlesec}
@@ -91,18 +91,20 @@ Supervisor: Prof. Dr. Joachim Giesen
 
 
 \begin{document}
-\maketitle
 \pagenumbering{gobble}
+\maketitle
+\cleardoublepage
 \chapter*{Zusammenfassung}
 Beim Finden von Lösungen für Optimierungsprobleme spielen Ableitungen eine zentrale Rolle.
 Das automatische symbolische Ableiten von Matrixausdrücken und das numerische Ableiten von Tensorausdrücken sind gut erforscht und werden in der Wirtschaft extensiv genutzt.
-Das Feld der automatischen symbolischen Ableitung von Tensorausdrücken ist hingegen weniger gut untersucht, obwohl es Anwendungsmöglichkeiten für Optimierungsalgorithmen und Konvexitätsprüfungen hat. 
+Das Feld der automatischen symbolischen Ableitung von Tensorausdrücken ist hingegen weniger gut untersucht, obwohl es in Optimierungsalgorithmen und Konvexitätsprüfungen angewandt werden kann. 
 In dieser Arbeit wird zum Schluss dieser Lücke beigetragen, indem ein Kalkül für die automatische symbolische Ableitung von Tensorausdrücken jeglicher Ordnung eingeführt und implementiert wird.
 Zur Darstellung von Tensorprodukten nutzt das Kalkül ein Derivat der Einsteinnotation.
 Dieses ist generischer, als die im populären Riccikalkül verwendete Notation.
 Tensorausdrücke werden im Kalkül durch gerichtete azyklische Graphen repräsentiert, was es ermöglicht, das ableitungsbedingte Wachstum der Ausdrücke als höchstens linear in der Knoten- und Kantenzahl des Graphen zu bestimmen.
 \pagenumbering{gobble}
 
+\cleardoublepage
 \chapter*{Abstract}
 In optimization problems, derivatives play a crucial role in finding an optimal solution.
 Automatic symbolic differentiation of matrix expressions and numerical differentiation of tensor expressions are well researched and used extensively in the industry.
@@ -112,9 +114,9 @@ The calculus uses an Einstein-like product notation that is more general than th
 Furthermore, its representation of tensor expressions as directed acyclic graphs allows us to bound the differentiation-induced growth of the expression to be at most linear in the number of edges and nodes in the graph.
 \pagenumbering{gobble}
 
-\clearpage
+\cleardoublepage
 \tableofcontents
-\clearpage
+\cleardoublepage
 
 \pagenumbering{arabic}
 \setcounter{page}{5}
@@ -151,7 +153,7 @@ We then discuss the parsing and representation of tensor expressions.
 Following that, the theoretical background and practical implementation of the differentiation process are described.
 We also remedy a problem that was present in the original work \cite{tensorpaper} by Laue, Mitterreiter and Giesen and prove that our algorithm causes tensor expressions to grow at most linearly when differentiating.
 
-A short note on notation: This thesis uses a \codeword{monospace} font when describing strings of characters.
+A short note on notation: This thesis uses a \codeword{monospaced} font when describing strings of characters.
 
 \chapter{A Syntax for Tensor Expressions}
 \section{Aims}
@@ -264,7 +266,7 @@ The expression to be differentiated follows after \codeword{expression}.
 The last keyword, \codeword{derivative wrt}, precedes the name of the argument variable with respect to which is being differentiated.
 
 As can be seen in the grammar, we allow the following binary operations on tensors: products (\codeword{*(,->)}), sums (\codeword{+}), differences (\codeword{-}) and quotients (\codeword{/}).
-With the exception of tensor products, which have already been discussed, these operations are executed elementwise.
+Except for tensor products, which have already been discussed, these operations are executed elementwise.
 Exponentiation (\codeword{^}) is also included, but not as a true binary operator on tensors, as the exponent may only be scalar, with each entry of the basis tensor being combined with the exponent.
 
 A variety of functions with relevance to optimization and machine learning are included, mostly being applied elementwise to tensors of any order.
@@ -1177,18 +1179,18 @@ $$
 $$
 Next, we write the inner sum in our Einstein-like tensor product notation.
 This requires that we determine the output indices of the tensor product by removing the indices that are summed over, $s_1 s_3 \setminus s_2$, from the input indices, $s_4 s_3$ and $s_1$.
-The result, $s_1 s_3 s_4 \setminus (s_1 s_3 \setminus s_2)$, can be simplified in the following way:
 
+The result, $s_1 s_3 s_4 \setminus (s_1 s_3 \setminus s_2)$, can be simplified in the following way:
 \begin{align*}
 &s_1 s_3 s_4 \setminus (s_1 s_3 \setminus s_2) \\
 &= s_1 s_3 s_4 \setminus (s_1 s_3 \cap \overline{s_2}) \\
 &= s_1 s_3 s_4 \cap \overline{(s_1 s_3 \cap \overline{s_2})} \\
-&= s_1 s_3 s_4 \cap (\overline{s_1 s_3} \cup s_2) \\
+&= s_1 s_3 s_4 \cap (\overline{s_1 s_3} \cup s_2) \displaybreak \\
 &= (s_1 s_3 s_4 \cap \overline{s_1 s_3}) \cup (s_1 s_3 s_4 \cap s_2) \\
 &= (s_1 s_3 s_4 \setminus s_1 s_3) \cup (s_1 s_3 s_4 \cap s_2) \\
 &= (s_4 \setminus s_1 s_3) \cup (s_1 s_3 s_4 \cap s_2) \\
 &= s_4 \cup (s_1 s_3 s_4 \cap s_2) \\
-&= s_4 \cup (s_1 s_3 \cap s_2) \\
+&= s_4 \cup (s_1 s_3 \cap s_2)
 \end{align*}
 where $\bar{x}$ is the set complement of $x$.
 The last two simplification steps are possible because the output indices of the root node, $s_4$, are always be chosen to be disjoint to $s_1$, $s_2$ and $s_3$.
@@ -1286,9 +1288,9 @@ We then compare $f'(v_1,..., v_n)$ to a numerical approximation of the derivativ
 If the tensor of differences, $|\bar{f'} - f'(v_1,..., v_n)|$, is small enough in every entry (we use $10^{-6}$ as the maximum error allowed) then the check is passed.
 
 This approximation, $\bar{f'}$, is computed using a variant of the definition of the derivative.
-For any function $g$ with $n$ variables $x_1, ..., x_n$, including a scalar argument $x_k$, we may approximate the derivative with respect to $x_k$ at a point $(v_1, ..., v_n)$ using the following formula.
+For any function $g$ with $n$ variables $x_1, ..., x_n$, including a scalar argument $x_k$, we may approximate the derivative with respect to $x_k$ at a point $(v_1, ..., v_n)$ using the following formula with a very small number $h$ (We use $10^{-8}$).
+
 $$\bar{g'} = \frac{g(v_1,..., v_k-h,..., v_n) - g(v_1,..., v_k+h,..., v_n)}{2h}$$ 
-for a very small number $h$ (We use $10^{-8}$).
 
 Since the argument for our differentiation of $f$ is an order $p$ tensor, it is not always scalar.
 Thus, we have to compute this approximation for each entry of the argument $x_k$.
@@ -1330,6 +1332,7 @@ Furthermore, our algorithms could be analyzed and optimized in regard to efficie
 Lastly, one possible use of this thesis' results are convexity checks for arbitrary functions.
 How our representation of tensor function derivatives can be used to detect convexity and concavity is worth investigating.
 
+\cleardoublepage
 \printbibliography
 \addcontentsline{toc}{chapter}{Bibliography}
 
@@ -1340,6 +1343,7 @@ How our representation of tensor function derivatives can be used to detect conv
 \listoftables
 \listofalgorithms
 
+\cleardoublepage
 \chapter*{Appendix}
 \addcontentsline{toc}{chapter}{Appendix}
 \section*{List of Examples used in Numerical Checks}
@@ -1720,6 +1724,7 @@ declare X 2 expression sin(delta(1)) *(ij,ij->) X derivative wrt a
 \end{verbatim}
 \end{multicols}
 
+\cleardoublepage
 \chapter*{Selbstständigkeitserklärung}
 Ich erkläre, dass ich die vorliegende Arbeit selbstständig und nur unter Verwendung der angegebenen Hilfsmittel und Quellen angefertigt habe.
 Die eingereichte Arbeit ist nicht anderweitig als Prüfungsleistung verwendet worden oder in deutscher oder einer anderen Sprache als Veröffentlichung erschienen.
@@ -1730,5 +1735,5 @@ Seitens des Verfassers bestehen keine Einwände, die vorliegende Bachelorarbeit 
 
 Jena, 25.08.2022
 \pagenumbering{gobble}
-
+\cleardoublepage
 \end{document}
