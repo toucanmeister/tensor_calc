@@ -16,16 +16,32 @@ class NODETYPE(Enum):
     POWER = 'power'
     DELTA = 'delta'
 
-class Tree():
-    node_counter = 0        # Running id for nodes, just used for the visualization
-    axes_counter = 1        # Running id for axes
-    axis_to_origin = {}     # Axis -> Name of node from which that axis originated, along with the index of that axis in the original node
-    constant_counter = 0    # Running id for constants
-    delta_counter = 0       # Running id for deltas
-    printing_constants = {} # A dict for saving constants that only get created during printing and their axes 
-                            # (this is for convenience when transforming elementwise_inverse(x) to 1/x during printing)
+class TreeCompanion(): # Since trees are recursive datastructures, we use this companion class to store information about them
+    def __init__(self):
+        self.node_counter = 0           # Running id for nodes, just used for the visualization
+        self.axes_counter = 1           # Running id for axes
+        self.axis_to_origin = {}        # Axis -> Name of node from which that axis originated, along with the index of that axis in the original node
+        self.constant_counter = 0       # Running id for constants
+        self.delta_counter = 0          # Running id for deltas
+        self.printing_constants = {}    # A dict for saving constants that only get created during printing and their axes 
+                                        # (this is for convenience when transforming elementwise_inverse(x) to 1/x during printing)
+    def new_axis(self):
+        axis = self.axes_counter
+        self.axes_counter += 1
+        return axis
+
+    def new_constant(self):
+        constant = self.constant_counter
+        self.constant_counter += 1
+        return constant
     
-    def __init__(self, nodetype, name, left=None, right=None):
+    def new_delta(self):
+        delta = self.delta_counter
+        self.delta_counter += 1
+        return delta
+
+class Tree():
+    def __init__(self, nodetype, name, left=None, right=None, companion=None):
         self.type = nodetype
         self.name = name
         self.left = left
@@ -37,8 +53,14 @@ class Tree():
             self.leftIndices = ''       # Indices in the einstein product notation
             self.rightIndices = ''
             self.resultIndices = ''
-        self.id = Tree.node_counter   # This is just for the visualization
-        Tree.node_counter += 1
+
+        if companion == None:
+            self.companion = TreeCompanion()
+        else:
+            self.companion = companion
+        
+        self.id = self.companion.node_counter   # This is just for the visualization
+        self.companion.node_counter += 1
     
     def set_left(self, left):
         self.left = left
@@ -65,8 +87,8 @@ class Tree():
                 return f'({self.left} {to_print} {self.right})'
             else:
                 if self.name == 'elementwise_inverse':
-                    const = f'1_{Tree.new_constant()}'
-                    Tree.printing_constants[const] = self.right.axes
+                    const = f'1_{self.companion.new_constant()}'
+                    self.companion.printing_constants[const] = self.right.axes
                     return f'({1} / ({self.right}))'
                 return f'({to_print}({self.right}))'
         else:
@@ -81,8 +103,8 @@ class Tree():
                 return f'({self.left} {to_print} {self.right})'
             else:
                 if self.name == 'elementwise_inverse':
-                    const = f'1_{Tree.new_constant()}'
-                    Tree.printing_constants[const] = self.right.axes
+                    const = f'1_{self.companion.new_constant()}'
+                    self.companion.printing_constants[const] = self.right.axes
                     return f'({const} / ({self.right}))'
                 return f'({to_print}({self.right}))'
         else:
@@ -144,48 +166,22 @@ class Tree():
         if self.left.rank != len(self.leftIndices):
             desired_axes = []
             for i in self.leftIndices:
-                axis = Tree.new_axis()
-                Tree.axis_to_origin[axis] = 'broadcast_axis_product' # These axes should get overriden by axes coming from variables
+                axis = self.companion.new_axis()
+                self.companion.axis_to_origin[axis] = 'broadcast_axis_product' # These axes should get overriden by axes coming from variables
                 desired_axes.append(axis)
             if not self.left.try_broadcasting(len(self.leftIndices), desired_axes):
                 raise Exception(f'Rank of left input \'{self.left.name}\' ({self.left.rank}) to product node does not match product indices \'{self.leftIndices}\'.')
         elif self.right.rank != len(self.rightIndices):
             desired_axes = []
             for i in self.rightIndices:
-                axis = Tree.new_axis()
-                Tree.axis_to_origin[axis] = 'broadcast_axis_product' # These axes should get overriden by axes coming from variables
+                axis = self.companion.new_axis()
+                self.companion.axis_to_origin[axis] = 'broadcast_axis_product' # These axes should get overriden by axes coming from variables
                 desired_axes.append(axis)
             if not self.right.try_broadcasting(len(self.rightIndices), desired_axes):
                 raise Exception(f'Rank of right input \'{self.right.name}\' ({self.right.rank}) to product node does not match product indices \'{self.rightIndices}\'.')
         for index in self.resultIndices:
             if not (index in self.leftIndices or index in self.rightIndices):
                 raise Exception(f'Result index \'{index}\' of product node \'{self.name}\' not in left or right index set.')
-
-    @classmethod
-    def new_axis(cls):
-        axis = Tree.axes_counter
-        Tree.axes_counter += 1
-        return axis
-
-    @classmethod
-    def new_constant(cls):
-        constant = Tree.constant_counter
-        Tree.constant_counter += 1
-        return constant
-    
-    @classmethod
-    def new_delta(cls):
-        delta = Tree.delta_counter
-        Tree.delta_counter += 1
-        return delta
-
-    @classmethod
-    def reset_tree_attributes(cls):
-        Tree.node_counter = 0
-        Tree.axes_counter = 1
-        Tree.axis_to_origin = {}
-        Tree.constant_counter = 0
-        Tree.printing_constants = {}
 
     def set_tensorrank(self, variable_ranks, arg):
         if self.left:
@@ -198,39 +194,39 @@ class Tree():
             self.rank = variable_ranks[self.name]
             if self.axes == []:
                 for i in range(self.rank):
-                    axis = Tree.new_axis()
+                    axis = self.companion.new_axis()
                     self.axes.append(axis)
-                    Tree.axis_to_origin[axis] = f'{self.name}[{i}]'
+                    self.companion.axis_to_origin[axis] = f'{self.name}[{i}]'
         elif self.type == NODETYPE.DELTA:
             if self.axes == []:
                 for i in range(self.rank):
-                    axis = Tree.new_axis()
+                    axis = self.companion.new_axis()
                     self.axes.append(axis)
-                    Tree.axis_to_origin[axis] = f'{self.name}[{i}]'
+                    self.companion.axis_to_origin[axis] = f'{self.name}[{i}]'
         elif self.type == NODETYPE.ELEMENTWISE_FUNCTION:
             self.rank = self.right.rank
             self.axes = self.right.axes
         elif self.type == NODETYPE.SPECIAL_FUNCTION:
             if self.name == 'inv':
                 if self.right.rank != 2:
-                    axis = Tree.new_axis()
-                    Tree.axis_to_origin[axis] = 'broadcast_axis_inv' # These axes should get overriden by axes coming from variables
+                    axis = self.companion.new_axis()
+                    self.companion.axis_to_origin[axis] = 'broadcast_axis_inv' # These axes should get overriden by axes coming from variables
                     if not self.right.try_broadcasting(2, [axis, axis]):
                         raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
                 self.rank = 2
                 self.axes = self.right.axes
             elif self.name == 'det':
                 if self.right.rank != 2:
-                    axis = Tree.new_axis()
-                    Tree.axis_to_origin[axis] = 'broadcast_axis_det' # These axes should get overriden by axes coming from variables
+                    axis = self.companion.new_axis()
+                    self.companion.axis_to_origin[axis] = 'broadcast_axis_det' # These axes should get overriden by axes coming from variables
                     if not self.right.try_broadcasting(2, [axis, axis]):
                         raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
                 self.rank = 0
                 self.axes = []
             elif self.name == 'adj':
                 if self.right.rank != 2:
-                    axis = Tree.new_axis()
-                    Tree.axis_to_origin[axis] = 'broadcast_axis_adj' # These axes should get overriden by axes coming from variables
+                    axis = self.companion.new_axis()
+                    self.companion.axis_to_origin[axis] = 'broadcast_axis_adj' # These axes should get overriden by axes coming from variables
                     if not self.right.try_broadcasting(2, [axis, axis]):
                         raise Exception(f'Rank of operand \'{self.right}\' to inv node is not 2.')
                 self.rank = 2
@@ -243,7 +239,7 @@ class Tree():
             self.rank = self.left.rank
             self.axes = self.left.axes
             for i in range(len(self.axes)):
-                if Tree.axis_to_origin[self.axes[i]].startswith('broadcast_axis') or Tree.axis_to_origin[self.axes[i]].startswith('delta'): # This axis does not come from a variable, needs to be overriden
+                if self.companion.axis_to_origin[self.axes[i]].startswith('broadcast_axis') or self.companion.axis_to_origin[self.axes[i]].startswith('delta'): # This axis does not come from a variable, needs to be overriden
                     self.axes[i] = self.right.axes[i]
         elif self.type == NODETYPE.POWER:
             if self.right.rank != 0:
@@ -266,7 +262,7 @@ class Tree():
                     if i in self.leftIndices and i in self.rightIndices: # If we may take it from both left and right, choose the one with the axis coming from a variable
                         left_axis = self.left.axes[self.leftIndices.index(i)]
                         right_axis = self.right.axes[self.rightIndices.index(i)]
-                        if Tree.axis_to_origin[left_axis].startswith('broadcast_axis') or Tree.axis_to_origin[left_axis].startswith('delta'):
+                        if self.companion.axis_to_origin[left_axis].startswith('broadcast_axis') or self.companion.axis_to_origin[left_axis].startswith('delta'):
                             self.axes.append(right_axis)
                         else:
                             self.axes.append(left_axis)
@@ -309,7 +305,7 @@ class Tree():
                 if indexInRight != -1:
                     left_axis = self.left.axes[i]
                     right_axis = self.right.axes[indexInRight]
-                    if Tree.axis_to_origin[left_axis].startswith('broadcast_axis') or Tree.axis_to_origin[left_axis].startswith('delta'): # Axis that does not come from a variable, we should choose the other one
+                    if self.companion.axis_to_origin[left_axis].startswith('broadcast_axis') or self.companion.axis_to_origin[left_axis].startswith('delta'): # Axis that does not come from a variable, we should choose the other one
                         self.get_root().rename_axis(left_axis, right_axis)
                     else:
                         self.get_root().rename_axis(right_axis, left_axis)
@@ -373,18 +369,18 @@ class Tree():
             self.right.incoming.append(self)
             self.right.add_incoming_edges()
         
-    def remove_nonexistant_axes(self):  # Removes from Tree.axis_to_origin all axes that do not occur in this (sub)tree
+    def remove_nonexistant_axes(self):  # Removes from self.companion.axis_to_origin all axes that do not occur in this (sub)tree
         def contains_axis(node, axis):
             if not node:
                 return False
             else:
                 return (axis in node.axes) or contains_axis(node.left, axis) or contains_axis(node.right, axis)
         axes_to_remove = []
-        for axis in Tree.axis_to_origin.keys():
+        for axis in self.companion.axis_to_origin.keys():
             if not contains_axis(self, axis):
                 axes_to_remove.append(axis)
         for axis in axes_to_remove:
-            Tree.axis_to_origin.pop(axis)
+            self.companion.axis_to_origin.pop(axis)
         
     def remove_unneccessary_deltas(self):
         def left_indices_fit():
@@ -423,7 +419,7 @@ class Tree():
 
     def fix_missing_indices(self, arg):
         def add_blowup(resultIndices, missingIndices):
-            blowup = Tree(NODETYPE.PRODUCT, f'*({resultIndices+missingIndices},{missingIndices}->{resultIndices})', self, Tree(NODETYPE.CONSTANT, f'1_{Tree.new_constant()}'))
+            blowup = Tree(NODETYPE.PRODUCT, f'*({resultIndices+missingIndices},{missingIndices}->{resultIndices})', self, Tree(NODETYPE.CONSTANT, f'1_{self.companion.new_constant()}', companion=self.companion), companion=self.companion)
             blowup.set_indices(resultIndices+missingIndices, missingIndices, resultIndices)
             self.add_incoming_edges()
             for parent in self.incoming:

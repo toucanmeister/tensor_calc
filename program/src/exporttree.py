@@ -30,7 +30,7 @@ op_to_np = {
 
 def _get_missing_axis(dag):
     axis_to_numpy = {}
-    for axis, origin in dag.axis_to_origin.items():
+    for axis, origin in dag.companion.axis_to_origin.items():
         var_name = origin.split('[')[0]
         index = origin.split('[')[1].split(']')[0]
         axis_to_numpy[axis] = f'np.shape({var_name})[{index}]'
