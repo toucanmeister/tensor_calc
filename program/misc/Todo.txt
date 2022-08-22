@@ -60,8 +60,9 @@ x Spezialfall verschwindende Achsen handlen (Delta aufpusten)
   x Mehr Tests
 x Numerischer Check für die Ableitungen
   x deltas keinen Unterstrich
-- Schöneres Print
 x Codeerzeugung
-
-- Schreiben:
-	- Beweis, dass unsere Transformation funktioniert
+x Numcheck Bug fixen: Deltas im Input machen Probleme, weil ihre Achsen von ihnen selbst kommen
+x Deltas bräuchten auch Nummerierung wie Konstanten
+x Funktionalisierung
+- Instanziierung clean machen (Klassenvariablen aus der Tree Klasse entfernen)
+- Schöneres Print
