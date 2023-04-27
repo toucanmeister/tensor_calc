@@ -1,5 +1,5 @@
 # tensor_calc
-A tool for symbolically differentiating tensor expressions, created for by bachelor's thesis at FSU Jena in the summer semester of 2022.
+A tool for symbolically differentiating tensor expressions, created for my bachelor's thesis at FSU Jena in the summer semester of 2022.
 
 ## Usage
 View `demo.py` to get an idea of how the tool can be used to differentiate a tensor expression and how the resulting derivative can be checked numerically for correctness.
